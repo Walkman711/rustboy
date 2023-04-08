@@ -11,6 +11,17 @@ impl CPU {
     }
 }
 
+// alu ops
+impl CPU {
+    fn alu_add(&mut self, val: u8) {
+        todo!()
+    }
+
+    fn alu_sub(&mut self, reg: Register) {
+        todo!()
+    }
+}
+
 impl CPU {
     fn fetch_byte(&self) -> u8 {
         todo!()

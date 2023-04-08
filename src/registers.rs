@@ -2,10 +2,10 @@
 
 const HIGH_MASK: u16 = 0xFF00;
 const LOW_MASK: u16 = 0x00FF;
-const ZERO_FLAG: u8 = 0b10000000;
-const ADD_FLAG: u8 = 0b01000000;
-const HALF_CARRY_FLAG: u8 = 0b00100000;
-const CARRY_FLAG: u8 = 0b00010000;
+pub const ZERO_FLAG: u8 = 0b10000000;
+pub const SUBTRACT_FLAG: u8 = 0b01000000;
+pub const HALF_CARRY_FLAG: u8 = 0b00100000;
+pub const CARRY_FLAG: u8 = 0b00010000;
 
 #[derive(Copy, Clone, Debug, Default)]
 pub struct Reg16 {
@@ -60,12 +60,12 @@ pub enum Register {
 
 #[derive(Copy, Clone, Debug)]
 pub struct Registers {
-    af: Reg16,
-    bc: Reg16,
-    de: Reg16,
-    hl: Reg16,
-    sp: u16,
-    pc: u16,
+    pub af: Reg16,
+    pub bc: Reg16,
+    pub de: Reg16,
+    pub hl: Reg16,
+    pub sp: u16,
+    pub pc: u16,
 }
 
 // All values taken from Section 2.7.1 of the Gameboy CPU manual
@@ -112,12 +112,18 @@ impl Registers {
 }
 
 impl Registers {
+    pub fn set_flag(&mut self, flag: u8) {
+        let mut v = self.get_reg(Register::F);
+        v |= flag;
+        self.set_reg(Register::F, v);
+    }
+
     pub fn zero_flag_set(&self) -> bool {
         self.get_reg(Register::F) & ZERO_FLAG != 0
     }
 
-    pub fn add_flag_set(&self) -> bool {
-        self.get_reg(Register::F) & ADD_FLAG != 0
+    pub fn subtract_flag_set(&self) -> bool {
+        self.get_reg(Register::F) & SUBTRACT_FLAG != 0
     }
 
     pub fn half_carry_flag_set(&self) -> bool {
@@ -137,15 +143,15 @@ pub mod test {
     fn flag_register() {
         let mut registers = Registers::default();
         assert!(!registers.zero_flag_set());
-        assert!(!registers.add_flag_set());
+        assert!(!registers.subtract_flag_set());
         assert!(!registers.half_carry_flag_set());
         assert!(!registers.carry_flag_set());
 
         registers.set_reg(Register::F, ZERO_FLAG);
         assert!(registers.zero_flag_set());
 
-        registers.set_reg(Register::F, ADD_FLAG);
-        assert!(registers.add_flag_set());
+        registers.set_reg(Register::F, SUBTRACT_FLAG);
+        assert!(registers.subtract_flag_set());
 
         registers.set_reg(Register::F, HALF_CARRY_FLAG);
         assert!(registers.half_carry_flag_set());
@@ -155,7 +161,7 @@ pub mod test {
 
         registers.set_reg(Register::F, 0);
         assert!(!registers.zero_flag_set());
-        assert!(!registers.add_flag_set());
+        assert!(!registers.subtract_flag_set());
         assert!(!registers.half_carry_flag_set());
         assert!(!registers.carry_flag_set());
     }
