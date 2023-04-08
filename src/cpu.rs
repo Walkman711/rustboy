@@ -5,11 +5,9 @@ pub struct CPU {
 }
 
 impl CPU {
-    fn ld(&mut self, dst: Register, src: Register) -> u32 {
+    fn ld(&mut self, dst: Register, src: Register) {
         let src_val = self.registers.get_reg(src);
         self.registers.set_reg(dst, src_val);
-        let elapsed_cycles = todo!("figure out what the A,(HL) loads mean")
-        elapsed_cycles
     }
 }
 
@@ -89,54 +87,180 @@ impl CPU {
             0x3D => unimplemented!("Opcode 0x3D"),
             0x3E => unimplemented!("Opcode 0x3E"),
             0x3F => unimplemented!("Opcode 0x3F"),
-            0x40 => self.ld(Register::B, Register::B),
-            0x41 => self.ld(Register::B, Register::C),
-            0x42 => self.ld(Register::B, Register::D),
-            0x43 => self.ld(Register::B, Register::E),
-            0x44 => self.ld(Register::B, Register::H),
-            0x45 => self.ld(Register::B, Register::L),
+            0x40 => {
+                self.ld(Register::B, Register::B);
+                4
+            }
+            0x41 => {
+                self.ld(Register::B, Register::C);
+                4
+            }
+            0x42 => {
+                self.ld(Register::B, Register::D);
+                4
+            }
+            0x43 => {
+                self.ld(Register::B, Register::E);
+                4
+            }
+            0x44 => {
+                self.ld(Register::B, Register::H);
+                4
+            }
+            0x45 => {
+                self.ld(Register::B, Register::L);
+                4
+            }
             0x46 => unimplemented!("Opcode 0x46"),
-            0x47 => unimplemented!("Opcode 0x48"),
-            0x48 => self.ld(Register::C, Register::B),
-            0x49 => self.ld(Register::C, Register::C),
-            0x4A => self.ld(Register::C, Register::D),
-            0x4B => self.ld(Register::C, Register::E),
-            0x4C => self.ld(Register::C, Register::H),
-            0x4D => self.ld(Register::C, Register::L),
+            0x47 => {
+                self.ld(Register::B, Register::A);
+                4
+            }
+            0x48 => {
+                self.ld(Register::C, Register::B);
+                4
+            }
+            0x49 => {
+                self.ld(Register::C, Register::C);
+                4
+            }
+            0x4A => {
+                self.ld(Register::C, Register::D);
+                4
+            }
+            0x4B => {
+                self.ld(Register::C, Register::E);
+                4
+            }
+            0x4C => {
+                self.ld(Register::C, Register::H);
+                4
+            }
+            0x4D => {
+                self.ld(Register::C, Register::L);
+                4
+            }
             0x4E => unimplemented!("Opcode 0x4E"),
-            0x4F => unimplemented!("Opcode 0x4F"),
-            0x50 => self.ld(Register::D, Register::B),
-            0x51 => self.ld(Register::D, Register::C),
-            0x52 => self.ld(Register::D, Register::D),
-            0x53 => self.ld(Register::D, Register::E),
-            0x54 => self.ld(Register::D, Register::H),
-            0x55 => self.ld(Register::D, Register::L),
+            0x4F => {
+                self.ld(Register::C, Register::A);
+                4
+            }
+            0x50 => {
+                self.ld(Register::D, Register::B);
+                4
+            }
+            0x51 => {
+                self.ld(Register::D, Register::C);
+                4
+            }
+            0x52 => {
+                self.ld(Register::D, Register::D);
+                4
+            }
+            0x53 => {
+                self.ld(Register::D, Register::E);
+                4
+            }
+            0x54 => {
+                self.ld(Register::D, Register::H);
+                4
+            }
+            0x55 => {
+                self.ld(Register::D, Register::L);
+                4
+            }
             0x56 => unimplemented!("Opcode 0x56"),
-            0x57 => unimplemented!("Opcode 0x57"),
-            0x58 => self.ld(Register::E, Register::B),
-            0x59 => self.ld(Register::E, Register::C),
-            0x5A => self.ld(Register::E, Register::D),
-            0x5B => self.ld(Register::E, Register::E),
-            0x5C => self.ld(Register::E, Register::H),
-            0x5D => self.ld(Register::E, Register::L),
+            0x57 => {
+                self.ld(Register::D, Register::A);
+                4
+            }
+            0x58 => {
+                self.ld(Register::E, Register::B);
+                4
+            }
+            0x59 => {
+                self.ld(Register::E, Register::C);
+                4
+            }
+            0x5A => {
+                self.ld(Register::E, Register::D);
+                4
+            }
+            0x5B => {
+                self.ld(Register::E, Register::E);
+                4
+            }
+            0x5C => {
+                self.ld(Register::E, Register::H);
+                4
+            }
+            0x5D => {
+                self.ld(Register::E, Register::L);
+                4
+            }
             0x5E => unimplemented!("Opcode 0x5E"),
-            0x5F => unimplemented!("Opcode 0x5F"),
-            0x60 => self.ld(Register::H, Register::B),
-            0x61 => self.ld(Register::H, Register::C),
-            0x62 => self.ld(Register::H, Register::D),
-            0x63 => self.ld(Register::H, Register::E),
-            0x64 => self.ld(Register::H, Register::H),
-            0x65 => self.ld(Register::H, Register::L),
+            0x5F => {
+                self.ld(Register::E, Register::A);
+                4
+            }
+            0x60 => {
+                self.ld(Register::H, Register::B);
+                4
+            }
+            0x61 => {
+                self.ld(Register::H, Register::C);
+                4
+            }
+            0x62 => {
+                self.ld(Register::H, Register::D);
+                4
+            }
+            0x63 => {
+                self.ld(Register::H, Register::E);
+                4
+            }
+            0x64 => {
+                self.ld(Register::H, Register::H);
+                4
+            }
+            0x65 => {
+                self.ld(Register::H, Register::L);
+                4
+            }
             0x66 => unimplemented!("Opcode 0x66"),
-            0x67 => unimplemented!("Opcode 0x67"),
-            0x68 => self.ld(Register::L, Register::B),
-            0x69 => self.ld(Register::L, Register::C),
-            0x6A => self.ld(Register::L, Register::D),
-            0x6B => self.ld(Register::L, Register::E),
-            0x6C => self.ld(Register::L, Register::H),
-            0x6D => self.ld(Register::L, Register::L),
+            0x67 => {
+                self.ld(Register::H, Register::A);
+                4
+            }
+            0x68 => {
+                self.ld(Register::L, Register::B);
+                4
+            }
+            0x69 => {
+                self.ld(Register::L, Register::C);
+                4
+            }
+            0x6A => {
+                self.ld(Register::L, Register::D);
+                4
+            }
+            0x6B => {
+                self.ld(Register::L, Register::E);
+                4
+            }
+            0x6C => {
+                self.ld(Register::L, Register::H);
+                4
+            }
+            0x6D => {
+                self.ld(Register::L, Register::L);
+                4
+            }
             0x6E => unimplemented!("Opcode 0x6E"),
-            0x6F => unimplemented!("Opcode 0x6F"),
+            0x6F => {
+                self.ld(Register::L, Register::A);
+                4
+            }
             0x70 => unimplemented!("Opcode 0x70"),
             0x71 => unimplemented!("Opcode 0x71"),
             0x72 => unimplemented!("Opcode 0x72"),
@@ -145,14 +269,35 @@ impl CPU {
             0x75 => unimplemented!("Opcode 0x75"),
             0x76 => unimplemented!("Opcode 0x76"),
             0x77 => unimplemented!("Opcode 0x77"),
-            0x78 => self.ld(Register::A, Register::B),
-            0x79 => self.ld(Register::A, Register::C),
-            0x7A => self.ld(Register::A, Register::D),
-            0x7B => self.ld(Register::A, Register::E),
-            0x7C => self.ld(Register::A, Register::H),
-            0x7D => self.ld(Register::A, Register::L),
+            0x78 => {
+                self.ld(Register::A, Register::B);
+                4
+            }
+            0x79 => {
+                self.ld(Register::A, Register::C);
+                4
+            }
+            0x7A => {
+                self.ld(Register::A, Register::D);
+                4
+            }
+            0x7B => {
+                self.ld(Register::A, Register::E);
+                4
+            }
+            0x7C => {
+                self.ld(Register::A, Register::H);
+                4
+            }
+            0x7D => {
+                self.ld(Register::A, Register::L);
+                4
+            }
             0x7E => unimplemented!("Opcode 0x7E"),
-            0x7F => self.ld(Register::A, Register::A),
+            0x7F => {
+                self.ld(Register::A, Register::A);
+                4
+            }
             0x80 => unimplemented!("Opcode 0x80"),
             0x81 => unimplemented!("Opcode 0x81"),
             0x82 => unimplemented!("Opcode 0x82"),
