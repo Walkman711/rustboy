@@ -51,8 +51,20 @@ impl Default for Registers {
 }
 
 impl Registers {
+    fn to_16_bit(hi: u8, lo: u8) -> u16 {
+        ((hi as u16) << 8) | (lo as u16)
+    }
+
+    pub fn bc(&self) -> u16 {
+        Self::to_16_bit(self.b, self.c)
+    }
+
+    pub fn de(&self) -> u16 {
+        Self::to_16_bit(self.d, self.e)
+    }
+
     pub fn hl(&self) -> u16 {
-        ((self.h as u16) << 8) | (self.l as u16)
+        Self::to_16_bit(self.h, self.l)
     }
 
     pub fn clear_flags(&mut self) {

@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use crate::registers::*;
 pub struct CPU {
     reg: Registers,
@@ -23,8 +24,25 @@ impl CPU {
         todo!()
     }
 
+    fn alu_adc(&mut self, val: u8) {
+        todo!()
+    }
+
     fn alu_sub(&mut self) {
         todo!()
+    }
+
+    fn alu_sbc(&mut self) {
+        todo!()
+    }
+
+    fn alu_and(&mut self, val: u8) {
+        let res = self.reg.a & val;
+        self.reg.f.Z = res == 0;
+        self.reg.f.N = false;
+        self.reg.f.H = true;
+        self.reg.f.C = false;
+        self.reg.a = res;
     }
 }
 
@@ -32,8 +50,15 @@ impl CPU {
     fn fetch_byte(&mut self) -> u8 {
         todo!()
     }
+
     fn fetch_word(&self) -> u32 {
         todo!()
+    }
+
+    fn fetch_nn(&mut self) -> u16 {
+        let nn_l = self.fetch_byte();
+        let nn_h = self.fetch_byte();
+        ((nn_h as u16) << 8) | (nn_l as u16)
     }
 
     // Returns cycles elapsed
@@ -42,7 +67,10 @@ impl CPU {
         match opcode {
             0x00 => unimplemented!("Opcode 0x00"),
             0x01 => unimplemented!("Opcode 0x01"),
-            0x02 => unimplemented!("Opcode 0x02"),
+            0x02 => {
+                self.mmu.write_byte(self.reg.bc(), self.reg.a);
+                8
+            }
             0x03 => unimplemented!("Opcode 0x03"),
             0x04 => unimplemented!("Opcode 0x04"),
             0x05 => unimplemented!("Opcode 0x05"),
@@ -50,7 +78,10 @@ impl CPU {
             0x07 => unimplemented!("Opcode 0x07"),
             0x08 => unimplemented!("Opcode 0x08"),
             0x09 => unimplemented!("Opcode 0x09"),
-            0x0A => unimplemented!("Opcode 0x0A"),
+            0x0A => {
+                self.reg.a = self.mmu.read_byte(self.reg.bc());
+                8
+            }
             0x0B => unimplemented!("Opcode 0x0B"),
             0x0C => unimplemented!("Opcode 0x0C"),
             0x0D => unimplemented!("Opcode 0x0D"),
@@ -58,7 +89,10 @@ impl CPU {
             0x0F => unimplemented!("Opcode 0x0F"),
             0x10 => unimplemented!("Opcode 0x10"),
             0x11 => unimplemented!("Opcode 0x11"),
-            0x12 => unimplemented!("Opcode 0x12"),
+            0x12 => {
+                self.mmu.write_byte(self.reg.de(), self.reg.a);
+                8
+            }
             0x13 => unimplemented!("Opcode 0x13"),
             0x14 => unimplemented!("Opcode 0x14"),
             0x15 => unimplemented!("Opcode 0x15"),
@@ -66,7 +100,10 @@ impl CPU {
             0x17 => unimplemented!("Opcode 0x17"),
             0x18 => unimplemented!("Opcode 0x18"),
             0x19 => unimplemented!("Opcode 0x19"),
-            0x1A => unimplemented!("Opcode 0x1A"),
+            0x1A => {
+                self.reg.a = self.mmu.read_byte(self.reg.de());
+                8
+            }
             0x1B => unimplemented!("Opcode 0x1B"),
             0x1C => unimplemented!("Opcode 0x1C"),
             0x1D => unimplemented!("Opcode 0x1D"),
@@ -90,7 +127,12 @@ impl CPU {
             0x2F => unimplemented!("Opcode 0x2F"),
             0x30 => unimplemented!("Opcode 0x30"),
             0x31 => unimplemented!("Opcode 0x31"),
-            0x32 => unimplemented!("Opcode 0x32"),
+            0x32 => {
+                // FIX: need to implement decrement for HL
+                self.mmu.write_byte(self.reg.hl(), self.reg.a);
+                todo!("decrement HL");
+                8;
+            }
             0x33 => unimplemented!("Opcode 0x33"),
             0x34 => unimplemented!("Opcode 0x34"),
             0x35 => unimplemented!("Opcode 0x35"),
@@ -102,7 +144,12 @@ impl CPU {
             0x37 => unimplemented!("Opcode 0x37"),
             0x38 => unimplemented!("Opcode 0x38"),
             0x39 => unimplemented!("Opcode 0x39"),
-            0x3A => unimplemented!("Opcode 0x3A"),
+            0x3A => {
+                // FIX: need to implement decrement for HL
+                self.reg.a = self.mmu.read_byte(self.reg.hl());
+                todo!("decrement HL");
+                8;
+            }
             0x3B => unimplemented!("Opcode 0x3B"),
             0x3C => unimplemented!("Opcode 0x3C"),
             0x3D => unimplemented!("Opcode 0x3D"),
@@ -325,7 +372,10 @@ impl CPU {
                 8
             }
             0x76 => unimplemented!("Opcode 0x76"),
-            0x77 => unimplemented!("Opcode 0x77"),
+            0x77 => {
+                self.mmu.write_byte(self.reg.hl(), self.reg.a);
+                8
+            }
             0x78 => {
                 self.reg.a = self.reg.b;
                 4
@@ -390,14 +440,38 @@ impl CPU {
             0x9D => unimplemented!("Opcode 0x9D"),
             0x9E => unimplemented!("Opcode 0x9E"),
             0x9F => unimplemented!("Opcode 0x9F"),
-            0xA0 => unimplemented!("Opcode 0xA0"),
-            0xA1 => unimplemented!("Opcode 0xA1"),
-            0xA2 => unimplemented!("Opcode 0xA2"),
-            0xA3 => unimplemented!("Opcode 0xA3"),
-            0xA4 => unimplemented!("Opcode 0xA4"),
-            0xA5 => unimplemented!("Opcode 0xA5"),
-            0xA6 => unimplemented!("Opcode 0xA6"),
-            0xA7 => unimplemented!("Opcode 0xA7"),
+            0xA0 => {
+                self.alu_and(self.reg.b);
+                4
+            }
+            0xA1 => {
+                self.alu_and(self.reg.c);
+                4
+            }
+            0xA2 => {
+                self.alu_and(self.reg.d);
+                4
+            }
+            0xA3 => {
+                self.alu_and(self.reg.e);
+                4
+            }
+            0xA4 => {
+                self.alu_and(self.reg.h);
+                4
+            }
+            0xA5 => {
+                self.alu_and(self.reg.l);
+                4
+            }
+            0xA6 => {
+                self.alu_and(self.mmu.read_byte(self.reg.hl()));
+                8
+            }
+            0xA7 => {
+                self.alu_and(self.reg.a);
+                4
+            }
             0xA8 => unimplemented!("Opcode 0xA8"),
             0xA9 => unimplemented!("Opcode 0xA9"),
             0xAA => unimplemented!("Opcode 0xAA"),
@@ -456,15 +530,27 @@ impl CPU {
             0xDF => unimplemented!("Opcode 0xDF"),
             0xE0 => unimplemented!("Opcode 0xE0"),
             0xE1 => unimplemented!("Opcode 0xE1"),
-            0xE2 => unimplemented!("Opcode 0xE2"),
+            0xE2 => {
+                self.mmu
+                    .write_byte(0xFF00 + (self.reg.c as u16), self.reg.a);
+                8
+            }
             0xE3 => unimplemented!("Opcode 0xE3"),
             0xE4 => unimplemented!("Opcode 0xE4"),
             0xE5 => unimplemented!("Opcode 0xE5"),
-            0xE6 => unimplemented!("Opcode 0xE6"),
+            0xE6 => {
+                let n = self.fetch_byte();
+                self.alu_and(n);
+                8
+            }
             0xE7 => unimplemented!("Opcode 0xE7"),
             0xE8 => unimplemented!("Opcode 0xE8"),
             0xE9 => unimplemented!("Opcode 0xE9"),
-            0xEA => unimplemented!("Opcode 0xEA"),
+            0xEA => {
+                let addr = self.fetch_nn();
+                self.mmu.write_byte(addr, self.reg.a);
+                16
+            }
             0xEB => unimplemented!("Opcode 0xEB"),
             0xEC => unimplemented!("Opcode 0xEC"),
             0xED => unimplemented!("Opcode 0xED"),
@@ -472,7 +558,10 @@ impl CPU {
             0xEF => unimplemented!("Opcode 0xEF"),
             0xF0 => unimplemented!("Opcode 0xF0"),
             0xF1 => unimplemented!("Opcode 0xF1"),
-            0xF2 => unimplemented!("Opcode 0xF2"),
+            0xF2 => {
+                self.reg.a = self.reg.c + self.mmu.read_byte(0xFF00);
+                8
+            }
             0xF3 => unimplemented!("Opcode 0xF3"),
             0xF4 => unimplemented!("Opcode 0xF4"),
             0xF5 => unimplemented!("Opcode 0xF5"),
@@ -480,7 +569,11 @@ impl CPU {
             0xF7 => unimplemented!("Opcode 0xF7"),
             0xF8 => unimplemented!("Opcode 0xF8"),
             0xF9 => unimplemented!("Opcode 0xF9"),
-            0xFA => unimplemented!("Opcode 0xFA"),
+            0xFA => {
+                let addr = self.fetch_nn();
+                self.reg.a = self.mmu.read_byte(addr);
+                8
+            }
             0xFB => unimplemented!("Opcode 0xFB"),
             0xFC => unimplemented!("Opcode 0xFC"),
             0xFD => unimplemented!("Opcode 0xFD"),
