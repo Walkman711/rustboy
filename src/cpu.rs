@@ -5,6 +5,8 @@ pub struct CPU {
     clock: u16,
     mmu: MMU,
     halted: bool,
+    stopped: bool,
+    interrupts_enabled: bool,
 }
 
 pub struct MMU {}
@@ -69,10 +71,10 @@ impl CPU {
     }
 
     fn alu_inc(&mut self, val: u8) -> u8 {
-        let res = val + 1;
+        let res = val.wrapping_add(1);
         self.reg.f.Z = res == 0;
         self.reg.f.N = false;
-        self.reg.f.H = todo!("check if carry from bit 3");
+        self.reg.f.H = (val & 0x0F) + 1 > 0x0F;
         res
     }
 }
@@ -82,11 +84,7 @@ impl CPU {
         todo!()
     }
 
-    fn fetch_word(&self) -> u32 {
-        todo!()
-    }
-
-    fn fetch_nn(&mut self) -> u16 {
+    fn fetch_word(&mut self) -> u16 {
         let nn_l = self.fetch_byte();
         let nn_h = self.fetch_byte();
         ((nn_h as u16) << 8) | (nn_l as u16)
@@ -96,8 +94,14 @@ impl CPU {
     fn call(&mut self) -> u32 {
         let opcode = self.fetch_byte();
         match opcode {
+            // NOP
             0x00 => 4, // No-op
-            0x01 => unimplemented!("Opcode 0x01"),
+            // LD BC,nn
+            0x01 => {
+                self.reg.c = self.fetch_byte();
+                self.reg.b = self.fetch_byte();
+                12
+            }
             0x02 => {
                 self.mmu.write_byte(self.reg.bc(), self.reg.a);
                 8
@@ -108,11 +112,16 @@ impl CPU {
                 4
             }
             0x05 => unimplemented!("Opcode 0x05"),
-            0x06 => unimplemented!("Opcode 0x06"),
+            // LD B,n
+            0x06 => {
+                let n = self.fetch_byte();
+                self.reg.b = n;
+                8
+            }
             0x07 => unimplemented!("Opcode 0x07"),
             // LD (nn),SP
             0x08 => {
-                let nn = self.fetch_nn();
+                let nn = self.fetch_word();
                 self.reg.sp = nn;
                 20
             }
@@ -127,10 +136,28 @@ impl CPU {
                 4
             }
             0x0D => unimplemented!("Opcode 0x0D"),
-            0x0E => unimplemented!("Opcode 0x0E"),
+            // LD C,n
+            0x0E => {
+                let n = self.fetch_byte();
+                self.reg.c = n;
+                8
+            }
             0x0F => unimplemented!("Opcode 0x0F"),
-            0x10 => unimplemented!("Opcode 0x10"),
-            0x11 => unimplemented!("Opcode 0x11"),
+            // STOP
+            0x10 => {
+                // STOP's opcode is 10 00, so if we didn't read the second byte,
+                // we'd do an additional no-op and use 4 extra cycles
+                let _ = self.fetch_byte();
+                self.halted = true;
+                self.stopped = true;
+                4
+            }
+            // LD DE,nn
+            0x11 => {
+                self.reg.e = self.fetch_byte();
+                self.reg.d = self.fetch_byte();
+                12
+            }
             0x12 => {
                 self.mmu.write_byte(self.reg.de(), self.reg.a);
                 8
@@ -141,11 +168,16 @@ impl CPU {
                 4
             }
             0x15 => unimplemented!("Opcode 0x15"),
-            0x16 => unimplemented!("Opcode 0x16"),
+            // LD D,n
+            0x16 => {
+                let n = self.fetch_byte();
+                self.reg.d = n;
+                8
+            }
             0x17 => unimplemented!("Opcode 0x17"),
             // JR n
             0x18 => {
-                let n = self.fetch_byte().into();
+                let n: u16 = self.fetch_byte().into();
                 self.reg.pc += n;
                 8
             }
@@ -160,7 +192,12 @@ impl CPU {
                 4
             }
             0x1D => unimplemented!("Opcode 0x1D"),
-            0x1E => unimplemented!("Opcode 0x1E"),
+            // LD E,n
+            0x1E => {
+                let n = self.fetch_byte();
+                self.reg.e = n;
+                8
+            }
             0x1F => unimplemented!("Opcode 0x1F"),
             // JR NZ,n
             0x20 => {
@@ -170,7 +207,12 @@ impl CPU {
                 }
                 8
             }
-            0x21 => unimplemented!("Opcode 0x21"),
+            // LD HL,nn
+            0x21 => {
+                self.reg.l = self.fetch_byte();
+                self.reg.h = self.fetch_byte();
+                12
+            }
             0x22 => unimplemented!("Opcode 0x22"),
             0x23 => unimplemented!("Opcode 0x23"),
             0x24 => {
@@ -178,7 +220,12 @@ impl CPU {
                 4
             }
             0x25 => unimplemented!("Opcode 0x25"),
-            0x26 => unimplemented!("Opcode 0x26"),
+            // LD H,n
+            0x26 => {
+                let n = self.fetch_byte();
+                self.reg.h = n;
+                8
+            }
             0x27 => unimplemented!("Opcode 0x27"),
             // JR Z,n
             0x28 => {
@@ -196,7 +243,12 @@ impl CPU {
                 4
             }
             0x2D => unimplemented!("Opcode 0x2D"),
-            0x2E => unimplemented!("Opcode 0x2E"),
+            // LD L,n
+            0x2E => {
+                let n = self.fetch_byte();
+                self.reg.l = n;
+                8
+            }
             // CPL
             0x2F => {
                 // bitwise-complement operator (equivalent to '~' in C)
@@ -213,7 +265,11 @@ impl CPU {
                 }
                 8
             }
-            0x31 => unimplemented!("Opcode 0x31"),
+            // LD SP,nn
+            0x31 => {
+                self.reg.sp = self.fetch_word();
+                12
+            }
             0x32 => {
                 // FIX: need to implement decrement for HL
                 self.mmu.write_byte(self.reg.hl(), self.reg.a);
@@ -485,7 +541,7 @@ impl CPU {
                 8
             }
             0x76 => {
-                self.cpu.halted = true;
+                self.halted = true;
                 4
             }
             0x77 => {
@@ -665,14 +721,14 @@ impl CPU {
             // JP NZ,nn
             0xC2 => {
                 if !self.reg.f.Z {
-                    let addr = self.fetch_nn();
+                    let addr = self.fetch_word();
                     self.reg.pc = addr;
                 }
                 12
             }
             // JP nn
             0xC3 => {
-                let addr = self.fetch_nn();
+                let addr = self.fetch_word();
                 self.reg.pc = addr;
                 12
             }
@@ -685,7 +741,7 @@ impl CPU {
             // JP Z,nn
             0xCA => {
                 if self.reg.f.Z {
-                    let addr = self.fetch_nn();
+                    let addr = self.fetch_word();
                     self.reg.pc = addr;
                 }
                 12
@@ -700,7 +756,7 @@ impl CPU {
             // JP NC,nn
             0xD2 => {
                 if !self.reg.f.C {
-                    let addr = self.fetch_nn();
+                    let addr = self.fetch_word();
                     self.reg.pc = addr;
                 }
                 12
@@ -715,7 +771,7 @@ impl CPU {
             // JP C,nn
             0xDA => {
                 if self.reg.f.C {
-                    let addr = self.fetch_nn();
+                    let addr = self.fetch_word();
                     self.reg.pc = addr;
                 }
                 12
@@ -748,7 +804,7 @@ impl CPU {
                 4
             }
             0xEA => {
-                let addr = self.fetch_nn();
+                let addr = self.fetch_word();
                 self.mmu.write_byte(addr, self.reg.a);
                 16
             }
@@ -777,9 +833,13 @@ impl CPU {
             }
             0xF7 => unimplemented!("Opcode 0xF7"),
             0xF8 => unimplemented!("Opcode 0xF8"),
-            0xF9 => unimplemented!("Opcode 0xF9"),
+            // LD SP,HL
+            0xF9 => {
+                self.reg.sp = self.reg.hl();
+                8
+            }
             0xFA => {
-                let addr = self.fetch_nn();
+                let addr = self.fetch_word();
                 self.reg.a = self.mmu.read_byte(addr);
                 8
             }
