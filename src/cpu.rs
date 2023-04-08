@@ -114,11 +114,20 @@ impl CPU {
             0x05 => unimplemented!("Opcode 0x05"),
             // LD B,n
             0x06 => {
-                let n = self.fetch_byte();
-                self.reg.b = n;
+                self.reg.b = self.fetch_byte();
                 8
             }
-            0x07 => unimplemented!("Opcode 0x07"),
+            // RLCA
+            0x07 => {
+                // TODO: look this over again
+                self.reg.f.C = (self.reg.a & 0b1000) == 0b1000;
+                self.reg.a <<= 1;
+                // Don't think we can be clever and inline this. Don't want to reset Zero flag
+                if self.reg.a == 0 {
+                    self.reg.f.Z = true;
+                }
+                4
+            }
             // LD (nn),SP
             0x08 => {
                 let nn = self.fetch_word();
@@ -138,11 +147,19 @@ impl CPU {
             0x0D => unimplemented!("Opcode 0x0D"),
             // LD C,n
             0x0E => {
-                let n = self.fetch_byte();
-                self.reg.c = n;
+                self.reg.c = self.fetch_byte();
                 8
             }
-            0x0F => unimplemented!("Opcode 0x0F"),
+            // RRCA
+            // TODO: look at how the zero flag is set
+            0x0F => {
+                self.reg.f.C = (self.reg.a & 0b0001) == 0b0001;
+                self.reg.a >>= 1;
+                if self.reg.a == 0 {
+                    self.reg.f.Z = true;
+                }
+                4
+            }
             // STOP
             0x10 => {
                 // STOP's opcode is 10 00, so if we didn't read the second byte,
@@ -170,15 +187,13 @@ impl CPU {
             0x15 => unimplemented!("Opcode 0x15"),
             // LD D,n
             0x16 => {
-                let n = self.fetch_byte();
-                self.reg.d = n;
+                self.reg.d = self.fetch_byte();
                 8
             }
             0x17 => unimplemented!("Opcode 0x17"),
             // JR n
             0x18 => {
-                let n: u16 = self.fetch_byte().into();
-                self.reg.pc += n;
+                self.reg.pc += (self.fetch_byte() as u16);
                 8
             }
             0x19 => unimplemented!("Opcode 0x19"),
@@ -194,16 +209,14 @@ impl CPU {
             0x1D => unimplemented!("Opcode 0x1D"),
             // LD E,n
             0x1E => {
-                let n = self.fetch_byte();
-                self.reg.e = n;
+                self.reg.e = self.fetch_byte();
                 8
             }
             0x1F => unimplemented!("Opcode 0x1F"),
             // JR NZ,n
             0x20 => {
                 if !self.reg.f.Z {
-                    let n = self.fetch_byte().into();
-                    self.reg.pc += n;
+                    self.reg.pc += (self.fetch_byte() as u16);
                 }
                 8
             }
@@ -222,16 +235,14 @@ impl CPU {
             0x25 => unimplemented!("Opcode 0x25"),
             // LD H,n
             0x26 => {
-                let n = self.fetch_byte();
-                self.reg.h = n;
+                self.reg.h = self.fetch_byte();
                 8
             }
             0x27 => unimplemented!("Opcode 0x27"),
             // JR Z,n
             0x28 => {
                 if self.reg.f.Z {
-                    let n = self.fetch_byte().into();
-                    self.reg.pc += n;
+                    self.reg.pc += (self.fetch_byte() as u16);
                 }
                 8
             }
@@ -245,8 +256,7 @@ impl CPU {
             0x2D => unimplemented!("Opcode 0x2D"),
             // LD L,n
             0x2E => {
-                let n = self.fetch_byte();
-                self.reg.l = n;
+                self.reg.l = self.fetch_byte();
                 8
             }
             // CPL
@@ -260,8 +270,7 @@ impl CPU {
             // JR NC,n
             0x30 => {
                 if !self.reg.f.C {
-                    let n = self.fetch_byte().into();
-                    self.reg.pc += n;
+                    self.reg.pc += (self.fetch_byte() as u16);
                 }
                 8
             }
@@ -296,10 +305,9 @@ impl CPU {
                 4
             }
             // JR C,n
-            0x30 => {
+            0x38 => {
                 if self.reg.f.C {
-                    let n = self.fetch_byte().into();
-                    self.reg.pc += n;
+                    self.reg.pc += self.fetch_byte() as u16;
                 }
                 8
             }
