@@ -37,7 +37,16 @@ impl Into<u16> for Reg16 {
     }
 }
 
-#[derive(Copy, Clone, Debug)]
+impl From<u16> for Reg16 {
+    fn from(value: u16) -> Self {
+        Reg16 {
+            hi: ((value & HIGH_MASK) as u8),
+            lo: ((value & LOW_MASK) as u8),
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Register {
     A,
     F,
@@ -49,12 +58,29 @@ pub enum Register {
     L,
 }
 
-#[derive(Copy, Clone, Debug, Default)]
+#[derive(Copy, Clone, Debug)]
 pub struct Registers {
     af: Reg16,
     bc: Reg16,
     de: Reg16,
     hl: Reg16,
+    sp: u16,
+    pc: u16,
+}
+
+// All values taken from Section 2.7.1 of the Gameboy CPU manual
+impl Default for Registers {
+    fn default() -> Self {
+        Self {
+            // TODO: this depends on if it's a GB/GBP/GBC
+            af: Reg16::from(0x0001),
+            bc: Reg16::from(0x0013),
+            de: Reg16::from(0x00D8),
+            hl: Reg16::from(0x014D),
+            sp: 0xFFFE,
+            pc: 0,
+        }
+    }
 }
 
 impl Registers {
@@ -70,10 +96,8 @@ impl Registers {
             Register::L => self.hl.get_lo(),
         }
     }
-}
 
-impl Registers {
-    fn set_reg(&mut self, reg: Register, val: u8) {
+    pub fn set_reg(&mut self, reg: Register, val: u8) {
         match reg {
             Register::A => self.af.set_hi(val),
             Register::F => self.af.set_lo(val),
