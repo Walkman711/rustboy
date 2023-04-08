@@ -7,6 +7,36 @@ const ADD_FLAG: u8 = 0b01000000;
 const HALF_CARRY_FLAG: u8 = 0b00100000;
 const CARRY_FLAG: u8 = 0b00010000;
 
+#[derive(Copy, Clone, Debug, Default)]
+pub struct Reg16 {
+    hi: u8,
+    lo: u8,
+}
+
+impl Reg16 {
+    pub fn get_hi(&self) -> u8 {
+        self.hi
+    }
+
+    pub fn get_lo(&self) -> u8 {
+        self.lo
+    }
+
+    pub fn set_hi(&mut self, val: u8) {
+        self.hi = val;
+    }
+
+    pub fn set_lo(&mut self, val: u8) {
+        self.lo = val;
+    }
+}
+
+impl Into<u16> for Reg16 {
+    fn into(self) -> u16 {
+        ((self.hi as u16) << 8) | (self.lo as u16)
+    }
+}
+
 #[derive(Copy, Clone, Debug)]
 pub enum Register {
     A,
@@ -21,31 +51,23 @@ pub enum Register {
 
 #[derive(Copy, Clone, Debug, Default)]
 pub struct Registers {
-    af: u16,
-    bc: u16,
-    de: u16,
-    hl: u16,
+    af: Reg16,
+    bc: Reg16,
+    de: Reg16,
+    hl: Reg16,
 }
 
 impl Registers {
-    fn get_high_byte(reg: u16) -> u8 {
-        (reg & HIGH_MASK) as u8
-    }
-
-    fn get_low_byte(reg: u16) -> u8 {
-        (reg & LOW_MASK) as u8
-    }
-
     pub fn get_reg(&self, reg: Register) -> u8 {
         match reg {
-            Register::A => Self::get_high_byte(self.af),
-            Register::F => Self::get_low_byte(self.af),
-            Register::B => Self::get_high_byte(self.bc),
-            Register::C => Self::get_low_byte(self.bc),
-            Register::D => Self::get_high_byte(self.de),
-            Register::E => Self::get_low_byte(self.de),
-            Register::H => Self::get_high_byte(self.hl),
-            Register::L => Self::get_low_byte(self.hl),
+            Register::A => self.af.get_hi(),
+            Register::F => self.af.get_lo(),
+            Register::B => self.bc.get_hi(),
+            Register::C => self.bc.get_lo(),
+            Register::D => self.de.get_hi(),
+            Register::E => self.de.get_lo(),
+            Register::H => self.hl.get_hi(),
+            Register::L => self.hl.get_lo(),
         }
     }
 }
@@ -53,23 +75,15 @@ impl Registers {
 impl Registers {
     fn set_reg(&mut self, reg: Register, val: u8) {
         match reg {
-            Register::A => self.af = Self::set_high_register(self.af, val),
-            Register::F => self.af = Self::set_low_register(self.af, val),
-            Register::B => self.bc = Self::set_high_register(self.bc, val),
-            Register::C => self.bc = Self::set_low_register(self.bc, val),
-            Register::D => self.de = Self::set_high_register(self.de, val),
-            Register::E => self.de = Self::set_low_register(self.de, val),
-            Register::H => self.hl = Self::set_high_register(self.hl, val),
-            Register::L => self.hl = Self::set_low_register(self.hl, val),
+            Register::A => self.af.set_hi(val),
+            Register::F => self.af.set_lo(val),
+            Register::B => self.bc.set_hi(val),
+            Register::C => self.bc.set_lo(val),
+            Register::D => self.de.set_hi(val),
+            Register::E => self.de.set_lo(val),
+            Register::H => self.hl.set_hi(val),
+            Register::L => self.hl.set_lo(val),
         }
-    }
-
-    fn set_high_register(reg: u16, val: u8) -> u16 {
-        ((val as u16) << 8) | (reg & LOW_MASK)
-    }
-
-    fn set_low_register(reg: u16, val: u8) -> u16 {
-        (reg & HIGH_MASK) | (val as u16)
     }
 }
 
