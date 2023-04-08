@@ -1,13 +1,19 @@
 use crate::registers::*;
 pub struct CPU {
-    registers: Registers,
+    reg: Registers,
     clock: u16,
+    mmu: MMU,
 }
 
-impl CPU {
-    fn ld(&mut self, dst: Register, src: Register) {
-        let src_val = self.registers.get_reg(src);
-        self.registers.set_reg(dst, src_val);
+pub struct MMU {}
+
+impl MMU {
+    pub fn read_byte(&self, addr: u16) -> u8 {
+        unimplemented!("MMU::read_byte() not implemented yet")
+    }
+
+    pub fn write_byte(&mut self, addr: u16, val: u8) {
+        unimplemented!("MMU::write_byte() not implemented yet")
     }
 }
 
@@ -17,13 +23,13 @@ impl CPU {
         todo!()
     }
 
-    fn alu_sub(&mut self, reg: Register) {
+    fn alu_sub(&mut self) {
         todo!()
     }
 }
 
 impl CPU {
-    fn fetch_byte(&self) -> u8 {
+    fn fetch_byte(&mut self) -> u8 {
         todo!()
     }
     fn fetch_word(&self) -> u32 {
@@ -88,7 +94,11 @@ impl CPU {
             0x33 => unimplemented!("Opcode 0x33"),
             0x34 => unimplemented!("Opcode 0x34"),
             0x35 => unimplemented!("Opcode 0x35"),
-            0x36 => unimplemented!("Opcode 0x36"),
+            0x36 => {
+                let n = self.fetch_byte();
+                self.mmu.write_byte(self.reg.hl(), n);
+                12
+            }
             0x37 => unimplemented!("Opcode 0x37"),
             0x38 => unimplemented!("Opcode 0x38"),
             0x39 => unimplemented!("Opcode 0x39"),
@@ -99,214 +109,253 @@ impl CPU {
             0x3E => unimplemented!("Opcode 0x3E"),
             0x3F => unimplemented!("Opcode 0x3F"),
             0x40 => {
-                self.ld(Register::B, Register::B);
+                self.reg.b = self.reg.b;
                 4
             }
             0x41 => {
-                self.ld(Register::B, Register::C);
+                self.reg.b = self.reg.c;
                 4
             }
             0x42 => {
-                self.ld(Register::B, Register::D);
+                self.reg.b = self.reg.d;
                 4
             }
             0x43 => {
-                self.ld(Register::B, Register::E);
+                self.reg.b = self.reg.e;
                 4
             }
             0x44 => {
-                self.ld(Register::B, Register::H);
+                self.reg.b = self.reg.h;
                 4
             }
             0x45 => {
-                self.ld(Register::B, Register::L);
+                self.reg.b = self.reg.l;
                 4
             }
-            0x46 => unimplemented!("Opcode 0x46"),
+            0x46 => {
+                self.reg.b = self.mmu.read_byte(self.reg.hl());
+                8
+            }
             0x47 => {
-                self.ld(Register::B, Register::A);
+                self.reg.b = self.reg.a;
                 4
             }
             0x48 => {
-                self.ld(Register::C, Register::B);
+                self.reg.c = self.reg.b;
                 4
             }
             0x49 => {
-                self.ld(Register::C, Register::C);
+                self.reg.c = self.reg.c;
                 4
             }
             0x4A => {
-                self.ld(Register::C, Register::D);
+                self.reg.c = self.reg.d;
                 4
             }
             0x4B => {
-                self.ld(Register::C, Register::E);
+                self.reg.c = self.reg.e;
                 4
             }
             0x4C => {
-                self.ld(Register::C, Register::H);
+                self.reg.c = self.reg.h;
                 4
             }
             0x4D => {
-                self.ld(Register::C, Register::L);
+                self.reg.c = self.reg.l;
                 4
             }
-            0x4E => unimplemented!("Opcode 0x4E"),
+            0x4E => {
+                self.reg.c = self.mmu.read_byte(self.reg.hl());
+                8
+            }
             0x4F => {
-                self.ld(Register::C, Register::A);
+                self.reg.c = self.reg.a;
                 4
             }
             0x50 => {
-                self.ld(Register::D, Register::B);
+                self.reg.d = self.reg.b;
                 4
             }
             0x51 => {
-                self.ld(Register::D, Register::C);
+                self.reg.d = self.reg.c;
                 4
             }
             0x52 => {
-                self.ld(Register::D, Register::D);
+                self.reg.d = self.reg.d;
                 4
             }
             0x53 => {
-                self.ld(Register::D, Register::E);
+                self.reg.d = self.reg.e;
                 4
             }
             0x54 => {
-                self.ld(Register::D, Register::H);
+                self.reg.d = self.reg.h;
                 4
             }
             0x55 => {
-                self.ld(Register::D, Register::L);
+                self.reg.d = self.reg.l;
                 4
             }
-            0x56 => unimplemented!("Opcode 0x56"),
+            0x56 => {
+                self.reg.d = self.mmu.read_byte(self.reg.hl());
+                8
+            }
             0x57 => {
-                self.ld(Register::D, Register::A);
+                self.reg.d = self.reg.a;
                 4
             }
             0x58 => {
-                self.ld(Register::E, Register::B);
+                self.reg.e = self.reg.b;
                 4
             }
             0x59 => {
-                self.ld(Register::E, Register::C);
+                self.reg.e = self.reg.c;
                 4
             }
             0x5A => {
-                self.ld(Register::E, Register::D);
+                self.reg.e = self.reg.d;
                 4
             }
             0x5B => {
-                self.ld(Register::E, Register::E);
+                self.reg.e = self.reg.e;
                 4
             }
             0x5C => {
-                self.ld(Register::E, Register::H);
+                self.reg.e = self.reg.h;
                 4
             }
             0x5D => {
-                self.ld(Register::E, Register::L);
+                self.reg.e = self.reg.l;
                 4
             }
-            0x5E => unimplemented!("Opcode 0x5E"),
+            0x5E => {
+                self.reg.e = self.mmu.read_byte(self.reg.hl());
+                8
+            }
             0x5F => {
-                self.ld(Register::E, Register::A);
+                self.reg.e = self.reg.a;
                 4
             }
             0x60 => {
-                self.ld(Register::H, Register::B);
+                self.reg.h = self.reg.b;
                 4
             }
             0x61 => {
-                self.ld(Register::H, Register::C);
+                self.reg.h = self.reg.c;
                 4
             }
             0x62 => {
-                self.ld(Register::H, Register::D);
+                self.reg.h = self.reg.d;
                 4
             }
             0x63 => {
-                self.ld(Register::H, Register::E);
+                self.reg.h = self.reg.e;
                 4
             }
             0x64 => {
-                self.ld(Register::H, Register::H);
+                self.reg.h = self.reg.h;
                 4
             }
             0x65 => {
-                self.ld(Register::H, Register::L);
+                self.reg.h = self.reg.l;
                 4
             }
-            0x66 => unimplemented!("Opcode 0x66"),
+            0x66 => {
+                self.reg.h = self.mmu.read_byte(self.reg.hl());
+                8
+            }
             0x67 => {
-                self.ld(Register::H, Register::A);
+                self.reg.h = self.reg.a;
                 4
             }
             0x68 => {
-                self.ld(Register::L, Register::B);
+                self.reg.h = self.reg.b;
                 4
             }
             0x69 => {
-                self.ld(Register::L, Register::C);
+                self.reg.h = self.reg.c;
                 4
             }
             0x6A => {
-                self.ld(Register::L, Register::D);
+                self.reg.h = self.reg.d;
                 4
             }
             0x6B => {
-                self.ld(Register::L, Register::E);
+                self.reg.l = self.reg.e;
                 4
             }
             0x6C => {
-                self.ld(Register::L, Register::H);
+                self.reg.l = self.reg.h;
                 4
             }
             0x6D => {
-                self.ld(Register::L, Register::L);
+                self.reg.l = self.reg.l;
                 4
             }
-            0x6E => unimplemented!("Opcode 0x6E"),
+            0x6E => {
+                self.reg.l = self.mmu.read_byte(self.reg.hl());
+                8
+            }
             0x6F => {
-                self.ld(Register::L, Register::A);
+                self.reg.l = self.reg.a;
                 4
             }
-            0x70 => unimplemented!("Opcode 0x70"),
-            0x71 => unimplemented!("Opcode 0x71"),
-            0x72 => unimplemented!("Opcode 0x72"),
-            0x73 => unimplemented!("Opcode 0x73"),
-            0x74 => unimplemented!("Opcode 0x74"),
-            0x75 => unimplemented!("Opcode 0x75"),
+            0x70 => {
+                self.mmu.write_byte(self.reg.hl(), self.reg.b);
+                8
+            }
+            0x71 => {
+                self.mmu.write_byte(self.reg.hl(), self.reg.c);
+                8
+            }
+            0x72 => {
+                self.mmu.write_byte(self.reg.hl(), self.reg.d);
+                8
+            }
+            0x73 => {
+                self.mmu.write_byte(self.reg.hl(), self.reg.e);
+                8
+            }
+            0x74 => {
+                self.mmu.write_byte(self.reg.hl(), self.reg.h);
+                8
+            }
+            0x75 => {
+                self.mmu.write_byte(self.reg.hl(), self.reg.l);
+                8
+            }
             0x76 => unimplemented!("Opcode 0x76"),
             0x77 => unimplemented!("Opcode 0x77"),
             0x78 => {
-                self.ld(Register::A, Register::B);
+                self.reg.a = self.reg.b;
                 4
             }
             0x79 => {
-                self.ld(Register::A, Register::C);
+                self.reg.a = self.reg.c;
                 4
             }
             0x7A => {
-                self.ld(Register::A, Register::D);
+                self.reg.a = self.reg.d;
                 4
             }
             0x7B => {
-                self.ld(Register::A, Register::E);
+                self.reg.a = self.reg.e;
                 4
             }
             0x7C => {
-                self.ld(Register::A, Register::H);
+                self.reg.a = self.reg.h;
                 4
             }
             0x7D => {
-                self.ld(Register::A, Register::L);
+                self.reg.a = self.reg.l;
                 4
             }
-            0x7E => unimplemented!("Opcode 0x7E"),
+            0x7E => {
+                self.reg.a = self.mmu.read_byte(self.reg.hl());
+                8
+            }
             0x7F => {
-                self.ld(Register::A, Register::A);
+                self.reg.a = self.reg.a;
                 4
             }
             0x80 => unimplemented!("Opcode 0x80"),
