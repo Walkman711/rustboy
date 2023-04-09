@@ -32,7 +32,7 @@ impl MMU {
 impl CPU {
     pub fn run(&mut self) {
         loop {
-            self.call();
+            let _cycles_elapsed = self.call();
         }
     }
 }
@@ -55,45 +55,48 @@ impl CPU {
         todo!()
     }
 
+    /// AND reg A with `val`
     fn alu_and(&mut self, val: u8) {
         let res = self.reg.a & val;
-        self.reg.f.Z = res == 0;
-        self.reg.f.N = false;
-        self.reg.f.H = true;
-        self.reg.f.C = false;
+        self.reg.flag(Flags::Z, res == 0);
+        self.reg.flag(Flags::N, false);
+        self.reg.flag(Flags::H, true);
+        self.reg.flag(Flags::C, false);
         self.reg.a = res;
     }
 
+    /// OR reg A with `val`
     fn alu_or(&mut self, val: u8) {
         let res = self.reg.a | val;
-        self.reg.f.Z = res == 0;
-        self.reg.f.N = false;
-        self.reg.f.H = false;
-        self.reg.f.C = false;
+        self.reg.flag(Flags::Z, res == 0);
+        self.reg.flag(Flags::N, false);
+        self.reg.flag(Flags::H, false);
+        self.reg.flag(Flags::C, false);
         self.reg.a = res;
     }
 
+    /// XOR reg A with `val`
     fn alu_xor(&mut self, val: u8) {
         let res = self.reg.a ^ val;
-        self.reg.f.Z = res == 0;
-        self.reg.f.N = false;
-        self.reg.f.H = false;
-        self.reg.f.C = false;
+        self.reg.flag(Flags::Z, res == 0);
+        self.reg.flag(Flags::N, false);
+        self.reg.flag(Flags::H, false);
+        self.reg.flag(Flags::C, false);
         self.reg.a = res;
     }
 
     fn alu_cp(&mut self, val: u8) {
-        self.reg.f.Z = self.reg.a == val;
-        self.reg.f.N = true;
-        self.reg.f.H = todo!();
-        self.reg.f.C = self.reg.a < val;
+        self.reg.flag(Flags::Z, self.reg.a == val);
+        self.reg.flag(Flags::N, true);
+        self.reg.flag(Flags::H, todo!());
+        self.reg.flag(Flags::C, self.reg.a < val);
     }
 
     fn alu_inc(&mut self, val: u8) -> u8 {
         let res = val.wrapping_add(1);
-        self.reg.f.Z = res == 0;
-        self.reg.f.N = false;
-        self.reg.f.H = (val & 0x0F) + 1 > 0x0F;
+        self.reg.flag(Flags::Z, res == 0);
+        self.reg.flag(Flags::N, false);
+        self.reg.flag(Flags::H, (val & 0x0F) + 1 > 0x0F);
         res
     }
 
@@ -109,17 +112,21 @@ impl CPU {
         addr
     }
 
+    /// Pop two bytes from stack and jump to that address
     fn ret(&mut self) {
         let addr = self.pop_stack();
         self.reg.pc = addr;
     }
 
+    /// Push present address onto stack. Jump to address 0x0000 + n.
     fn rst(&mut self, n: u8) {
         self.push_stack(self.reg.pc);
         self.reg.pc = n as u16;
     }
 
+    /// Push address of next instruction onto stack and then jump to address nn
     fn call_op(&mut self) {
+        // FIX: Will need to increment pc depending where I do that
         self.push_stack(self.reg.pc);
         let addr = self.fetch_word();
         self.reg.pc = addr;
@@ -128,11 +135,12 @@ impl CPU {
 
 // CB ops
 impl CPU {
+    /// Test bit b in register `reg`
     fn cb_bit(&mut self, reg: u8, bit: u8) {
         let bit_set = reg & (1 << bit);
-        self.reg.f.Z = bit_set == 0;
-        self.reg.f.N = false;
-        self.reg.f.H = true;
+        self.reg.flag(Flags::Z, bit_set == 0);
+        self.reg.flag(Flags::N, false);
+        self.reg.flag(Flags::H, true);
     }
 
     /// Swap upper and lower nibbles of n
@@ -140,10 +148,10 @@ impl CPU {
         let high_nibble = n & 0b11110000;
         let low_nibble = n & 0b00001111;
         let res = (low_nibble << 4) | (high_nibble >> 4);
-        self.reg.f.Z = res == 0;
-        self.reg.f.N = false;
-        self.reg.f.H = false;
-        self.reg.f.C = false;
+        self.reg.flag(Flags::Z, res == 0);
+        self.reg.flag(Flags::N, false);
+        self.reg.flag(Flags::H, false);
+        self.reg.flag(Flags::C, false);
         res
     }
 }
@@ -198,11 +206,11 @@ impl CPU {
             // RLCA
             0x07 => {
                 // TODO: look this over again
-                self.reg.f.C = (self.reg.a & 0b1000) == 0b1000;
+                self.reg.flag(Flags::C, (self.reg.a & 0b1000) == 0b1000);
                 self.reg.a <<= 1;
                 // Don't think we can be clever and inline this. Don't want to reset Zero flag
                 if self.reg.a == 0 {
-                    self.reg.f.Z = true;
+                    self.reg.flag(Flags::Z, true);
                 }
                 4
             }
@@ -232,10 +240,10 @@ impl CPU {
             // RRCA
             // TODO: look at how the zero flag is set
             0x0F => {
-                self.reg.f.C = (self.reg.a & 0b0001) == 0b0001;
+                self.reg.flag(Flags::C, (self.reg.a & 0b0001) == 0b0001);
                 self.reg.a >>= 1;
                 if self.reg.a == 0 {
-                    self.reg.f.Z = true;
+                    self.reg.flag(Flags::Z, true);
                 }
                 4
             }
@@ -296,7 +304,7 @@ impl CPU {
             0x1F => unimplemented!("Opcode 0x1F"),
             // JR NZ,n
             0x20 => {
-                if !self.reg.f.Z {
+                if !self.reg.zero_flag_set() {
                     self.reg.pc += self.fetch_byte() as u16;
                 }
                 8
@@ -323,7 +331,7 @@ impl CPU {
             0x27 => unimplemented!("Opcode 0x27"),
             // JR Z,n
             0x28 => {
-                if self.reg.f.Z {
+                if self.reg.zero_flag_set() {
                     self.reg.pc += self.fetch_byte() as u16;
                 }
                 8
@@ -346,13 +354,13 @@ impl CPU {
             0x2F => {
                 // bitwise-complement operator (equivalent to '~' in C)
                 self.reg.a = !self.reg.a;
-                self.reg.f.N = true;
-                self.reg.f.H = true;
+                self.reg.flag(Flags::N, true);
+                self.reg.flag(Flags::H, true);
                 4
             }
             // JR NC,n
             0x30 => {
-                if !self.reg.f.C {
+                if !self.reg.carry_flag_set() {
                     self.reg.pc += self.fetch_byte() as u16;
                 }
                 8
@@ -383,14 +391,14 @@ impl CPU {
             }
             // SCF
             0x37 => {
-                self.reg.f.N = false;
-                self.reg.f.H = false;
-                self.reg.f.C = true;
+                self.reg.flag(Flags::N, false);
+                self.reg.flag(Flags::H, false);
+                self.reg.flag(Flags::C, true);
                 4
             }
             // JR C,n
             0x38 => {
-                if self.reg.f.C {
+                if self.reg.carry_flag_set() {
                     self.reg.pc += self.fetch_byte() as u16;
                 }
                 8
@@ -413,9 +421,9 @@ impl CPU {
             0x3E => unimplemented!("Opcode 0x3E"),
             // CCF
             0x3F => {
-                self.reg.f.N = false;
-                self.reg.f.H = false;
-                self.reg.f.C = !self.reg.f.C;
+                self.reg.flag(Flags::N, false);
+                self.reg.flag(Flags::H, false);
+                self.reg.flag(Flags::C, !self.reg.carry_flag_set());
                 4
             }
             // LD B,B
@@ -985,7 +993,7 @@ impl CPU {
             }
             // RET NZ
             0xC0 => {
-                if !self.reg.f.Z {
+                if !self.reg.zero_flag_set() {
                     self.ret();
                 }
                 8
@@ -993,7 +1001,7 @@ impl CPU {
             0xC1 => unimplemented!("Opcode 0xC1"),
             // JP NZ,nn
             0xC2 => {
-                if !self.reg.f.Z {
+                if !self.reg.zero_flag_set() {
                     let addr = self.fetch_word();
                     self.reg.pc = addr;
                 }
@@ -1007,7 +1015,7 @@ impl CPU {
             }
             // CALL NZ, nn
             0xC4 => {
-                if !self.reg.f.Z {
+                if !self.reg.zero_flag_set() {
                     self.call_op();
                 }
                 12
@@ -1026,7 +1034,7 @@ impl CPU {
             }
             // RET Z
             0xC8 => {
-                if !self.reg.f.Z {
+                if !self.reg.zero_flag_set() {
                     self.ret()
                 }
                 8
@@ -1038,7 +1046,7 @@ impl CPU {
             }
             // JP Z,nn
             0xCA => {
-                if self.reg.f.Z {
+                if self.reg.zero_flag_set() {
                     let addr = self.fetch_word();
                     self.reg.pc = addr;
                 }
@@ -1047,7 +1055,7 @@ impl CPU {
             0xCB => unimplemented!("Opcode 0xCB"),
             // CALL Z, nn
             0xCC => {
-                if self.reg.f.Z {
+                if self.reg.zero_flag_set() {
                     self.call_op();
                 }
                 12
@@ -1070,7 +1078,7 @@ impl CPU {
             }
             // RET NC
             0xD0 => {
-                if !self.reg.f.C {
+                if !self.reg.carry_flag_set() {
                     self.ret();
                 }
                 8
@@ -1078,7 +1086,7 @@ impl CPU {
             0xD1 => unimplemented!("Opcode 0xD1"),
             // JP NC,nn
             0xD2 => {
-                if !self.reg.f.C {
+                if !self.reg.carry_flag_set() {
                     let addr = self.fetch_word();
                     self.reg.pc = addr;
                 }
@@ -1086,7 +1094,7 @@ impl CPU {
             }
             // CALL NC, nn
             0xD4 => {
-                if !self.reg.f.C {
+                if !self.reg.carry_flag_set() {
                     self.call_op();
                 }
                 12
@@ -1105,7 +1113,7 @@ impl CPU {
             }
             // RET C
             0xD8 => {
-                if self.reg.f.C {
+                if self.reg.carry_flag_set() {
                     self.ret();
                 }
                 8
@@ -1117,7 +1125,7 @@ impl CPU {
             }
             // JP C,nn
             0xDA => {
-                if self.reg.f.C {
+                if self.reg.carry_flag_set() {
                     let addr = self.fetch_word();
                     self.reg.pc = addr;
                 }
@@ -1125,7 +1133,7 @@ impl CPU {
             }
             // CALL C, nn
             0xDC => {
-                if self.reg.f.C {
+                if self.reg.carry_flag_set() {
                     self.call_op();
                 }
                 12

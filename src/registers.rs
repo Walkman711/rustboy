@@ -2,18 +2,24 @@
 
 const HIGH_MASK: u16 = 0xFF00;
 const LOW_MASK: u16 = 0x00FF;
-pub const ZERO_FLAG: u8 = 0b10000000;
-pub const SUBTRACT_FLAG: u8 = 0b01000000;
-pub const HALF_CARRY_FLAG: u8 = 0b00100000;
-pub const CARRY_FLAG: u8 = 0b00010000;
+
+#[derive(Copy, Clone, Debug, PartialEq)]
+#[allow(non_snake_case)]
+pub enum Flags {
+    Z = 0b10000000,
+    N = 0b01000000,
+    H = 0b00100000,
+    C = 0b00010000,
+}
 
 // TODO:
 #[derive(Copy, Clone, Debug, Default)]
+#[allow(non_snake_case)]
 pub struct FlagRegister {
-    pub Z: bool,
-    pub N: bool,
-    pub H: bool,
-    pub C: bool,
+    Z: bool,
+    N: bool,
+    H: bool,
+    C: bool,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -65,6 +71,15 @@ impl Registers {
 
     pub fn hl(&self) -> u16 {
         Self::to_16_bit(self.h, self.l)
+    }
+
+    pub fn flag(&mut self, flag: Flags, val: bool) {
+        match flag {
+            Flags::Z => self.f.Z = val,
+            Flags::N => self.f.N = val,
+            Flags::H => self.f.H = val,
+            Flags::C => self.f.C = val,
+        }
     }
 
     pub fn clear_flags(&mut self) {
