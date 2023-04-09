@@ -134,6 +134,18 @@ impl CPU {
         self.reg.f.N = false;
         self.reg.f.H = true;
     }
+
+    /// Swap upper and lower nibbles of n
+    fn cb_swap(&mut self, n: u8) -> u8 {
+        let high_nibble = n & 0b11110000;
+        let low_nibble = n & 0b00001111;
+        let res = (low_nibble << 4) | (high_nibble >> 4);
+        self.reg.f.Z = res == 0;
+        self.reg.f.N = false;
+        self.reg.f.H = false;
+        self.reg.f.C = false;
+        res
+    }
 }
 
 impl CPU {
@@ -147,12 +159,20 @@ impl CPU {
         ((nn_h as u16) << 8) | (nn_l as u16)
     }
 
+    fn read_hl_byte(&self) -> u8 {
+        self.mmu.read_byte(self.reg.hl())
+    }
+
+    fn write_hl_byte(&mut self, byte: u8) {
+        self.mmu.write_byte(self.reg.hl(), byte)
+    }
+
     // Returns cycles elapsed
     fn call(&mut self) -> u32 {
         let opcode = self.fetch_byte();
         match opcode {
             // NOP
-            0x00 => 4, // No-op
+            0x00 => 4,
             // LD BC,nn
             0x01 => {
                 self.reg.c = self.fetch_byte();
@@ -344,7 +364,7 @@ impl CPU {
             }
             0x32 => {
                 // FIX: need to implement decrement for HL
-                self.mmu.write_byte(self.reg.hl(), self.reg.a);
+                self.mmu.write_hl_byte(self.reg.a);
                 todo!("decrement HL");
                 8
             }
@@ -1235,14 +1255,48 @@ impl CPU {
             0x2D => unimplemented!("Opcode 0x2D"),
             0x2E => unimplemented!("Opcode 0x2E"),
             0x2F => unimplemented!("Opcode 0x2F"),
-            0x30 => unimplemented!("Opcode 0x30"),
-            0x31 => unimplemented!("Opcode 0x31"),
-            0x32 => unimplemented!("Opcode 0x32"),
-            0x33 => unimplemented!("Opcode 0x33"),
-            0x34 => unimplemented!("Opcode 0x34"),
-            0x35 => unimplemented!("Opcode 0x35"),
-            0x36 => unimplemented!("Opcode 0x36"),
-            0x37 => unimplemented!("Opcode 0x37"),
+            // SWAP B
+            0x30 => {
+                self.reg.b = self.cb_swap(self.reg.b);
+                8
+            }
+            // SWAP C
+            0x31 => {
+                self.reg.c = self.cb_swap(self.reg.c);
+                8
+            }
+            // SWAP D
+            0x32 => {
+                self.reg.d = self.cb_swap(self.reg.d);
+                8
+            }
+            // SWAP E
+            0x33 => {
+                self.reg.e = self.cb_swap(self.reg.e);
+                8
+            }
+            // SWAP H
+            0x34 => {
+                self.reg.h = self.cb_swap(self.reg.h);
+                8
+            }
+            // SWAP L
+            0x35 => {
+                self.reg.l = self.cb_swap(self.reg.l);
+                8
+            }
+            // SWAP (HL)
+            0x36 => {
+                let hl_byte = self.mmu.read_byte(self.reg.hl());
+                let swapped_hl_byte = self.cb_swap(hl_byte);
+                self.mmu.write_byte(self.reg.hl(), swapped_hl_byte);
+                16
+            }
+            // SWAP A
+            0x37 => {
+                self.reg.a = self.cb_swap(self.reg.a);
+                8
+            }
             0x38 => unimplemented!("Opcode 0x38"),
             0x39 => unimplemented!("Opcode 0x39"),
             0x3A => unimplemented!("Opcode 0x3A"),
