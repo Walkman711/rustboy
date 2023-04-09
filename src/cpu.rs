@@ -364,21 +364,21 @@ impl CPU {
             }
             0x32 => {
                 // FIX: need to implement decrement for HL
-                self.mmu.write_hl_byte(self.reg.a);
+                self.write_hl_byte(self.reg.a);
                 todo!("decrement HL");
                 8
             }
             0x33 => unimplemented!("Opcode 0x33"),
             // INC (HL)
             0x34 => {
-                let inc = self.alu_inc(self.mmu.read_byte(self.reg.hl()));
-                self.mmu.write_byte(self.reg.hl(), inc);
+                let inc = self.alu_inc(self.read_hl_byte());
+                self.write_hl_byte(inc);
                 12
             }
             0x35 => unimplemented!("Opcode 0x35"),
             0x36 => {
                 let n = self.fetch_byte();
-                self.mmu.write_byte(self.reg.hl(), n);
+                self.write_hl_byte(n);
                 12
             }
             // SCF
@@ -396,9 +396,10 @@ impl CPU {
                 8
             }
             0x39 => unimplemented!("Opcode 0x39"),
+            // LDD A,(HL)
             0x3A => {
                 // FIX: need to implement decrement for HL
-                self.reg.a = self.mmu.read_byte(self.reg.hl());
+                self.reg.a = self.read_hl_byte();
                 todo!("decrement HL");
                 8
             }
@@ -417,66 +418,82 @@ impl CPU {
                 self.reg.f.C = !self.reg.f.C;
                 4
             }
+            // LD B,B
             0x40 => {
                 self.reg.b = self.reg.b;
                 4
             }
+            // LD B,C
             0x41 => {
                 self.reg.b = self.reg.c;
                 4
             }
+            // LD B,D
             0x42 => {
                 self.reg.b = self.reg.d;
                 4
             }
+            // LD B,E
             0x43 => {
                 self.reg.b = self.reg.e;
                 4
             }
+            // LD B,H
             0x44 => {
                 self.reg.b = self.reg.h;
                 4
             }
+            // LD B,L
             0x45 => {
                 self.reg.b = self.reg.l;
                 4
             }
+            // LD B,(HL)
             0x46 => {
-                self.reg.b = self.mmu.read_byte(self.reg.hl());
+                self.reg.b = self.read_hl_byte();
                 8
             }
+            // LD B,A
             0x47 => {
                 self.reg.b = self.reg.a;
                 4
             }
+            // LD C,B
             0x48 => {
                 self.reg.c = self.reg.b;
                 4
             }
+            // LD C,C
             0x49 => {
                 self.reg.c = self.reg.c;
                 4
             }
+            // LD C,D
             0x4A => {
                 self.reg.c = self.reg.d;
                 4
             }
+            // LD C,E
             0x4B => {
                 self.reg.c = self.reg.e;
                 4
             }
+            // LD C,H
             0x4C => {
                 self.reg.c = self.reg.h;
                 4
             }
+            // LD C,L
             0x4D => {
                 self.reg.c = self.reg.l;
                 4
             }
+            // LD C,(HL)
             0x4E => {
-                self.reg.c = self.mmu.read_byte(self.reg.hl());
+                self.reg.c = self.read_hl_byte();
                 8
             }
+            // LD C,A
             0x4F => {
                 self.reg.c = self.reg.a;
                 4
@@ -506,7 +523,7 @@ impl CPU {
                 4
             }
             0x56 => {
-                self.reg.d = self.mmu.read_byte(self.reg.hl());
+                self.reg.d = self.read_hl_byte();
                 8
             }
             0x57 => {
@@ -538,7 +555,7 @@ impl CPU {
                 4
             }
             0x5E => {
-                self.reg.e = self.mmu.read_byte(self.reg.hl());
+                self.reg.e = self.read_hl_byte();
                 8
             }
             0x5F => {
@@ -570,7 +587,7 @@ impl CPU {
                 4
             }
             0x66 => {
-                self.reg.h = self.mmu.read_byte(self.reg.hl());
+                self.reg.h = self.read_hl_byte();
                 8
             }
             0x67 => {
@@ -602,7 +619,7 @@ impl CPU {
                 4
             }
             0x6E => {
-                self.reg.l = self.mmu.read_byte(self.reg.hl());
+                self.reg.l = self.read_hl_byte();
                 8
             }
             0x6F => {
@@ -610,27 +627,27 @@ impl CPU {
                 4
             }
             0x70 => {
-                self.mmu.write_byte(self.reg.hl(), self.reg.b);
+                self.write_hl_byte(self.reg.b);
                 8
             }
             0x71 => {
-                self.mmu.write_byte(self.reg.hl(), self.reg.c);
+                self.write_hl_byte(self.reg.c);
                 8
             }
             0x72 => {
-                self.mmu.write_byte(self.reg.hl(), self.reg.d);
+                self.write_hl_byte(self.reg.d);
                 8
             }
             0x73 => {
-                self.mmu.write_byte(self.reg.hl(), self.reg.e);
+                self.write_hl_byte(self.reg.e);
                 8
             }
             0x74 => {
-                self.mmu.write_byte(self.reg.hl(), self.reg.h);
+                self.write_hl_byte(self.reg.h);
                 8
             }
             0x75 => {
-                self.mmu.write_byte(self.reg.hl(), self.reg.l);
+                self.write_hl_byte(self.reg.l);
                 8
             }
             0x76 => {
@@ -638,7 +655,7 @@ impl CPU {
                 4
             }
             0x77 => {
-                self.mmu.write_byte(self.reg.hl(), self.reg.a);
+                self.write_hl_byte(self.reg.a);
                 8
             }
             0x78 => {
@@ -665,8 +682,9 @@ impl CPU {
                 self.reg.a = self.reg.l;
                 4
             }
+            // LD A,(HL)
             0x7E => {
-                self.reg.a = self.mmu.read_byte(self.reg.hl());
+                self.reg.a = self.read_hl_byte();
                 8
             }
             0x7F => {
@@ -705,7 +723,7 @@ impl CPU {
             }
             // ADD A,(HL)
             0x86 => {
-                self.alu_add(self.mmu.read_byte(self.reg.hl()));
+                self.alu_add(self.read_hl_byte());
                 8
             }
             // ADD A,A
@@ -745,7 +763,7 @@ impl CPU {
             }
             // ADC A,(HL)
             0x8E => {
-                self.alu_adc(self.mmu.read_byte(self.reg.hl()));
+                self.alu_adc(self.read_hl_byte());
                 8
             }
             // ADC A,A
@@ -785,7 +803,7 @@ impl CPU {
             }
             // SUB (HL)
             0x96 => {
-                self.alu_sub(self.mmu.read_byte(self.reg.hl()));
+                self.alu_sub(self.read_hl_byte());
                 8
             }
             // SUB A
@@ -825,7 +843,7 @@ impl CPU {
             }
             // SBC A,(HL)
             0x9E => {
-                self.alu_sbc(self.mmu.read_byte(self.reg.hl()));
+                self.alu_sbc(self.read_hl_byte());
                 8
             }
             0x9F => unimplemented!("Opcode 0x9F"),
@@ -854,7 +872,7 @@ impl CPU {
                 4
             }
             0xA6 => {
-                self.alu_and(self.mmu.read_byte(self.reg.hl()));
+                self.alu_and(self.read_hl_byte());
                 8
             }
             0xA7 => {
@@ -886,7 +904,7 @@ impl CPU {
                 4
             }
             0xAE => {
-                self.alu_xor(self.mmu.read_byte(self.reg.hl()));
+                self.alu_xor(self.read_hl_byte());
                 8
             }
             0xAF => {
@@ -918,7 +936,7 @@ impl CPU {
                 4
             }
             0xB6 => {
-                self.alu_or(self.mmu.read_byte(self.reg.hl()));
+                self.alu_or(self.read_hl_byte());
                 8
             }
             0xB7 => {
@@ -957,7 +975,7 @@ impl CPU {
             }
             // CP (HL)
             0xBE => {
-                self.alu_cp(self.mmu.read_byte(self.reg.hl()));
+                self.alu_cp(self.read_hl_byte());
                 8
             }
             // CP A
@@ -1287,9 +1305,8 @@ impl CPU {
             }
             // SWAP (HL)
             0x36 => {
-                let hl_byte = self.mmu.read_byte(self.reg.hl());
-                let swapped_hl_byte = self.cb_swap(hl_byte);
-                self.mmu.write_byte(self.reg.hl(), swapped_hl_byte);
+                let swapped_hl_byte = self.cb_swap(self.read_hl_byte());
+                self.write_hl_byte(swapped_hl_byte);
                 16
             }
             // SWAP A
@@ -1344,13 +1361,13 @@ impl CPU {
             // BIT b,(HL)
             0x46 => {
                 let b = self.fetch_byte();
-                self.cb_bit(b, self.mmu.read_byte(self.reg.hl()));
+                self.cb_bit(b, self.read_hl_byte());
                 16
             }
             // BIT b,A
-            0x46 => {
+            0x47 => {
                 let b = self.fetch_byte();
-                self.cb_bit(b, self.reg.A);
+                self.cb_bit(b, self.reg.a);
                 8
             }
             0x48 => unimplemented!("Opcode 0x48"),
@@ -1512,8 +1529,8 @@ impl CPU {
             // SET b,(HL)
             0xC6 => {
                 let b = self.fetch_byte();
-                let hl_byte = self.mmu.read_byte(self.reg.hl()) | (1 << b);
-                self.mmu.write_byte(self.reg.hl(), hl_byte);
+                let hl_byte = self.read_hl_byte() | (1 << b);
+                self.write_hl_byte(hl_byte);
                 16
             }
             // SET b,A
@@ -1577,6 +1594,7 @@ impl CPU {
             0xFC => unimplemented!("Opcode 0xFC"),
             0xFD => unimplemented!("Opcode 0xFD"),
             0xFE => unimplemented!("Opcode 0xFE"),
+            0xFF => unimplemented!("Opcode 0xFF"),
         }
     }
 }
