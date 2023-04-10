@@ -1,32 +1,22 @@
 #![allow(dead_code)]
-use crate::registers::*;
+use crate::{mmu::*, registers::*};
+
+#[derive(Copy, Clone, Debug)]
+enum InterruptState {
+    DisableNext,
+    Disabled,
+    EnableNext,
+    Enabled,
+}
+
+#[derive(Debug)]
 pub struct CPU {
     reg: Registers,
     clock: u16,
     mmu: MMU,
     halted: bool,
     stopped: bool,
-    interrupts_enabled: bool,
-}
-
-pub struct MMU {}
-
-impl MMU {
-    pub fn read_byte(&self, _addr: u16) -> u8 {
-        unimplemented!("MMU::read_byte() not implemented yet")
-    }
-
-    pub fn write_byte(&mut self, _addr: u16, _val: u8) {
-        unimplemented!("MMU::write_byte() not implemented yet")
-    }
-
-    pub fn read_word(&self, _addr: u16) -> u16 {
-        unimplemented!("MMU::read_word() not implemented yet")
-    }
-
-    pub fn write_word(&mut self, _addr: u16, _val: u16) {
-        unimplemented!("MMU::write_word() not implemented yet")
-    }
+    interrupt_state: InterruptState,
 }
 
 impl CPU {
@@ -100,15 +90,23 @@ impl CPU {
         res
     }
 
+    fn alu_inc_16(&mut self, val: u16) -> u16 {
+        todo!()
+    }
+
+    fn alu_dec(&mut self, val: u8) -> u8 {
+        todo!()
+    }
+
     fn push_stack(&mut self, addr: u16) {
         self.mmu.write_word(self.reg.sp, addr);
         // XXX: check if this goes up or down
-        self.reg.sp += 2;
+        self.reg.sp -= 2;
     }
 
     fn pop_stack(&mut self) -> u16 {
         let addr = self.mmu.read_word(self.reg.sp);
-        self.reg.sp -= 2;
+        self.reg.sp += 2;
         addr
     }
 
@@ -158,13 +156,15 @@ impl CPU {
 
 impl CPU {
     fn fetch_byte(&mut self) -> u8 {
-        todo!()
+        let b = self.mmu.read_byte(self.reg.pc);
+        self.reg.pc += 1;
+        b
     }
 
     fn fetch_word(&mut self) -> u16 {
-        let nn_l = self.fetch_byte();
-        let nn_h = self.fetch_byte();
-        ((nn_h as u16) << 8) | (nn_l as u16)
+        let lo = self.fetch_byte();
+        let hi = self.fetch_byte();
+        ((hi as u16) << 8) | (lo as u16)
     }
 
     fn read_hl_byte(&self) -> u8 {
@@ -187,17 +187,27 @@ impl CPU {
                 self.reg.b = self.fetch_byte();
                 12
             }
+            // LD (BC), A
             0x02 => {
                 self.mmu.write_byte(self.reg.bc(), self.reg.a);
                 8
             }
-            0x03 => unimplemented!("Opcode 0x03"),
+            // INC BC
+            0x03 => {
+                let inc = self.alu_inc_16(self.reg.bc());
+                self.reg.set_bc(inc);
+                8
+            }
             // INC B
             0x04 => {
                 self.reg.b = self.alu_inc(self.reg.b);
                 4
             }
-            0x05 => unimplemented!("Opcode 0x05"),
+            // DEC B
+            0x05 => {
+                self.reg.b = self.alu_dec(self.reg.b);
+                4
+            }
             // LD B,n
             0x06 => {
                 self.reg.b = self.fetch_byte();
@@ -231,7 +241,11 @@ impl CPU {
                 self.reg.c = self.alu_inc(self.reg.c);
                 4
             }
-            0x0D => unimplemented!("Opcode 0x0D"),
+            // DEC C
+            0x0D => {
+                self.reg.c = self.alu_dec(self.reg.c);
+                4
+            }
             // LD C,n
             0x0E => {
                 self.reg.c = self.fetch_byte();
@@ -266,13 +280,22 @@ impl CPU {
                 self.mmu.write_byte(self.reg.de(), self.reg.a);
                 8
             }
-            0x13 => unimplemented!("Opcode 0x13"),
+            // INC DE
+            0x13 => {
+                let inc = self.alu_inc_16(self.reg.de());
+                self.reg.set_de(inc);
+                8
+            }
             // INC D
             0x14 => {
                 self.reg.d = self.alu_inc(self.reg.d);
                 4
             }
-            0x15 => unimplemented!("Opcode 0x15"),
+            // DEC D
+            0x15 => {
+                self.reg.d = self.alu_dec(self.reg.d);
+                4
+            }
             // LD D,n
             0x16 => {
                 self.reg.d = self.fetch_byte();
@@ -295,7 +318,11 @@ impl CPU {
                 self.reg.e = self.alu_inc(self.reg.e);
                 4
             }
-            0x1D => unimplemented!("Opcode 0x1D"),
+            // DEC E
+            0x1D => {
+                self.reg.e = self.alu_dec(self.reg.e);
+                4
+            }
             // LD E,n
             0x1E => {
                 self.reg.e = self.fetch_byte();
@@ -316,13 +343,22 @@ impl CPU {
                 12
             }
             0x22 => unimplemented!("Opcode 0x22"),
-            0x23 => unimplemented!("Opcode 0x23"),
+            // INC HL
+            0x23 => {
+                let inc = self.alu_inc_16(self.reg.hl());
+                self.reg.set_hl(inc);
+                8
+            }
             // INC H
             0x24 => {
                 self.reg.h = self.alu_inc(self.reg.h);
                 4
             }
-            0x25 => unimplemented!("Opcode 0x25"),
+            // DEC H
+            0x25 => {
+                self.reg.h = self.alu_dec(self.reg.h);
+                4
+            }
             // LD H,n
             0x26 => {
                 self.reg.h = self.fetch_byte();
@@ -344,7 +380,11 @@ impl CPU {
                 self.reg.l = self.alu_inc(self.reg.l);
                 4
             }
-            0x2D => unimplemented!("Opcode 0x2D"),
+            // DEC L
+            0x2D => {
+                self.reg.l = self.alu_dec(self.reg.l);
+                4
+            }
             // LD L,n
             0x2E => {
                 self.reg.l = self.fetch_byte();
@@ -370,20 +410,31 @@ impl CPU {
                 self.reg.sp = self.fetch_word();
                 12
             }
+            // LD (HL-),A or LD (HLD),A or LDD (HL),A
             0x32 => {
                 // FIX: need to implement decrement for HL
                 self.write_hl_byte(self.reg.a);
                 todo!("decrement HL");
                 8
             }
-            0x33 => unimplemented!("Opcode 0x33"),
+            // INC SP
+            0x33 => {
+                let inc = self.alu_inc_16(self.reg.sp);
+                self.reg.sp = inc;
+                8
+            }
             // INC (HL)
             0x34 => {
                 let inc = self.alu_inc(self.read_hl_byte());
                 self.write_hl_byte(inc);
                 12
             }
-            0x35 => unimplemented!("Opcode 0x35"),
+            // DEC (HL)
+            0x35 => {
+                let dec = self.alu_dec(self.read_hl_byte());
+                self.write_hl_byte(dec);
+                12
+            }
             0x36 => {
                 let n = self.fetch_byte();
                 self.write_hl_byte(n);
@@ -854,7 +905,11 @@ impl CPU {
                 self.alu_sbc(self.read_hl_byte());
                 8
             }
-            0x9F => unimplemented!("Opcode 0x9F"),
+            // SBC A, A
+            0x9F => {
+                self.alu_sbc(self.reg.a);
+                4
+            }
             0xA0 => {
                 self.alu_and(self.reg.b);
                 4
@@ -998,7 +1053,12 @@ impl CPU {
                 }
                 8
             }
-            0xC1 => unimplemented!("Opcode 0xC1"),
+            // POP BC
+            0xC1 => {
+                let addr = self.pop_stack();
+                self.reg.set_bc(addr);
+                12
+            }
             // JP NZ,nn
             0xC2 => {
                 if !self.reg.zero_flag_set() {
@@ -1052,7 +1112,8 @@ impl CPU {
                 }
                 12
             }
-            0xCB => unimplemented!("Opcode 0xCB"),
+            // CB-prefixed opcodes
+            0xCB => self.call_cb(),
             // CALL Z, nn
             0xCC => {
                 if self.reg.zero_flag_set() {
@@ -1083,7 +1144,12 @@ impl CPU {
                 }
                 8
             }
-            0xD1 => unimplemented!("Opcode 0xD1"),
+            // POP DE
+            0xD1 => {
+                let addr = self.pop_stack();
+                self.reg.set_de(addr);
+                12
+            }
             // JP NC,nn
             0xD2 => {
                 if !self.reg.carry_flag_set() {
@@ -1145,7 +1211,12 @@ impl CPU {
                 32
             }
             0xE0 => unimplemented!("Opcode 0xE0"),
-            0xE1 => unimplemented!("Opcode 0xE1"),
+            // POP HL
+            0xE1 => {
+                let addr = self.pop_stack();
+                self.reg.set_hl(addr);
+                12
+            }
             0xE2 => {
                 self.mmu
                     .write_byte(0xFF00 + (self.reg.c as u16), self.reg.a);
@@ -1184,12 +1255,21 @@ impl CPU {
                 32
             }
             0xF0 => unimplemented!("Opcode 0xF0"),
-            0xF1 => unimplemented!("Opcode 0xF1"),
+            // POP AF
+            0xF1 => {
+                let addr = self.pop_stack();
+                self.reg.set_af(addr);
+                12
+            }
             0xF2 => {
                 self.reg.a = self.reg.c + self.mmu.read_byte(0xFF00);
                 8
             }
-            0xF3 => unimplemented!("Opcode 0xF3"),
+            // DI
+            0xF3 => {
+                self.interrupt_state = InterruptState::DisableNext;
+                4
+            }
             0xF5 => unimplemented!("Opcode 0xF5"),
             0xF6 => {
                 let n = self.fetch_byte();
@@ -1207,12 +1287,17 @@ impl CPU {
                 self.reg.sp = self.reg.hl();
                 8
             }
+            // LD A,(nn)
             0xFA => {
                 let addr = self.fetch_word();
                 self.reg.a = self.mmu.read_byte(addr);
                 8
             }
-            0xFB => unimplemented!("Opcode 0xFB"),
+            // EI
+            0xFB => {
+                self.interrupt_state = InterruptState::EnableNext;
+                4
+            }
             // CP #
             0xFE => {
                 let n = self.fetch_byte();

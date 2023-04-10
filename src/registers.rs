@@ -22,6 +22,17 @@ pub struct FlagRegister {
     C: bool,
 }
 
+#[allow(non_snake_case)]
+impl From<u8> for FlagRegister {
+    fn from(value: u8) -> Self {
+        let Z: bool = (value & 0b1000000) != 0;
+        let N: bool = (value & 0b0100000) != 0;
+        let H: bool = (value & 0b0010000) != 0;
+        let C: bool = (value & 0b0001000) != 0;
+        Self { Z, N, H, C }
+    }
+}
+
 #[derive(Copy, Clone, Debug)]
 pub struct Registers {
     pub a: u8,
@@ -71,6 +82,36 @@ impl Registers {
 
     pub fn hl(&self) -> u16 {
         Self::to_16_bit(self.h, self.l)
+    }
+
+    fn split_16_bit(val: u16) -> (u8, u8) {
+        let hi = ((val & 0xFF00) >> 8) as u8;
+        let lo = (val & 0x00FF) as u8;
+        (hi, lo)
+    }
+
+    pub fn set_af(&mut self, val: u16) {
+        let (hi, lo) = Self::split_16_bit(val);
+        self.a = hi;
+        self.f = FlagRegister::from(lo);
+    }
+
+    pub fn set_bc(&mut self, val: u16) {
+        let (hi, lo) = Self::split_16_bit(val);
+        self.b = hi;
+        self.c = lo;
+    }
+
+    pub fn set_de(&mut self, val: u16) {
+        let (hi, lo) = Self::split_16_bit(val);
+        self.d = hi;
+        self.e = lo;
+    }
+
+    pub fn set_hl(&mut self, val: u16) {
+        let (hi, lo) = Self::split_16_bit(val);
+        self.h = hi;
+        self.l = lo;
     }
 
     pub fn flag(&mut self, flag: Flags, val: bool) {

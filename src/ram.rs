@@ -1,21 +1,13 @@
 #![allow(dead_code)]
-const VRAM_START: u16 = 0x8000;
-const VRAM_END: u16 = 0x9FFF;
-const EXT_RAM_START: u16 = 0xA000;
-const EXT_RAM_END: u16 = 0x9FFF;
-const WORK_RAM_I_START: u16 = 0xC000;
-const WORK_RAM_I_END: u16 = 0xCFFF;
-const WORK_RAM_II_START: u16 = 0xD000;
-const WORK_RAM_II_END: u16 = 0xDFFF;
-const ECHO_RAM_START: u16 = 0xE000;
-const ECHO_RAM_END: u16 = 0xFDFF;
-const SPRITE_TABLE_START: u16 = 0xFE00;
-const SPRITE_TABLE_END: u16 = 0xFE9F;
-const FORBIDDEN_START: u16 = 0xFEA0;
-const FORBIDDEN_END: u16 = 0xFEFF;
-const IO_START: u16 = 0xFF00;
-const IO_END: u16 = 0xFF7F;
-const HRAM_START: u16 = 0xFF80;
-const HRAM_END: u16 = 0xFFFE;
-const INTERRUPT_START: u16 = 0xFFFF;
-const INTERRUPT_END: u16 = 0xFFFF;
+
+use crate::mem_constants::*;
+
+pub struct RAM {
+    buf: [u8; (EXT_RAM_END - EXT_RAM_START + 1) as usize],
+}
+
+impl RAM {
+    pub fn read_byte(&self, _addr: u16) -> u8 {
+        unimplemented!("RAM::read_byte() not implemented yet")
+    }
+}
