@@ -63,8 +63,6 @@ pub const OBP1: u16 = 0xFF49;
 pub const WY: u16 = 0xFF4A;
 /// Window X Position (R/W)
 pub const WX: u16 = 0xFF4B;
-/// Interrupt Enable (R/W)
-pub const IE: u16 = 0xFFFF;
 
 #[derive(Copy, Clone, Debug)]
 pub enum Interrupts {
@@ -120,7 +118,6 @@ impl Default for IORegisters {
         io.set_byte(OBP1, 0xFF);
         io.set_byte(WY, 0x00);
         io.set_byte(WX, 0x00);
-        io.set_byte(IE, 0x00);
 
         io
     }
