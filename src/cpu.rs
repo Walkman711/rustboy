@@ -98,6 +98,10 @@ impl CPU {
         todo!()
     }
 
+    fn alu_dec_16(&mut self, val: u16) -> u16 {
+        todo!()
+    }
+
     fn push_stack(&mut self, addr: u16) {
         self.mmu.write_word(self.reg.sp, addr);
         // XXX: check if this goes up or down
@@ -230,12 +234,19 @@ impl CPU {
                 self.reg.sp = nn;
                 20
             }
+            // ADD HL,BC
             0x09 => unimplemented!("Opcode 0x09"),
+            // LD A,(BC)
             0x0A => {
                 self.reg.a = self.mmu.read_byte(self.reg.bc());
                 8
             }
-            0x0B => unimplemented!("Opcode 0x0B"),
+            // DEC BC
+            0x0B => {
+                let dec = self.alu_dec_16(self.reg.bc());
+                self.reg.set_bc(dec);
+                8
+            }
             // INC C
             0x0C => {
                 self.reg.c = self.alu_inc(self.reg.c);
@@ -276,6 +287,7 @@ impl CPU {
                 self.reg.d = self.fetch_byte();
                 12
             }
+            // LD (DE),A
             0x12 => {
                 self.mmu.write_byte(self.reg.de(), self.reg.a);
                 8
@@ -301,18 +313,26 @@ impl CPU {
                 self.reg.d = self.fetch_byte();
                 8
             }
+            // RLA
             0x17 => unimplemented!("Opcode 0x17"),
             // JR n
             0x18 => {
                 self.reg.pc += self.fetch_byte() as u16;
                 8
             }
+            // ADD HL,DE
             0x19 => unimplemented!("Opcode 0x19"),
+            // LD A,(DE)
             0x1A => {
                 self.reg.a = self.mmu.read_byte(self.reg.de());
                 8
             }
-            0x1B => unimplemented!("Opcode 0x1B"),
+            // DEC DE
+            0x1B => {
+                let dec = self.alu_dec_16(self.reg.de());
+                self.reg.set_de(dec);
+                8
+            }
             // INC E
             0x1C => {
                 self.reg.e = self.alu_inc(self.reg.e);
@@ -328,6 +348,7 @@ impl CPU {
                 self.reg.e = self.fetch_byte();
                 8
             }
+            // RRA
             0x1F => unimplemented!("Opcode 0x1F"),
             // JR NZ,n
             0x20 => {
@@ -342,6 +363,7 @@ impl CPU {
                 self.reg.h = self.fetch_byte();
                 12
             }
+            // LD (HL+),A
             0x22 => unimplemented!("Opcode 0x22"),
             // INC HL
             0x23 => {
@@ -364,6 +386,7 @@ impl CPU {
                 self.reg.h = self.fetch_byte();
                 8
             }
+            // DAA
             0x27 => unimplemented!("Opcode 0x27"),
             // JR Z,n
             0x28 => {
@@ -372,9 +395,16 @@ impl CPU {
                 }
                 8
             }
+            // ADD HL,HL
             0x29 => unimplemented!("Opcode 0x29"),
+            // LD A,(HL+)
             0x2A => unimplemented!("Opcode 0x2A"),
-            0x2B => unimplemented!("Opcode 0x2B"),
+            // DEC HL
+            0x2B => {
+                let dec = self.alu_dec_16(self.reg.hl());
+                self.reg.set_hl(dec);
+                8
+            }
             // INC L
             0x2C => {
                 self.reg.l = self.alu_inc(self.reg.l);
@@ -454,6 +484,7 @@ impl CPU {
                 }
                 8
             }
+            // ADD HL,SP
             0x39 => unimplemented!("Opcode 0x39"),
             // LDD A,(HL)
             0x3A => {
@@ -462,13 +493,23 @@ impl CPU {
                 todo!("decrement HL");
                 8
             }
-            0x3B => unimplemented!("Opcode 0x3B"),
+            // DEC SP
+            0x3B => {
+                let dec = self.alu_dec_16(self.reg.sp);
+                self.reg.sp = dec;
+                8
+            }
             // INC A
             0x3C => {
                 self.reg.a = self.alu_inc(self.reg.a);
                 4
             }
-            0x3D => unimplemented!("Opcode 0x3D"),
+            // DEC A
+            0x3D => {
+                self.reg.a = self.alu_dec(self.reg.a);
+                4
+            }
+            // LD A,d8
             0x3E => unimplemented!("Opcode 0x3E"),
             // CCF
             0x3F => {
@@ -557,186 +598,232 @@ impl CPU {
                 self.reg.c = self.reg.a;
                 4
             }
+            // LD D,B
             0x50 => {
                 self.reg.d = self.reg.b;
                 4
             }
+            // LD D,C
             0x51 => {
                 self.reg.d = self.reg.c;
                 4
             }
+            // LD D,D
             0x52 => {
                 self.reg.d = self.reg.d;
                 4
             }
+            // LD D,E
             0x53 => {
                 self.reg.d = self.reg.e;
                 4
             }
+            // LD D,H
             0x54 => {
                 self.reg.d = self.reg.h;
                 4
             }
+            // LD D,L
             0x55 => {
                 self.reg.d = self.reg.l;
                 4
             }
+            // LD D,(HL)
             0x56 => {
                 self.reg.d = self.read_hl_byte();
                 8
             }
+            // LD D,A
             0x57 => {
                 self.reg.d = self.reg.a;
                 4
             }
+            // LD E,B
             0x58 => {
                 self.reg.e = self.reg.b;
                 4
             }
+            // LD E,C
             0x59 => {
                 self.reg.e = self.reg.c;
                 4
             }
+            // LD E,D
             0x5A => {
                 self.reg.e = self.reg.d;
                 4
             }
+            // LD E,E
             0x5B => {
                 self.reg.e = self.reg.e;
                 4
             }
+            // LD E,H
             0x5C => {
                 self.reg.e = self.reg.h;
                 4
             }
+            // LD E,L
             0x5D => {
                 self.reg.e = self.reg.l;
                 4
             }
+            // LD E,(HL)
             0x5E => {
                 self.reg.e = self.read_hl_byte();
                 8
             }
+            // LD E,A
             0x5F => {
                 self.reg.e = self.reg.a;
                 4
             }
+            // LD H,B
             0x60 => {
                 self.reg.h = self.reg.b;
                 4
             }
+            // LD H,C
             0x61 => {
                 self.reg.h = self.reg.c;
                 4
             }
+            // LD H,D
             0x62 => {
                 self.reg.h = self.reg.d;
                 4
             }
+            // LD H,E
             0x63 => {
                 self.reg.h = self.reg.e;
                 4
             }
+            // LD H,H
             0x64 => {
                 self.reg.h = self.reg.h;
                 4
             }
+            // LD H,L
             0x65 => {
                 self.reg.h = self.reg.l;
                 4
             }
+            // LD H,(HL)
             0x66 => {
                 self.reg.h = self.read_hl_byte();
                 8
             }
+            // LD H,A
             0x67 => {
                 self.reg.h = self.reg.a;
                 4
             }
+            // LD L,B
             0x68 => {
-                self.reg.h = self.reg.b;
+                self.reg.l = self.reg.b;
                 4
             }
+            // LD L,C
             0x69 => {
-                self.reg.h = self.reg.c;
+                self.reg.l = self.reg.c;
                 4
             }
+            // LD L,D
             0x6A => {
-                self.reg.h = self.reg.d;
+                self.reg.l = self.reg.d;
                 4
             }
+            // LD L,E
             0x6B => {
                 self.reg.l = self.reg.e;
                 4
             }
+            // LD L,H
             0x6C => {
                 self.reg.l = self.reg.h;
                 4
             }
+            // LD L,L
             0x6D => {
                 self.reg.l = self.reg.l;
                 4
             }
+            // LD L,(HL)
             0x6E => {
                 self.reg.l = self.read_hl_byte();
                 8
             }
+            // LD L,A
             0x6F => {
                 self.reg.l = self.reg.a;
                 4
             }
+            // LD (HL),B
             0x70 => {
                 self.write_hl_byte(self.reg.b);
                 8
             }
+            // LD (HL),C
             0x71 => {
                 self.write_hl_byte(self.reg.c);
                 8
             }
+            // LD (HL),D
             0x72 => {
                 self.write_hl_byte(self.reg.d);
                 8
             }
+            // LD (HL),E
             0x73 => {
                 self.write_hl_byte(self.reg.e);
                 8
             }
+            // LD (HL),H
             0x74 => {
                 self.write_hl_byte(self.reg.h);
                 8
             }
+            // LD (HL),L
             0x75 => {
                 self.write_hl_byte(self.reg.l);
                 8
             }
+            // HAL
             0x76 => {
                 self.halted = true;
                 4
             }
+            // LD (HL),A
             0x77 => {
                 self.write_hl_byte(self.reg.a);
                 8
             }
+            // LD A,B
             0x78 => {
                 self.reg.a = self.reg.b;
                 4
             }
+            // LD A,C
             0x79 => {
                 self.reg.a = self.reg.c;
                 4
             }
+            // LD A,D
             0x7A => {
                 self.reg.a = self.reg.d;
                 4
             }
+            // LD A,E
             0x7B => {
                 self.reg.a = self.reg.e;
                 4
             }
+            // LD A,H
             0x7C => {
                 self.reg.a = self.reg.h;
                 4
             }
+            // LD A,L
             0x7D => {
                 self.reg.a = self.reg.l;
                 4
@@ -746,6 +833,7 @@ impl CPU {
                 self.reg.a = self.read_hl_byte();
                 8
             }
+            // LD A,A
             0x7F => {
                 self.reg.a = self.reg.a;
                 4
@@ -910,98 +998,122 @@ impl CPU {
                 self.alu_sbc(self.reg.a);
                 4
             }
+            // AND B
             0xA0 => {
                 self.alu_and(self.reg.b);
                 4
             }
+            // AND C
             0xA1 => {
                 self.alu_and(self.reg.c);
                 4
             }
+            // AND D
             0xA2 => {
                 self.alu_and(self.reg.d);
                 4
             }
+            // AND E
             0xA3 => {
                 self.alu_and(self.reg.e);
                 4
             }
+            // AND H
             0xA4 => {
                 self.alu_and(self.reg.h);
                 4
             }
+            // AND L
             0xA5 => {
                 self.alu_and(self.reg.l);
                 4
             }
+            // AND (HL)
             0xA6 => {
                 self.alu_and(self.read_hl_byte());
                 8
             }
+            // AND A
             0xA7 => {
                 self.alu_and(self.reg.a);
                 4
             }
+            // XOR B
             0xA8 => {
                 self.alu_xor(self.reg.b);
                 4
             }
+            // XOR C
             0xA9 => {
                 self.alu_xor(self.reg.c);
                 4
             }
+            // XOR D
             0xAA => {
                 self.alu_xor(self.reg.d);
                 4
             }
+            // XOR E
             0xAB => {
                 self.alu_xor(self.reg.e);
                 4
             }
+            // XOR H
             0xAC => {
                 self.alu_xor(self.reg.h);
                 4
             }
+            // XOR L
             0xAD => {
                 self.alu_xor(self.reg.l);
                 4
             }
+            // XOR (HL)
             0xAE => {
                 self.alu_xor(self.read_hl_byte());
                 8
             }
+            // XOR A
             0xAF => {
                 self.alu_xor(self.reg.a);
                 4
             }
+            // OR B
             0xB0 => {
                 self.alu_or(self.reg.b);
                 4
             }
+            // OR C
             0xB1 => {
                 self.alu_or(self.reg.c);
                 4
             }
+            // OR D
             0xB2 => {
                 self.alu_or(self.reg.d);
                 4
             }
+            // OR E
             0xB3 => {
                 self.alu_or(self.reg.e);
                 4
             }
+            // OR H
             0xB4 => {
                 self.alu_or(self.reg.h);
                 4
             }
+            // OR L
             0xB5 => {
                 self.alu_or(self.reg.l);
                 4
             }
+            // OR (HL)
             0xB6 => {
                 self.alu_or(self.read_hl_byte());
                 8
             }
+            // OR A
             0xB7 => {
                 self.alu_or(self.reg.a);
                 4
@@ -1080,7 +1192,11 @@ impl CPU {
                 }
                 12
             }
-            0xC5 => unimplemented!("Opcode 0xC5"),
+            // PUSH BC
+            0xC5 => {
+                self.push_stack(self.reg.bc());
+                16
+            }
             // ADD A, #
             0xC6 => {
                 let n = self.fetch_byte();
@@ -1165,7 +1281,11 @@ impl CPU {
                 }
                 12
             }
-            0xD5 => unimplemented!("Opcode 0xD5"),
+            // PUSH DE
+            0xD5 => {
+                self.push_stack(self.reg.de());
+                16
+            }
             // SUB #
             0xD6 => {
                 let n = self.fetch_byte();
@@ -1204,12 +1324,14 @@ impl CPU {
                 }
                 12
             }
+            // SBC A,d8
             0xDE => unimplemented!("Opcode 0xDE"),
             // RST 18H
             0xDF => {
                 self.rst(0x18);
                 32
             }
+            // LDH (a8),A
             0xE0 => unimplemented!("Opcode 0xE0"),
             // POP HL
             0xE1 => {
@@ -1217,12 +1339,19 @@ impl CPU {
                 self.reg.set_hl(addr);
                 12
             }
+            // LD (C),A
+            // XXX: make note that FF00 is IO?
             0xE2 => {
                 self.mmu
                     .write_byte(0xFF00 + (self.reg.c as u16), self.reg.a);
                 8
             }
-            0xE5 => unimplemented!("Opcode 0xE5"),
+            // PUSH HL
+            0xE5 => {
+                self.push_stack(self.reg.hl());
+                16
+            }
+            // AND d8
             0xE6 => {
                 let n = self.fetch_byte();
                 self.alu_and(n);
@@ -1233,17 +1362,20 @@ impl CPU {
                 self.rst(0x20);
                 32
             }
+            // ADD SP,r8
             0xE8 => unimplemented!("Opcode 0xE8"),
             // JP (HL)
             0xE9 => {
                 self.reg.pc = self.reg.hl();
                 4
             }
+            // LD (a16),A
             0xEA => {
                 let addr = self.fetch_word();
                 self.mmu.write_byte(addr, self.reg.a);
                 16
             }
+            // XOR d8
             0xEE => {
                 let n = self.fetch_byte();
                 self.alu_xor(n);
@@ -1254,6 +1386,7 @@ impl CPU {
                 self.rst(0x28);
                 32
             }
+            // LDH A,(a8)
             0xF0 => unimplemented!("Opcode 0xF0"),
             // POP AF
             0xF1 => {
@@ -1261,6 +1394,8 @@ impl CPU {
                 self.reg.set_af(addr);
                 12
             }
+            // LD A,(C)
+            // FIX: this looks incorrect
             0xF2 => {
                 self.reg.a = self.reg.c + self.mmu.read_byte(0xFF00);
                 8
@@ -1270,7 +1405,9 @@ impl CPU {
                 self.interrupt_state = InterruptState::DisableNext;
                 4
             }
+            // PUSH AF
             0xF5 => unimplemented!("Opcode 0xF5"),
+            // OR d8
             0xF6 => {
                 let n = self.fetch_byte();
                 self.alu_or(n);
@@ -1281,6 +1418,7 @@ impl CPU {
                 self.rst(0x30);
                 32
             }
+            // LD HL,SP+r8
             0xF8 => unimplemented!("Opcode 0xF8"),
             // LD SP,HL
             0xF9 => {
