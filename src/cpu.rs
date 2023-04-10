@@ -14,17 +14,17 @@ pub struct CPU {
     enable_interrupts_in: u16,
 }
 
-impl Default for CPU {
-    fn default() -> Self {
+impl CPU {
+    pub fn new(rom: &str) -> Self {
         Self {
             reg: Registers::default(),
             clock: 0,
-            mmu: MMU::default(),
+            mmu: MMU::new(rom),
             halted: false,
             stopped: false,
             interrupts_enabled: true,
-            disable_interrupts_in: todo!(),
-            enable_interrupts_in: todo!(),
+            disable_interrupts_in: 99,
+            enable_interrupts_in: 99,
         }
     }
 }
@@ -38,22 +38,70 @@ impl CPU {
     }
 }
 
+impl CPU {
+    // Taken from gist.github/com/meganesu
+    fn half_carry(a: u8, b: u8) -> bool {
+        // 1) mask a and b to only look at bits 0-3.
+        // 2) add them together
+        // 3) check if the fourth bit is set
+        (((a & 0xF) + (b & 0xF)) & (1 << 4)) == (1 << 4)
+    }
+
+    // TODO: test
+    fn half_carry_16(a: u16, b: u16) -> bool {
+        (((a & 0x0F00) + (b & 0x0F00)) & (1 << 12)) == (1 << 12)
+    }
+
+    fn carry(a: u8, b: u8) -> bool {
+        let wrapped = a.wrapping_add(b);
+        let unwrapped: u16 = (a as u16) + (b as u16);
+        (wrapped as u16) < unwrapped
+    }
+
+    fn carry_16(a: u16, b: u16) -> bool {
+        let wrapped = a.wrapping_add(b);
+        let unwrapped: u32 = (a as u32) + (b as u32);
+        (wrapped as u32) < unwrapped
+    }
+}
+
 // alu ops
 impl CPU {
     fn alu_add(&mut self, _val: u8) {
         todo!()
     }
 
-    fn alu_adc(&mut self, _val: u8) {
-        todo!()
+    fn alu_add_16(&mut self, val: u16) {
+        let hl = self.reg.hl();
+        let res = hl.wrapping_add(val);
+        self.reg.flag(Flags::N, false);
+        self.reg.flag(Flags::H, Self::half_carry_16(hl, val));
+        self.reg.flag(Flags::C, Self::carry_16(hl, val));
+        self.reg.set_hl(res);
     }
 
-    fn alu_sub(&mut self, _val: u8) {
-        todo!()
+    fn alu_adc(&mut self, val: u8) {
+        let addend = val.wrapping_add(1);
+        let res = self.reg.a.wrapping_add(addend);
+        self.reg.flag(Flags::Z, res == 0);
+        self.reg.flag(Flags::N, false);
+        // FIX: this seems sus
+        self.reg.flag(Flags::H, Self::half_carry(res, addend));
+        self.reg.flag(Flags::C, Self::carry(res, addend));
+        self.reg.a = res;
+    }
+
+    fn alu_sub(&mut self, val: u8) {
+        let res = self.reg.a.wrapping_sub(val);
+        self.reg.flag(Flags::Z, res == 0);
+        self.reg.flag(Flags::N, true);
+        // FIX: this is temporary until i figure out how carry works with subtraction
+        self.reg.flag(Flags::H, false);
+        self.reg.flag(Flags::C, false);
     }
 
     fn alu_sbc(&mut self, _val: u8) {
-        todo!()
+        todo!("alu sbc")
     }
 
     /// AND reg A with `val`
@@ -89,7 +137,7 @@ impl CPU {
     fn alu_cp(&mut self, val: u8) {
         self.reg.flag(Flags::Z, self.reg.a == val);
         self.reg.flag(Flags::N, true);
-        self.reg.flag(Flags::H, todo!());
+        self.reg.flag(Flags::H, Self::half_carry(val, val));
         self.reg.flag(Flags::C, self.reg.a < val);
     }
 
@@ -97,20 +145,31 @@ impl CPU {
         let res = val.wrapping_add(1);
         self.reg.flag(Flags::Z, res == 0);
         self.reg.flag(Flags::N, false);
-        self.reg.flag(Flags::H, (val & 0x0F) + 1 > 0x0F);
+        self.reg.flag(Flags::H, Self::half_carry(val, 1));
         res
     }
 
-    fn alu_inc_16(&mut self, _val: u16) -> u16 {
-        todo!()
+    // NOTE: seems weird that this doesn't modify flags??
+    fn alu_inc_16(&mut self, val: u16) -> u16 {
+        val.wrapping_add(1)
     }
 
-    fn alu_dec(&mut self, _val: u8) -> u8 {
-        todo!()
+    fn alu_dec(&mut self, val: u8) -> u8 {
+        let res = val.wrapping_sub(1);
+        self.reg.flag(Flags::Z, res == 0);
+        self.reg.flag(Flags::N, true);
+        // FIX: is this okay?
+        self.reg.flag(Flags::H, Self::half_carry(val, 0xFF));
+        res
     }
 
-    fn alu_dec_16(&mut self, _val: u16) -> u16 {
-        todo!()
+    fn alu_dec_16(&mut self, val: u16) -> u16 {
+        let res = val.wrapping_sub(1);
+        self.reg.flag(Flags::Z, res == 0);
+        self.reg.flag(Flags::N, true);
+        // FIX: is this okay?
+        self.reg.flag(Flags::H, Self::half_carry_16(val, 0xFF));
+        res
     }
 
     fn push_stack(&mut self, addr: u16) {
@@ -193,13 +252,14 @@ impl CPU {
     // Returns cycles elapsed
     fn call(&mut self) -> u32 {
         let opcode = self.fetch_byte();
+        println!("exec {:#02x}", opcode);
         match opcode {
             // NOP
             0x00 => 4,
             // LD BC,nn
             0x01 => {
-                self.reg.c = self.fetch_byte();
-                self.reg.b = self.fetch_byte();
+                let word = self.fetch_word();
+                self.reg.set_bc(word);
                 12
             }
             // LD (BC), A
@@ -246,7 +306,10 @@ impl CPU {
                 20
             }
             // ADD HL,BC
-            0x09 => unimplemented!("Opcode 0x09"),
+            0x09 => {
+                self.alu_add_16(self.reg.bc());
+                8
+            }
             // LD A,(BC)
             0x0A => {
                 self.reg.a = self.mmu.read_byte(self.reg.bc());
@@ -332,7 +395,10 @@ impl CPU {
                 8
             }
             // ADD HL,DE
-            0x19 => unimplemented!("Opcode 0x19"),
+            0x19 => {
+                self.alu_add_16(self.reg.de());
+                8
+            }
             // LD A,(DE)
             0x1A => {
                 self.reg.a = self.mmu.read_byte(self.reg.de());
@@ -360,7 +426,15 @@ impl CPU {
                 8
             }
             // RRA
-            0x1F => unimplemented!("Opcode 0x1F"),
+            0x1F => {
+                let old_bit_0 = self.reg.a & 0x1;
+                self.reg.a >>= 1;
+                self.reg.flag(Flags::Z, self.reg.a == 0);
+                self.reg.flag(Flags::N, false);
+                self.reg.flag(Flags::H, false);
+                self.reg.flag(Flags::C, old_bit_0 == 1);
+                4
+            }
             // JR NZ,n
             0x20 => {
                 if !self.reg.zero_flag_set() {
@@ -407,7 +481,10 @@ impl CPU {
                 8
             }
             // ADD HL,HL
-            0x29 => unimplemented!("Opcode 0x29"),
+            0x29 => {
+                self.alu_add_16(self.reg.hl());
+                8
+            }
             // LD A,(HL+)
             0x2A => unimplemented!("Opcode 0x2A"),
             // DEC HL
@@ -455,7 +532,8 @@ impl CPU {
             0x32 => {
                 // FIX: need to implement decrement for HL
                 self.write_hl_byte(self.reg.a);
-                todo!("decrement HL");
+                let hl_dec = self.alu_dec_16(self.reg.hl());
+                self.reg.set_hl(hl_dec);
                 8
             }
             // INC SP
@@ -496,12 +574,15 @@ impl CPU {
                 8
             }
             // ADD HL,SP
-            0x39 => unimplemented!("Opcode 0x39"),
+            0x39 => {
+                self.alu_add_16(self.reg.sp);
+                8
+            }
             // LDD A,(HL)
             0x3A => {
-                // FIX: need to implement decrement for HL
                 self.reg.a = self.read_hl_byte();
-                todo!("decrement HL");
+                let hl_byte = self.alu_dec_16(self.reg.hl());
+                self.reg.set_hl(hl_byte);
                 8
             }
             // DEC SP
