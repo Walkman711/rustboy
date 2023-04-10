@@ -1,4 +1,4 @@
-use crate::mem_constants::*;
+use crate::{io_registers::IORegisters, mem_constants::*};
 
 #[derive(Debug)]
 pub struct MMU {
@@ -11,8 +11,18 @@ pub struct MMU {
     // WRAM II
     // SPRITE TABLE
     // IO Registers
+    io: IORegisters,
     // HRAM
     // INTERRUPT
+}
+
+impl Default for MMU {
+    fn default() -> Self {
+        Self {
+            ext_ram: [0; (EXT_RAM_END - EXT_RAM_START + 1) as usize],
+            io: IORegisters::default(),
+        }
+    }
 }
 
 impl MMU {
@@ -29,15 +39,15 @@ impl MMU {
             FORBIDDEN_START..=FORBIDDEN_END => {
                 panic!("Nintendo forbids reading from {FORBIDDEN_START}-{FORBIDDEN_END}")
             }
-            IO_START..=IO_END => unimplemented!("IO"),
+            IO_START..=IO_END => self.io.read_byte(addr),
             HRAM_START..=HRAM_END => unimplemented!("HRAM"),
             INTERRUPT_START..=INTERRUPT_END => unimplemented!("interrupt"),
             _ => unimplemented!("other {addr} needs to be read from"),
-        }
+        };
         unimplemented!("MMU::read_byte() not implemented yet")
     }
 
-    pub fn write_byte(&mut self, addr: u16, _val: u8) {
+    pub fn write_byte(&mut self, addr: u16, val: u8) {
         match addr {
             // FIX: assuming a 32 kb cart
             ROM_BANK_0_START..=ROM_BANK_0_END => unimplemented!("16kb ROM bank #0"),
@@ -50,7 +60,7 @@ impl MMU {
             FORBIDDEN_START..=FORBIDDEN_END => {
                 panic!("Nintendo forbids writing to {FORBIDDEN_START}-{FORBIDDEN_END}")
             }
-            IO_START..=IO_END => unimplemented!("IO"),
+            IO_START..=IO_END => self.io.set_byte(addr, val),
             HRAM_START..=HRAM_END => unimplemented!("HRAM"),
             INTERRUPT_START..=INTERRUPT_END => unimplemented!("interrupt"),
             _ => unimplemented!("other {addr} needs to be read from"),

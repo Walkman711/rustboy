@@ -1,28 +1,39 @@
 #![allow(dead_code)]
 use crate::{mmu::*, registers::*};
 
-#[derive(Copy, Clone, Debug)]
-enum InterruptState {
-    DisableNext,
-    Disabled,
-    EnableNext,
-    Enabled,
-}
-
 #[derive(Debug)]
 pub struct CPU {
     reg: Registers,
-    clock: u16,
+    // TODO: is this 32 bit? also does it matter?
+    clock: u32,
     mmu: MMU,
     halted: bool,
     stopped: bool,
-    interrupt_state: InterruptState,
+    interrupts_enabled: bool,
+    disable_interrupts_in: u16,
+    enable_interrupts_in: u16,
+}
+
+impl Default for CPU {
+    fn default() -> Self {
+        Self {
+            reg: Registers::default(),
+            clock: 0,
+            mmu: MMU::default(),
+            halted: false,
+            stopped: false,
+            interrupts_enabled: true,
+            disable_interrupts_in: todo!(),
+            enable_interrupts_in: todo!(),
+        }
+    }
 }
 
 impl CPU {
     pub fn run(&mut self) {
         loop {
-            let _cycles_elapsed = self.call();
+            let cycles_elapsed: u32 = self.call().into();
+            self.clock += cycles_elapsed;
         }
     }
 }
@@ -1402,7 +1413,8 @@ impl CPU {
             }
             // DI
             0xF3 => {
-                self.interrupt_state = InterruptState::DisableNext;
+                unimplemented!();
+                // self.interrupt_state = InterruptState::DisableNext;
                 4
             }
             // PUSH AF
@@ -1433,7 +1445,8 @@ impl CPU {
             }
             // EI
             0xFB => {
-                self.interrupt_state = InterruptState::EnableNext;
+                unimplemented!();
+                // self.interrupt_state = InterruptState::EnableNext;
                 4
             }
             // CP #

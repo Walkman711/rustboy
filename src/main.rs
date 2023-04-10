@@ -1,3 +1,6 @@
+use rustboy::cpu::CPU;
+
 fn main() {
-    println!("Hello, world!");
+    let mut cpu = CPU::default();
+    cpu.run();
 }
