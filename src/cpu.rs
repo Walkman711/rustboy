@@ -29,9 +29,11 @@ impl CPU {
     }
 
     fn debug_step(&self, opcode: u8) {
+        println!("==========STEP==========");
         println!("exec {:#02x}", opcode);
-        println!("Registers: {}", self.reg);
+        println!("{}", self.reg);
         println!("clock: {}", self.clock);
+        println!("\n\n\n\n");
     }
 }
 

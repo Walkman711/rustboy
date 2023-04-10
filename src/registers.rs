@@ -37,6 +37,7 @@ impl From<u8> for FlagRegister {
 
 impl Display for FlagRegister {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "==========Flags==========")?;
         writeln!(f, "Zero Flag:       {}", self.Z)?;
         writeln!(f, "Subtract Flag:   {}", self.N)?;
         writeln!(f, "Half-Carry Flag: {}", self.N)?;
@@ -61,6 +62,7 @@ pub struct Registers {
 
 impl Display for Registers {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "==========Registers==========")?;
         writeln!(f, "Register A:  {:#02x}", self.a)?;
         writeln!(f, "Register B:  {:#02x}", self.b)?;
         writeln!(f, "Register C:  {:#02x}", self.c)?;
@@ -70,7 +72,7 @@ impl Display for Registers {
         writeln!(f, "Register L:  {:#02x}", self.l)?;
         writeln!(f, "Stack Ptr:   {:#02x}", self.sp)?;
         writeln!(f, "Program Ctr: {:#02x}", self.pc)?;
-        writeln!(f, "===============Flags===============\n{}", self.f)?;
+        writeln!(f, "{}", self.f)?;
         Ok(())
     }
 }
