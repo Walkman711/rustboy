@@ -37,15 +37,224 @@ impl CPU {
     }
 }
 
+#[derive(Copy, Clone, Debug)]
+pub enum Instruction {
+    // 3.3.1: 8-bit loads
+    LD8(Loc8, Loc8, u32),
+    LDD(Loc8, Loc8, u32),
+    LDI(Loc8, Loc8, u32),
+    // 3.3.2: 16-bit loads
+    LD16(Loc16, Loc16, u32),
+    PUSH(Loc16, u32),
+    POP(Loc16, u32),
+    // 3.3.3: 8-bit ALU ops
+    ADD(Loc8, u32),
+    ADC(Loc8, u32),
+    SUB(Loc8, u32),
+    SBC(Loc8, u32),
+    AND(Loc8, u32),
+    OR(Loc8, u32),
+    XOR(Loc8, u32),
+    CP(Loc8, u32),
+    INC(Loc8, u32),
+    DEC(Loc8, u32),
+    // 3.3.4: 16-bit ALU ops
+    ADD16(Loc16, Loc16, u32),
+    INC16(Loc16, u32),
+    DEC16(Loc16, u32),
+    // 3.3.5: Misc
+    SWAP(Loc8, u32),
+    DAA(u32),
+    CPL(u32),
+    CCF(u32),
+    SCF(u32),
+    NOP(u32),
+    HALT(u32),
+    STOP(u32),
+    DI(u32),
+    EI(u32),
+    // 3.3.6: Rotates & Shifts
+    RLCA(u32),
+    RLA(u32),
+    RRCA(u32),
+    RRA(u32),
+    RLC(Loc8, u32),
+    RL(Loc8, u32),
+    RRC(Loc8, u32),
+    RR(Loc8, u32),
+    SLA(Loc8, u32),
+    SRA(Loc8, u32),
+    SRL(Loc8, u32),
+    // 3.3.7: Bit Opcodes
+    BIT(u8, Loc8, u32),
+    SET(u8, Loc8, u32),
+    RES(u8, Loc8, u32),
+    // 3.3.8: Jumps
+    JP(Loc16, Flags, bool, u32),
+    // 3.3.9: Calls
+    CALL(Loc16, Flags, bool, u32),
+    // 3.3.10: Restarts
+    RST(u8, u32),
+    // 3.3.11: Returns
+    RET(Flags, bool, u32),
+    RETI(u32),
+}
+
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum Loc8 {
+    A,
+    F,
+    B,
+    C,
+    D,
+    E,
+    H,
+    L,
+    N,
+    Addr(u16),
+}
+
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum Loc16 {
+    AF,
+    BC,
+    DE,
+    HL,
+    NN,
+    Addr(u16),
+}
+
 impl CPU {
     pub fn run(&mut self) {
         loop {
-            let cycles_elapsed: u32 = self.call().into();
+            // Fetch
+            let opcode = self.fetch_byte();
+            self.debug_step(opcode);
+            // let inst = self.decode(opcode);
+            // dbg!(inst);
+            // Decode & Execute
+            let cycles_elapsed: u32 = self.call(opcode).into();
             self.clock += cycles_elapsed;
+        }
+    }
+
+    fn get_8(&mut self, src: Loc8) -> u8 {
+        match src {
+            Loc8::A => self.reg.a,
+            Loc8::F => todo!(),
+            Loc8::B => self.reg.b,
+            Loc8::C => self.reg.c,
+            Loc8::D => self.reg.d,
+            Loc8::E => self.reg.e,
+            Loc8::H => self.reg.h,
+            Loc8::L => self.reg.l,
+            Loc8::N => self.fetch_byte(),
+            Loc8::Addr(addr) => self.mmu.read_byte(addr),
+        }
+    }
+
+    fn set_8(&mut self, dst: Loc8, val: u8) {
+        match dst {
+            Loc8::A => self.reg.a = val,
+            Loc8::F => self.reg.f = FlagRegister::from(val),
+            Loc8::B => self.reg.b = val,
+            Loc8::C => self.reg.c = val,
+            Loc8::D => self.reg.d = val,
+            Loc8::E => self.reg.e = val,
+            Loc8::H => self.reg.h = val,
+            Loc8::L => self.reg.l = val,
+            Loc8::N => panic!("Tried to use N as a destination"),
+            Loc8::Addr(addr) => self.mmu.write_byte(addr, val),
+        }
+    }
+
+    fn get_16(&mut self, src: Loc16) -> u16 {
+        match src {
+            Loc16::AF => self.reg.af(),
+            Loc16::BC => self.reg.bc(),
+            Loc16::DE => self.reg.de(),
+            Loc16::HL => self.reg.hl(),
+            Loc16::NN => self.fetch_word(),
+            Loc16::Addr(addr) => self.mmu.read_word(addr),
+        }
+    }
+
+    fn set_16(&mut self, dst: Loc16, val: u16) {
+        match dst {
+            Loc16::AF => self.reg.set_af(val),
+            Loc16::BC => self.reg.set_bc(val),
+            Loc16::DE => self.reg.set_de(val),
+            Loc16::HL => self.reg.set_hl(val),
+            Loc16::NN => panic!("Tried to use NN as a destination"),
+            Loc16::Addr(addr) => self.mmu.write_word(addr, val),
+        }
+    }
+
+    // Instruction::NOP(_) => {}
+    // Instruction::LD8(dst, src, _) => {
+    //     let s = self.get_8(src);
+    //     self.set_8(dst, s);
+    // }
+    // Instruction::LD16(dst, src, _) => {
+    //     let s = self.get_16(src);
+    //     self.set_16(dst, s);
+    // }
+    // _ => unimplemented!(),
+    pub fn execute(&mut self, inst: Instruction) {
+        match inst {
+            Instruction::LD8(_, _, _) => todo!(),
+            Instruction::LDD(_, _, _) => todo!(),
+            Instruction::LDI(_, _, _) => todo!(),
+            Instruction::LD16(_, _, _) => todo!(),
+            Instruction::PUSH(_, _) => todo!(),
+            Instruction::POP(_, _) => todo!(),
+            Instruction::ADD(_, _) => todo!(),
+            Instruction::ADC(_, _) => todo!(),
+            Instruction::SUB(_, _) => todo!(),
+            Instruction::SBC(_, _) => todo!(),
+            Instruction::AND(_, _) => todo!(),
+            Instruction::OR(_, _) => todo!(),
+            Instruction::XOR(_, _) => todo!(),
+            Instruction::CP(_, _) => todo!(),
+            Instruction::INC(_, _) => todo!(),
+            Instruction::DEC(_, _) => todo!(),
+            Instruction::ADD16(_, _, _) => todo!(),
+            Instruction::INC16(_, _) => todo!(),
+            Instruction::DEC16(_, _) => todo!(),
+            Instruction::SWAP(_, _) => todo!(),
+            Instruction::DAA(_) => todo!(),
+            Instruction::CPL(_) => todo!(),
+            Instruction::CCF(_) => todo!(),
+            Instruction::SCF(_) => todo!(),
+            Instruction::NOP(_) => todo!(),
+            Instruction::HALT(_) => todo!(),
+            Instruction::STOP(_) => todo!(),
+            Instruction::DI(_) => todo!(),
+            Instruction::EI(_) => todo!(),
+            Instruction::RLCA(_) => todo!(),
+            Instruction::RLA(_) => todo!(),
+            Instruction::RRCA(_) => todo!(),
+            Instruction::RRA(_) => todo!(),
+            Instruction::RLC(_, _) => todo!(),
+            Instruction::RL(_, _) => todo!(),
+            Instruction::RRC(_, _) => todo!(),
+            Instruction::RR(_, _) => todo!(),
+            Instruction::SLA(_, _) => todo!(),
+            Instruction::SRA(_, _) => todo!(),
+            Instruction::SRL(_, _) => todo!(),
+            Instruction::BIT(_, _, _) => todo!(),
+            Instruction::SET(_, _, _) => todo!(),
+            Instruction::RES(_, _, _) => todo!(),
+            Instruction::JP(_, _, _, _) => todo!(),
+            Instruction::CALL(_, _, _, _) => todo!(),
+            Instruction::RST(_, _) => todo!(),
+            Instruction::RET(_, _, _) => todo!(),
+            Instruction::RETI(_) => todo!(),
         }
     }
 }
 
+// Flag ops
 impl CPU {
     // Taken from gist.github/com/meganesu
     fn half_carry(a: u8, b: u8) -> bool {
@@ -258,9 +467,7 @@ impl CPU {
     }
 
     // Returns cycles elapsed
-    fn call(&mut self) -> u32 {
-        let opcode = self.fetch_byte();
-        self.debug_step(opcode);
+    fn call(&mut self, opcode: u8) -> u32 {
         match opcode {
             // NOP
             0x00 => 4,

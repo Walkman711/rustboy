@@ -8,10 +8,21 @@ const LOW_MASK: u16 = 0x00FF;
 #[derive(Copy, Clone, Debug, PartialEq)]
 #[allow(non_snake_case)]
 pub enum Flags {
-    Z = 0b10000000,
-    N = 0b01000000,
-    H = 0b00100000,
-    C = 0b00010000,
+    Z,
+    N,
+    H,
+    C,
+}
+
+impl Into<u8> for Flags {
+    fn into(self) -> u8 {
+        match self {
+            Flags::Z => 0b1000_0000,
+            Flags::N => 0b0100_0000,
+            Flags::H => 0b0010_0000,
+            Flags::C => 0b0001_0000,
+        }
+    }
 }
 
 // TODO:
@@ -27,11 +38,37 @@ pub struct FlagRegister {
 #[allow(non_snake_case)]
 impl From<u8> for FlagRegister {
     fn from(value: u8) -> Self {
-        let Z: bool = (value & 0b1000000) != 0;
-        let N: bool = (value & 0b0100000) != 0;
-        let H: bool = (value & 0b0010000) != 0;
-        let C: bool = (value & 0b0001000) != 0;
+        let Z: bool = (value & 0b10000000) != 0;
+        let N: bool = (value & 0b01000000) != 0;
+        let H: bool = (value & 0b00100000) != 0;
+        let C: bool = (value & 0b00010000) != 0;
         Self { Z, N, H, C }
+    }
+}
+
+#[allow(non_snake_case)]
+// TODO: this is definitely messier than it should be
+impl Into<u8> for FlagRegister {
+    fn into(self) -> u8 {
+        let mut res = 0;
+        if self.Z {
+            let z: u8 = Flags::Z.into();
+            res |= z;
+        }
+        if self.N {
+            let n: u8 = Flags::N.into();
+            res |= n;
+        }
+        if self.H {
+            let h: u8 = Flags::H.into();
+            res |= h;
+        }
+        if self.C {
+            let c: u8 = Flags::C.into();
+            res |= c;
+        }
+
+        res
     }
 }
 
@@ -100,6 +137,11 @@ impl Default for Registers {
 impl Registers {
     fn to_16_bit(hi: u8, lo: u8) -> u16 {
         ((hi as u16) << 8) | (lo as u16)
+    }
+
+    pub fn af(&self) -> u16 {
+        let f: u8 = self.f.into();
+        Self::to_16_bit(self.a, f)
     }
 
     pub fn bc(&self) -> u16 {
