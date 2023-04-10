@@ -90,15 +90,15 @@ impl CPU {
         res
     }
 
-    fn alu_inc_16(&mut self, val: u16) -> u16 {
+    fn alu_inc_16(&mut self, _val: u16) -> u16 {
         todo!()
     }
 
-    fn alu_dec(&mut self, val: u8) -> u8 {
+    fn alu_dec(&mut self, _val: u8) -> u8 {
         todo!()
     }
 
-    fn alu_dec_16(&mut self, val: u16) -> u16 {
+    fn alu_dec_16(&mut self, _val: u16) -> u16 {
         todo!()
     }
 
@@ -1456,54 +1456,54 @@ impl CPU {
     fn call_cb(&mut self) -> u32 {
         let opcode = self.fetch_byte();
         match opcode {
-            0x00 => unimplemented!("Opcode 0x00"),
-            0x01 => unimplemented!("Opcode 0x01"),
-            0x02 => unimplemented!("Opcode 0x02"),
-            0x03 => unimplemented!("Opcode 0x03"),
-            0x04 => unimplemented!("Opcode 0x04"),
-            0x05 => unimplemented!("Opcode 0x05"),
-            0x06 => unimplemented!("Opcode 0x06"),
-            0x07 => unimplemented!("Opcode 0x07"),
-            0x08 => unimplemented!("Opcode 0x08"),
-            0x09 => unimplemented!("Opcode 0x09"),
-            0x0A => unimplemented!("Opcode 0x0A"),
-            0x0B => unimplemented!("Opcode 0x0B"),
-            0x0C => unimplemented!("Opcode 0x0C"),
-            0x0D => unimplemented!("Opcode 0x0D"),
-            0x0E => unimplemented!("Opcode 0x0E"),
-            0x0F => unimplemented!("Opcode 0x0F"),
-            0x10 => unimplemented!("Opcode 0x10"),
-            0x11 => unimplemented!("Opcode 0x11"),
-            0x12 => unimplemented!("Opcode 0x12"),
-            0x13 => unimplemented!("Opcode 0x13"),
-            0x14 => unimplemented!("Opcode 0x14"),
-            0x15 => unimplemented!("Opcode 0x15"),
-            0x16 => unimplemented!("Opcode 0x16"),
-            0x17 => unimplemented!("Opcode 0x17"),
-            0x18 => unimplemented!("Opcode 0x18"),
-            0x19 => unimplemented!("Opcode 0x19"),
-            0x1A => unimplemented!("Opcode 0x1A"),
-            0x1B => unimplemented!("Opcode 0x1B"),
-            0x1C => unimplemented!("Opcode 0x1C"),
-            0x1D => unimplemented!("Opcode 0x1D"),
-            0x1E => unimplemented!("Opcode 0x1E"),
-            0x1F => unimplemented!("Opcode 0x1F"),
-            0x20 => unimplemented!("Opcode 0x20"),
-            0x21 => unimplemented!("Opcode 0x21"),
-            0x22 => unimplemented!("Opcode 0x22"),
-            0x23 => unimplemented!("Opcode 0x23"),
-            0x24 => unimplemented!("Opcode 0x24"),
-            0x25 => unimplemented!("Opcode 0x25"),
-            0x26 => unimplemented!("Opcode 0x26"),
-            0x27 => unimplemented!("Opcode 0x27"),
-            0x28 => unimplemented!("Opcode 0x28"),
-            0x29 => unimplemented!("Opcode 0x29"),
-            0x2A => unimplemented!("Opcode 0x2A"),
-            0x2B => unimplemented!("Opcode 0x2B"),
-            0x2C => unimplemented!("Opcode 0x2C"),
-            0x2D => unimplemented!("Opcode 0x2D"),
-            0x2E => unimplemented!("Opcode 0x2E"),
-            0x2F => unimplemented!("Opcode 0x2F"),
+            0x00 => unimplemented!(), // RLC B
+            0x01 => unimplemented!(), // RLC C
+            0x02 => unimplemented!(), // RLC D
+            0x03 => unimplemented!(), // RLC E
+            0x04 => unimplemented!(), // RLC H
+            0x05 => unimplemented!(), // RLC L
+            0x06 => unimplemented!(), // RLC (HL)
+            0x07 => unimplemented!(), // RLC A
+            0x08 => unimplemented!(), // RRC B
+            0x09 => unimplemented!(), // RRC C
+            0x0A => unimplemented!(), // RRC D
+            0x0B => unimplemented!(), // RRC E
+            0x0C => unimplemented!(), // RRC H
+            0x0D => unimplemented!(), // RRC L
+            0x0E => unimplemented!(), // RRC (HL)
+            0x0F => unimplemented!(), // RRC A
+            0x10 => unimplemented!(), // RL B
+            0x11 => unimplemented!(), // RL C
+            0x12 => unimplemented!(), // RL D
+            0x13 => unimplemented!(), // RL E
+            0x14 => unimplemented!(), // RL H
+            0x15 => unimplemented!(), // RL L
+            0x16 => unimplemented!(), // RL (HL)
+            0x17 => unimplemented!(), // RL A
+            0x18 => unimplemented!(), // RR B
+            0x19 => unimplemented!(), // RR C
+            0x1A => unimplemented!(), // RR D
+            0x1B => unimplemented!(), // RR E
+            0x1C => unimplemented!(), // RR H
+            0x1D => unimplemented!(), // RR L
+            0x1E => unimplemented!(), // RR (HL)
+            0x1F => unimplemented!(), // RR A
+            0x20 => unimplemented!(), // SLA B
+            0x21 => unimplemented!(), // SLA C
+            0x22 => unimplemented!(), // SLA D
+            0x23 => unimplemented!(), // SLA E
+            0x24 => unimplemented!(), // SLA H
+            0x25 => unimplemented!(), // SLA L
+            0x26 => unimplemented!(), // SLA (HL)
+            0x27 => unimplemented!(), // SLA A
+            0x28 => unimplemented!(), // SRA B
+            0x29 => unimplemented!(), // SRA C
+            0x2A => unimplemented!(), // SRA D
+            0x2B => unimplemented!(), // SRA E
+            0x2C => unimplemented!(), // SRA H
+            0x2D => unimplemented!(), // SRA L
+            0x2E => unimplemented!(), // SRA (HL)
+            0x2F => unimplemented!(), // SRA A
             // SWAP B
             0x30 => {
                 self.reg.b = self.cb_swap(self.reg.b);
@@ -1545,14 +1545,14 @@ impl CPU {
                 self.reg.a = self.cb_swap(self.reg.a);
                 8
             }
-            0x38 => unimplemented!("Opcode 0x38"),
-            0x39 => unimplemented!("Opcode 0x39"),
-            0x3A => unimplemented!("Opcode 0x3A"),
-            0x3B => unimplemented!("Opcode 0x3B"),
-            0x3C => unimplemented!("Opcode 0x3C"),
-            0x3D => unimplemented!("Opcode 0x3D"),
-            0x3E => unimplemented!("Opcode 0x3E"),
-            0x3F => unimplemented!("Opcode 0x3F"),
+            0x38 => unimplemented!(), // SRL B
+            0x39 => unimplemented!(), // SRL C
+            0x3A => unimplemented!(), // SRL D
+            0x3B => unimplemented!(), // SRL E
+            0x3C => unimplemented!(), // SRL H
+            0x3D => unimplemented!(), // SRL L
+            0x3E => unimplemented!(), // SRL (HL)
+            0x3F => unimplemented!(), // SRL A
             // BIT b,B
             0x40 => {
                 let b = self.fetch_byte();
@@ -1601,126 +1601,158 @@ impl CPU {
                 self.cb_bit(b, self.reg.a);
                 8
             }
-            0x48 => unimplemented!("Opcode 0x48"),
-            0x49 => unimplemented!("Opcode 0x49"),
-            0x4A => unimplemented!("Opcode 0x4A"),
-            0x4B => unimplemented!("Opcode 0x4B"),
-            0x4C => unimplemented!("Opcode 0x4C"),
-            0x4D => unimplemented!("Opcode 0x4D"),
-            0x4E => unimplemented!("Opcode 0x4E"),
-            0x4F => unimplemented!("Opcode 0x4F"),
-            0x50 => unimplemented!("Opcode 0x50"),
-            0x51 => unimplemented!("Opcode 0x51"),
-            0x52 => unimplemented!("Opcode 0x52"),
-            0x53 => unimplemented!("Opcode 0x53"),
-            0x54 => unimplemented!("Opcode 0x54"),
-            0x55 => unimplemented!("Opcode 0x55"),
-            0x56 => unimplemented!("Opcode 0x56"),
-            0x57 => unimplemented!("Opcode 0x57"),
-            0x58 => unimplemented!("Opcode 0x58"),
-            0x59 => unimplemented!("Opcode 0x59"),
-            0x5A => unimplemented!("Opcode 0x5A"),
-            0x5B => unimplemented!("Opcode 0x5B"),
-            0x5C => unimplemented!("Opcode 0x5C"),
-            0x5D => unimplemented!("Opcode 0x5D"),
-            0x5E => unimplemented!("Opcode 0x5E"),
-            0x5F => unimplemented!("Opcode 0x5F"),
-            0x60 => unimplemented!("Opcode 0x60"),
-            0x61 => unimplemented!("Opcode 0x61"),
-            0x62 => unimplemented!("Opcode 0x62"),
-            0x63 => unimplemented!("Opcode 0x63"),
-            0x64 => unimplemented!("Opcode 0x64"),
-            0x65 => unimplemented!("Opcode 0x65"),
-            0x66 => unimplemented!("Opcode 0x66"),
-            0x67 => unimplemented!("Opcode 0x67"),
-            0x68 => unimplemented!("Opcode 0x68"),
-            0x69 => unimplemented!("Opcode 0x69"),
-            0x6A => unimplemented!("Opcode 0x6A"),
-            0x6B => unimplemented!("Opcode 0x6B"),
-            0x6C => unimplemented!("Opcode 0x6C"),
-            0x6D => unimplemented!("Opcode 0x6D"),
-            0x6E => unimplemented!("Opcode 0x6E"),
-            0x6F => unimplemented!("Opcode 0x6F"),
-            0x70 => unimplemented!("Opcode 0x70"),
-            0x71 => unimplemented!("Opcode 0x71"),
-            0x72 => unimplemented!("Opcode 0x72"),
-            0x73 => unimplemented!("Opcode 0x73"),
-            0x74 => unimplemented!("Opcode 0x74"),
-            0x75 => unimplemented!("Opcode 0x75"),
-            0x76 => unimplemented!("Opcode 0x76"),
-            0x77 => unimplemented!("Opcode 0x77"),
-            0x78 => unimplemented!("Opcode 0x78"),
-            0x79 => unimplemented!("Opcode 0x79"),
-            0x7A => unimplemented!("Opcode 0x7A"),
-            0x7B => unimplemented!("Opcode 0x7B"),
-            0x7C => unimplemented!("Opcode 0x7C"),
-            0x7D => unimplemented!("Opcode 0x7D"),
-            0x7E => unimplemented!("Opcode 0x7E"),
-            0x7F => unimplemented!("Opcode 0x7F"),
-            0x80 => unimplemented!("Opcode 0x80"),
-            0x81 => unimplemented!("Opcode 0x81"),
-            0x82 => unimplemented!("Opcode 0x82"),
-            0x83 => unimplemented!("Opcode 0x83"),
-            0x84 => unimplemented!("Opcode 0x84"),
-            0x85 => unimplemented!("Opcode 0x85"),
-            0x86 => unimplemented!("Opcode 0x86"),
-            0x87 => unimplemented!("Opcode 0x87"),
-            0x88 => unimplemented!("Opcode 0x88"),
-            0x89 => unimplemented!("Opcode 0x89"),
-            0x8A => unimplemented!("Opcode 0x8A"),
-            0x8B => unimplemented!("Opcode 0x8B"),
-            0x8C => unimplemented!("Opcode 0x8C"),
-            0x8D => unimplemented!("Opcode 0x8D"),
-            0x8E => unimplemented!("Opcode 0x8E"),
-            0x8F => unimplemented!("Opcode 0x8F"),
-            0x90 => unimplemented!("Opcode 0x90"),
-            0x91 => unimplemented!("Opcode 0x91"),
-            0x92 => unimplemented!("Opcode 0x92"),
-            0x93 => unimplemented!("Opcode 0x93"),
-            0x94 => unimplemented!("Opcode 0x94"),
-            0x95 => unimplemented!("Opcode 0x95"),
-            0x96 => unimplemented!("Opcode 0x96"),
-            0x97 => unimplemented!("Opcode 0x97"),
-            0x98 => unimplemented!("Opcode 0x98"),
-            0x99 => unimplemented!("Opcode 0x99"),
-            0x9A => unimplemented!("Opcode 0x9A"),
-            0x9B => unimplemented!("Opcode 0x9B"),
-            0x9C => unimplemented!("Opcode 0x9C"),
-            0x9D => unimplemented!("Opcode 0x9D"),
-            0x9E => unimplemented!("Opcode 0x9E"),
-            0x9F => unimplemented!("Opcode 0x9F"),
-            0xA0 => unimplemented!("Opcode 0xA0"),
-            0xA1 => unimplemented!("Opcode 0xA1"),
-            0xA2 => unimplemented!("Opcode 0xA2"),
-            0xA3 => unimplemented!("Opcode 0xA3"),
-            0xA4 => unimplemented!("Opcode 0xA4"),
-            0xA5 => unimplemented!("Opcode 0xA5"),
-            0xA6 => unimplemented!("Opcode 0xA6"),
-            0xA7 => unimplemented!("Opcode 0xA7"),
-            0xA8 => unimplemented!("Opcode 0xA8"),
-            0xA9 => unimplemented!("Opcode 0xA9"),
-            0xAA => unimplemented!("Opcode 0xAA"),
-            0xAB => unimplemented!("Opcode 0xAB"),
-            0xAC => unimplemented!("Opcode 0xAC"),
-            0xAD => unimplemented!("Opcode 0xAD"),
-            0xAE => unimplemented!("Opcode 0xAE"),
-            0xAF => unimplemented!("Opcode 0xAF"),
-            0xB0 => unimplemented!("Opcode 0xB0"),
-            0xB1 => unimplemented!("Opcode 0xB1"),
-            0xB2 => unimplemented!("Opcode 0xB2"),
-            0xB3 => unimplemented!("Opcode 0xB3"),
-            0xB4 => unimplemented!("Opcode 0xB4"),
-            0xB5 => unimplemented!("Opcode 0xB5"),
-            0xB6 => unimplemented!("Opcode 0xB6"),
-            0xB7 => unimplemented!("Opcode 0xB7"),
-            0xB8 => unimplemented!("Opcode 0xB8"),
-            0xB9 => unimplemented!("Opcode 0xB9"),
-            0xBA => unimplemented!("Opcode 0xBA"),
-            0xBB => unimplemented!("Opcode 0xBB"),
-            0xBC => unimplemented!("Opcode 0xBC"),
-            0xBD => unimplemented!("Opcode 0xBD"),
-            0xBE => unimplemented!("Opcode 0xBE"),
-            0xBF => unimplemented!("Opcode 0xBF"),
+            // BIT 1,B
+            0x48 => {
+                self.cb_bit(1, self.reg.b);
+                8
+            }
+            // BIT 1,C
+            0x49 => {
+                self.cb_bit(1, self.reg.c);
+                8
+            }
+            // BIT 1,D
+            0x4A => {
+                self.cb_bit(1, self.reg.d);
+                8
+            }
+            // BIT 1,E
+            0x4B => {
+                self.cb_bit(1, self.reg.e);
+                8
+            }
+            // BIT 1,H
+            0x4C => {
+                self.cb_bit(1, self.reg.h);
+                8
+            }
+            // BIT 1,L
+            0x4D => {
+                self.cb_bit(1, self.reg.l);
+                8
+            }
+            // BIT 1,(HL)
+            0x4E => {
+                self.cb_bit(1, self.read_hl_byte());
+                16
+            }
+            // BIT 1,A
+            0x4F => {
+                self.cb_bit(1, self.reg.a);
+                8
+            }
+            0x50 => unimplemented!(), // BIT 2, B
+            0x51 => unimplemented!(), // BIT 2, C
+            0x52 => unimplemented!(), // BIT 2, D
+            0x53 => unimplemented!(), // BIT 2, E
+            0x54 => unimplemented!(), // BIT 2, H
+            0x55 => unimplemented!(), // BIT 2, L
+            0x56 => unimplemented!(), // BIT 2, (HL)
+            0x57 => unimplemented!(), // BIT 2, A
+            0x58 => unimplemented!(), // BIT 3, B
+            0x59 => unimplemented!(), // BIT 3, C
+            0x5A => unimplemented!(), // BIT 3, D
+            0x5B => unimplemented!(), // BIT 3, E
+            0x5C => unimplemented!(), // BIT 3, H
+            0x5D => unimplemented!(), // BIT 3, L
+            0x5E => unimplemented!(), // BIT 3, (HL)
+            0x5F => unimplemented!(), // BIT 3, A
+            0x60 => unimplemented!(), // BIT 4, B
+            0x61 => unimplemented!(), // BIT 4, C
+            0x62 => unimplemented!(), // BIT 4, D
+            0x63 => unimplemented!(), // BIT 4, E
+            0x64 => unimplemented!(), // BIT 4, H
+            0x65 => unimplemented!(), // BIT 4, L
+            0x66 => unimplemented!(), // BIT 4, (HL)
+            0x67 => unimplemented!(), // BIT 4, A
+            0x68 => unimplemented!(), // BIT 5, B
+            0x69 => unimplemented!(), // BIT 5, C
+            0x6A => unimplemented!(), // BIT 5, D
+            0x6B => unimplemented!(), // BIT 5, E
+            0x6C => unimplemented!(), // BIT 5, H
+            0x6D => unimplemented!(), // BIT 5, L
+            0x6E => unimplemented!(), // BIT 5, (HL)
+            0x6F => unimplemented!(), // BIT 5, A
+            0x70 => unimplemented!(), // BIT 6, B
+            0x71 => unimplemented!(), // BIT 6, C
+            0x72 => unimplemented!(), // BIT 6, D
+            0x73 => unimplemented!(), // BIT 6, E
+            0x74 => unimplemented!(), // BIT 6, H
+            0x75 => unimplemented!(), // BIT 6, L
+            0x76 => unimplemented!(), // BIT 6, (HL)
+            0x77 => unimplemented!(), // BIT 6, A
+            0x78 => unimplemented!(), // BIT 7, B
+            0x79 => unimplemented!(), // BIT 7, C
+            0x7A => unimplemented!(), // BIT 7, D
+            0x7B => unimplemented!(), // BIT 7, E
+            0x7C => unimplemented!(), // BIT 7, H
+            0x7D => unimplemented!(), // BIT 7, L
+            0x7E => unimplemented!(), // BIT 7, (HL)
+            0x7F => unimplemented!(), // BIT 7, A
+            0x80 => unimplemented!(), // RES 0, B
+            0x81 => unimplemented!(), // RES 0, C
+            0x82 => unimplemented!(), // RES 0, D
+            0x83 => unimplemented!(), // RES 0, E
+            0x84 => unimplemented!(), // RES 0, H
+            0x85 => unimplemented!(), // RES 0, L
+            0x86 => unimplemented!(), // RES 0, (HL)
+            0x87 => unimplemented!(), // RES 0, A
+            0x88 => unimplemented!(), // RES 1, B
+            0x89 => unimplemented!(), // RES 1, C
+            0x8A => unimplemented!(), // RES 1, D
+            0x8B => unimplemented!(), // RES 1, E
+            0x8C => unimplemented!(), // RES 1, H
+            0x8D => unimplemented!(), // RES 1, L
+            0x8E => unimplemented!(), // RES 1, (HL)
+            0x8F => unimplemented!(), // RES 1, A
+            0x90 => unimplemented!(), // RES 2, B
+            0x91 => unimplemented!(), // RES 2, C
+            0x92 => unimplemented!(), // RES 2, D
+            0x93 => unimplemented!(), // RES 2, E
+            0x94 => unimplemented!(), // RES 2, H
+            0x95 => unimplemented!(), // RES 2, L
+            0x96 => unimplemented!(), // RES 2, (HL)
+            0x97 => unimplemented!(), // RES 2, A
+            0x98 => unimplemented!(), // RES 3, B
+            0x99 => unimplemented!(), // RES 3, C
+            0x9A => unimplemented!(), // RES 3, D
+            0x9B => unimplemented!(), // RES 3, E
+            0x9C => unimplemented!(), // RES 3, H
+            0x9D => unimplemented!(), // RES 3, L
+            0x9E => unimplemented!(), // RES 3, (HL)
+            0x9F => unimplemented!(), // RES 3, A
+            0xA0 => unimplemented!(), // RES 4, B
+            0xA1 => unimplemented!(), // RES 4, C
+            0xA2 => unimplemented!(), // RES 4, D
+            0xA3 => unimplemented!(), // RES 4, E
+            0xA4 => unimplemented!(), // RES 4, H
+            0xA5 => unimplemented!(), // RES 4, L
+            0xA6 => unimplemented!(), // RES 4, (HL)
+            0xA7 => unimplemented!(), // RES 4, A
+            0xA8 => unimplemented!(), // RES 5, B
+            0xA9 => unimplemented!(), // RES 5, C
+            0xAA => unimplemented!(), // RES 5, D
+            0xAB => unimplemented!(), // RES 5, E
+            0xAC => unimplemented!(), // RES 5, H
+            0xAD => unimplemented!(), // RES 5, L
+            0xAE => unimplemented!(), // RES 5, (HL)
+            0xAF => unimplemented!(), // RES 5, A
+            0xB0 => unimplemented!(), // RES 6, B
+            0xB1 => unimplemented!(), // RES 6, C
+            0xB2 => unimplemented!(), // RES 6, D
+            0xB3 => unimplemented!(), // RES 6, E
+            0xB4 => unimplemented!(), // RES 6, H
+            0xB5 => unimplemented!(), // RES 6, L
+            0xB6 => unimplemented!(), // RES 6, (HL)
+            0xB7 => unimplemented!(), // RES 6, A
+            0xB8 => unimplemented!(), // RES 7, B
+            0xB9 => unimplemented!(), // RES 7, C
+            0xBA => unimplemented!(), // RES 7, D
+            0xBB => unimplemented!(), // RES 7, E
+            0xBC => unimplemented!(), // RES 7, H
+            0xBD => unimplemented!(), // RES 7, L
+            0xBE => unimplemented!(), // RES 7, (HL)
+            0xBF => unimplemented!(), // RES 7, A
             // SET b,B
             0xC0 => {
                 let b = self.fetch_byte();
@@ -1770,62 +1802,62 @@ impl CPU {
                 self.reg.a |= 1 << b;
                 8
             }
-            0xC8 => unimplemented!("Opcode 0xC8"),
-            0xC9 => unimplemented!("Opcode 0xC9"),
-            0xCA => unimplemented!("Opcode 0xCA"),
-            0xCB => unimplemented!("Opcode 0xCB"),
-            0xCC => unimplemented!("Opcode 0xCC"),
-            0xCD => unimplemented!("Opcode 0xCD"),
-            0xCE => unimplemented!("Opcode 0xCE"),
-            0xCF => unimplemented!("Opcode 0xCF"),
-            0xD0 => unimplemented!("Opcode 0xD0"),
-            0xD1 => unimplemented!("Opcode 0xD1"),
-            0xD2 => unimplemented!("Opcode 0xD2"),
-            0xD3 => unimplemented!("Opcode 0xD3"),
-            0xD4 => unimplemented!("Opcode 0xD4"),
-            0xD5 => unimplemented!("Opcode 0xD5"),
-            0xD6 => unimplemented!("Opcode 0xD6"),
-            0xD7 => unimplemented!("Opcode 0xD7"),
-            0xD8 => unimplemented!("Opcode 0xD8"),
-            0xD9 => unimplemented!("Opcode 0xD9"),
-            0xDA => unimplemented!("Opcode 0xDA"),
-            0xDB => unimplemented!("Opcode 0xDB"),
-            0xDC => unimplemented!("Opcode 0xDC"),
-            0xDD => unimplemented!("Opcode 0xDD"),
-            0xDE => unimplemented!("Opcode 0xDE"),
-            0xDF => unimplemented!("Opcode 0xDF"),
-            0xE0 => unimplemented!("Opcode 0xE0"),
-            0xE1 => unimplemented!("Opcode 0xE1"),
-            0xE2 => unimplemented!("Opcode 0xE2"),
-            0xE3 => unimplemented!("Opcode 0xE3"),
-            0xE4 => unimplemented!("Opcode 0xE4"),
-            0xE5 => unimplemented!("Opcode 0xE5"),
-            0xE6 => unimplemented!("Opcode 0xE6"),
-            0xE7 => unimplemented!("Opcode 0xE7"),
-            0xE8 => unimplemented!("Opcode 0xE8"),
-            0xE9 => unimplemented!("Opcode 0xE9"),
-            0xEA => unimplemented!("Opcode 0xEA"),
-            0xEB => unimplemented!("Opcode 0xEB"),
-            0xEC => unimplemented!("Opcode 0xEC"),
-            0xED => unimplemented!("Opcode 0xED"),
-            0xEE => unimplemented!("Opcode 0xEE"),
-            0xEF => unimplemented!("Opcode 0xEF"),
-            0xF0 => unimplemented!("Opcode 0xF0"),
-            0xF1 => unimplemented!("Opcode 0xF1"),
-            0xF2 => unimplemented!("Opcode 0xF2"),
-            0xF3 => unimplemented!("Opcode 0xF3"),
-            0xF4 => unimplemented!("Opcode 0xF4"),
-            0xF5 => unimplemented!("Opcode 0xF5"),
-            0xF6 => unimplemented!("Opcode 0xF6"),
-            0xF7 => unimplemented!("Opcode 0xF7"),
-            0xF8 => unimplemented!("Opcode 0xF8"),
-            0xF9 => unimplemented!("Opcode 0xF9"),
-            0xFA => unimplemented!("Opcode 0xFA"),
-            0xFB => unimplemented!("Opcode 0xFB"),
-            0xFC => unimplemented!("Opcode 0xFC"),
-            0xFD => unimplemented!("Opcode 0xFD"),
-            0xFE => unimplemented!("Opcode 0xFE"),
-            0xFF => unimplemented!("Opcode 0xFF"),
+            0xC8 => unimplemented!(), // SET 1, B
+            0xC9 => unimplemented!(), // SET 1, C
+            0xCA => unimplemented!(), // SET 1, D
+            0xCB => unimplemented!(), // SET 1, E
+            0xCC => unimplemented!(), // SET 1, H
+            0xCD => unimplemented!(), // SET 1, L
+            0xCE => unimplemented!(), // SET 1, (HL)
+            0xCF => unimplemented!(), // SET 1, A
+            0xD0 => unimplemented!(), // SET 2, B
+            0xD1 => unimplemented!(), // SET 2, C
+            0xD2 => unimplemented!(), // SET 2, D
+            0xD3 => unimplemented!(), // SET 2, E
+            0xD4 => unimplemented!(), // SET 2, H
+            0xD5 => unimplemented!(), // SET 2, L
+            0xD6 => unimplemented!(), // SET 2, (HL)
+            0xD7 => unimplemented!(), // SET 2, A
+            0xD8 => unimplemented!(), // SET 3, B
+            0xD9 => unimplemented!(), // SET 3, C
+            0xDA => unimplemented!(), // SET 3, D
+            0xDB => unimplemented!(), // SET 3, E
+            0xDC => unimplemented!(), // SET 3, H
+            0xDD => unimplemented!(), // SET 3, L
+            0xDE => unimplemented!(), // SET 3, (HL)
+            0xDF => unimplemented!(), // SET 3, A
+            0xE0 => unimplemented!(), // SET 4, B
+            0xE1 => unimplemented!(), // SET 4, C
+            0xE2 => unimplemented!(), // SET 4, D
+            0xE3 => unimplemented!(), // SET 4, E
+            0xE4 => unimplemented!(), // SET 4, H
+            0xE5 => unimplemented!(), // SET 4, L
+            0xE6 => unimplemented!(), // SET 4, (HL)
+            0xE7 => unimplemented!(), // SET 4, A
+            0xE8 => unimplemented!(), // SET 5, B
+            0xE9 => unimplemented!(), // SET 5, C
+            0xEA => unimplemented!(), // SET 5, D
+            0xEB => unimplemented!(), // SET 5, E
+            0xEC => unimplemented!(), // SET 5, H
+            0xED => unimplemented!(), // SET 5, L
+            0xEE => unimplemented!(), // SET 5, (HL)
+            0xEF => unimplemented!(), // SET 5, A
+            0xF0 => unimplemented!(), // SET 6, B
+            0xF1 => unimplemented!(), // SET 6, C
+            0xF2 => unimplemented!(), // SET 6,D
+            0xF3 => unimplemented!(), // SET 6,E
+            0xF4 => unimplemented!(), // SET 6,H
+            0xF5 => unimplemented!(), // SET 6,L
+            0xF6 => unimplemented!(), // SET 6,(HL)
+            0xF7 => unimplemented!(), // SET 6,A
+            0xF8 => unimplemented!(), // SET 7,B
+            0xF9 => unimplemented!(), // SET 7,C
+            0xFA => unimplemented!(), // SET 7,D
+            0xFB => unimplemented!(), // SET 7,E
+            0xFC => unimplemented!(), // SET 7,H
+            0xFD => unimplemented!(), // SET 7,L
+            0xFE => unimplemented!(), // SET 7,(HL)
+            0xFF => unimplemented!(), // SET 7,A
         }
     }
 }
