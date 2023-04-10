@@ -27,6 +27,12 @@ impl CPU {
             enable_interrupts_in: 99,
         }
     }
+
+    fn debug_step(&self, opcode: u8) {
+        println!("exec {:#02x}", opcode);
+        println!("Registers: {}", self.reg);
+        println!("clock: {}", self.clock);
+    }
 }
 
 impl CPU {
@@ -252,7 +258,7 @@ impl CPU {
     // Returns cycles elapsed
     fn call(&mut self) -> u32 {
         let opcode = self.fetch_byte();
-        println!("exec {:#02x}", opcode);
+        self.debug_step(opcode);
         match opcode {
             // NOP
             0x00 => 4,

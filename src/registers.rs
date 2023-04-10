@@ -1,5 +1,7 @@
 #![allow(dead_code)]
 
+use std::fmt::Display;
+
 const HIGH_MASK: u16 = 0xFF00;
 const LOW_MASK: u16 = 0x00FF;
 
@@ -33,6 +35,16 @@ impl From<u8> for FlagRegister {
     }
 }
 
+impl Display for FlagRegister {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "Zero Flag:       {}", self.Z)?;
+        writeln!(f, "Subtract Flag:   {}", self.N)?;
+        writeln!(f, "Half-Carry Flag: {}", self.N)?;
+        writeln!(f, "Carry Flag:      {}", self.C)?;
+        Ok(())
+    }
+}
+
 #[derive(Copy, Clone, Debug)]
 pub struct Registers {
     pub a: u8,
@@ -45,6 +57,22 @@ pub struct Registers {
     pub l: u8,
     pub sp: u16,
     pub pc: u16,
+}
+
+impl Display for Registers {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "Register A:  {:#02x}", self.a)?;
+        writeln!(f, "Register B:  {:#02x}", self.b)?;
+        writeln!(f, "Register C:  {:#02x}", self.c)?;
+        writeln!(f, "Register D:  {:#02x}", self.d)?;
+        writeln!(f, "Register E:  {:#02x}", self.e)?;
+        writeln!(f, "Register H:  {:#02x}", self.h)?;
+        writeln!(f, "Register L:  {:#02x}", self.l)?;
+        writeln!(f, "Stack Ptr:   {:#02x}", self.sp)?;
+        writeln!(f, "Program Ctr: {:#02x}", self.pc)?;
+        writeln!(f, "===============Flags===============\n{}", self.f)?;
+        Ok(())
+    }
 }
 
 // All values taken from Section 2.7.1 of the Gameboy CPU manual
