@@ -56,8 +56,10 @@ pub enum Inst {
     RES(u8, Dst8, u32),
     // 3.3.8: Jumps
     JP(Src16, u32),
-    // FIX: all JPC ops have different cycles depending on if the jump happense
+    // FIX: all JPC ops have different cycles depending on if the jump happens
     JPC(Src16, Flags, bool, u32),
+    JR(u32),
+    JRC(Flags, bool, u32),
     // 3.3.9: Calls
     CALL(u32),
     // TODO: consolidate with CALL
@@ -122,6 +124,8 @@ impl Inst {
             | Inst::RES(_, _, cycles)
             | Inst::JP(_, cycles)
             | Inst::JPC(_, _, _, cycles)
+            | Inst::JR(cycles)
+            | Inst::JRC(_, _, cycles)
             | Inst::CALL(cycles)
             | Inst::CALLC(_, _, cycles)
             | Inst::RST(_, cycles)
@@ -190,6 +194,7 @@ pub enum Src16 {
     N,
     NN,
     Addr(u16),
+    Imm(u16),
 }
 
 // Same as Dst16 except for cutting out the immediate one word option.

@@ -29,26 +29,53 @@ impl CPU {
     }
 
     fn debug_step(&self, opcode: u8, inst: Inst) {
-        println!("==========STEP==========");
-        println!("exec {:#04x}", opcode);
-        println!("{:?}", inst);
-        println!("{}", self.reg);
-        println!("clock: {}", self.clock);
-        println!("\n\n\n\n");
+        eprintln!("==========STEP==========");
+        eprintln!("exec {:#04x}", opcode);
+        eprintln!("{:?}", inst);
+        eprintln!("{}", self.reg);
+        eprintln!("==========OTHER==========");
+        eprintln!("N: {:#04x}", self.peek_byte());
+        eprintln!("NN: {:#04x}", self.peek_word());
+        eprintln!("clock: {}", self.clock);
+        eprintln!("\n\n\n\n");
+    }
+
+    // Logging for gameboy doctor
+    fn log_cpu_state(&self) {
+        print!("A:{:02X}", self.reg.a);
+        let f: u8 = self.reg.f.into();
+        print!(" F:{:02X}", f);
+        print!(" B:{:02X}", self.reg.b);
+        print!(" C:{:02X}", self.reg.c);
+        print!(" D:{:02X}", self.reg.d);
+        print!(" E:{:02X}", self.reg.e);
+        print!(" H:{:02X}", self.reg.h);
+        print!(" L:{:02X}", self.reg.l);
+        print!(" SP:{:04X}", self.reg.sp);
+        print!(" PC:{:04X}", self.reg.pc);
+        print!(" PCMEM:{:02X},", self.mmu.read_byte(self.reg.pc));
+        print!("{:02X},", self.mmu.read_byte(self.reg.pc + 1));
+        print!("{:02X},", self.mmu.read_byte(self.reg.pc + 2));
+        print!("{:02X}\n", self.mmu.read_byte(self.reg.pc + 3));
     }
 }
 
 impl CPU {
     pub fn run(&mut self) {
+        self.log_cpu_state();
         loop {
             // Fetch
             let opcode = self.fetch_byte();
+
             // Decode
             let inst = self.decode(opcode);
-            self.debug_step(opcode, inst);
+
             // Execute
-            self.execute(inst);
-            self.clock += inst.cycles();
+            self.clock += self.execute(inst);
+
+            // Logging and debugging
+            // self.debug_step(opcode, inst);
+            self.log_cpu_state();
         }
     }
 
@@ -78,7 +105,7 @@ impl CPU {
             0x15 => Inst::DEC(Dst8::D, 4),                                     // DEC D
             0x16 => Inst::LD8(Dst8::D, Src8::N, 8),                            // LD D,d8
             0x17 => Inst::RLA(4),                                              // RLA
-            0x18 => Inst::JP(Src16::Addr(self.reg.pc + (self.fetch_byte() as u16)), 12), // JR r8
+            0x18 => Inst::JR(12),                                              // JR r8
             0x19 => Inst::ADD16(Src16::DE, 8),                                 // ADD HL,DE
             0x1A => Inst::LD8(Dst8::A, Src8::Addr(self.reg.de()), 8),          // LD A,(DE)
             0x1B => Inst::DEC16(Dst16::DE, 8),                                 // DEC DE
@@ -86,12 +113,7 @@ impl CPU {
             0x1D => Inst::DEC(Dst8::E, 4),                                     // DEC E
             0x1E => Inst::LD8(Dst8::E, Src8::N, 8),                            // LD E,d8
             0x1F => Inst::RRA(4),                                              // RRA
-            0x20 => Inst::JPC(
-                Src16::Addr(self.reg.pc + (self.fetch_byte() as u16)),
-                Flags::Z,
-                false,
-                8,
-            ), // JR NZ,r8
+            0x20 => Inst::JRC(Flags::Z, false, 8),                             // JR NZ,r8
             0x21 => Inst::LD16(Dst16::HL, Src16::NN, 12),                      // LD HL,d16
             0x22 => Inst::LDI(Dst8::HLContents, Src8::A, 8),                   // LD (HL+),A
             0x23 => Inst::INC16(Dst16::HL, 8),                                 // INC HL
@@ -99,12 +121,7 @@ impl CPU {
             0x25 => Inst::DEC(Dst8::H, 4),                                     // DEC H
             0x26 => Inst::LD8(Dst8::H, Src8::N, 8),                            // LD H,d8
             0x27 => Inst::DAA(4),                                              // DAA
-            0x28 => Inst::JPC(
-                Src16::Addr(self.reg.pc + (self.fetch_byte() as u16)),
-                Flags::Z,
-                true,
-                8,
-            ), // JR Z,r8
+            0x28 => Inst::JRC(Flags::Z, true, 8),                              // JR Z,r8
             0x29 => Inst::ADD16(Src16::HL, 8),                                 // ADD HL,HL
             0x2A => Inst::LDI(Dst8::A, Src8::HLContents, 8),                   // LD A,(HL+)
             0x2B => Inst::DEC16(Dst16::HL, 8),                                 // DEC HL
@@ -112,12 +129,7 @@ impl CPU {
             0x2D => Inst::DEC(Dst8::L, 4),                                     // DEC L
             0x2E => Inst::LD8(Dst8::L, Src8::N, 8),                            // LD L,d8
             0x2F => Inst::CPL(4),                                              // CPL
-            0x30 => Inst::JPC(
-                Src16::Addr(self.reg.pc + (self.fetch_byte() as u16)),
-                Flags::C,
-                false,
-                8,
-            ), // JR NC,r8
+            0x30 => Inst::JRC(Flags::C, false, 8),                             // JR NC,r8
             0x31 => Inst::LD16(Dst16::SP, Src16::NN, 12),                      // LD SP,d16
             0x32 => Inst::LDD(Dst8::HLContents, Src8::A, 8),                   // LD (HL-),A
             0x33 => Inst::INC16(Dst16::SP, 8),                                 // INC SP
@@ -125,12 +137,7 @@ impl CPU {
             0x35 => Inst::DEC(Dst8::HLContents, 12),                           // DEC (HL)
             0x36 => Inst::LD8(Dst8::HLContents, Src8::N, 12),                  // LD (HL),d8
             0x37 => Inst::SCF(4),                                              // SCF
-            0x38 => Inst::JPC(
-                Src16::Addr(self.reg.pc + (self.fetch_byte() as u16)),
-                Flags::C,
-                true,
-                8,
-            ), // JR C,r8
+            0x38 => Inst::JRC(Flags::C, true, 8),                              // JR C,r8
             0x39 => Inst::ADD16(Src16::SP, 8),                                 // ADD HL,SP
             0x3A => Inst::LDD(Dst8::A, Src8::HLContents, 8),                   // LD A,(HL-)
             0x3B => Inst::DEC16(Dst16::SP, 8),                                 // DEC SP
@@ -626,10 +633,10 @@ impl CPU {
             Inst::RLC(_, _) => self.rlc(),
             Inst::RL(_, _) => self.rl(),
             Inst::RRC(_, _) => self.rrc(),
-            Inst::RR(_, _) => self.rr(),
+            Inst::RR(dst, _) => self.rr(dst),
             Inst::SLA(_, _) => self.sla(),
-            Inst::SRA(_, _) => self.sra(),
-            Inst::SRL(_, _) => self.srl(),
+            Inst::SRA(dst, _) => self.sra(dst),
+            Inst::SRL(dst, _) => self.srl(dst),
             Inst::BIT(b, test, _) => self.cb_bit(test, b),
             Inst::SETN(dst, _) => {
                 let b = self.fetch_byte();
@@ -644,11 +651,26 @@ impl CPU {
                     cycles += 4
                 }
             }
+            Inst::JR(_) => {
+                let addr = 1 + ((self.reg.pc as i16) + (self.fetch_byte() as i8 as i16)) as u16;
+                self.jp(Src16::Imm(addr));
+            }
+            Inst::JRC(flag, desired_state, _) => {
+                if self.reg.check_flag(flag) == desired_state {
+                    let addr = 1 + ((self.reg.pc as i16) + (self.fetch_byte() as i8 as i16)) as u16;
+                    self.jp(Src16::Imm(addr));
+                    cycles += 4;
+                } else {
+                    self.reg.pc += 1;
+                }
+            }
             Inst::CALL(_) => self.call(),
             Inst::CALLC(flag, desired_state, _) => {
                 if self.reg.check_flag(flag) == desired_state {
                     self.call();
                     cycles += 12;
+                } else {
+                    self.reg.pc += 2;
                 }
             }
             Inst::RST(incr, _) => self.rst(incr),
@@ -675,7 +697,11 @@ impl CPU {
     // TODO: add assert that dst and src are A and HLcontents
     fn ldd(&mut self, dst: Dst8, src: Src8) {
         self.ld(dst, src);
-        self.alu_dec_16(Dst16::HL);
+        // self.alu_dec_16(Dst16::HL);
+        // XXX: this is sloppy, but you don't want to reset the flags by calling alu_dec_16
+        let val = self.get_16(Src16::HL);
+        let res = val.wrapping_sub(1);
+        self.set_16(Dst16::HL, res);
     }
 
     // TODO: add assert that dst and src are A and HLcontents
@@ -697,10 +723,11 @@ impl CPU {
             Src16::NN | Src16::Addr(_) => {
                 panic!("Tried to push a non-register onto the stack")
             }
-            _ => {}
+            _ => {
+                let s = self.get_16(src);
+                self.push_stack(s);
+            }
         }
-        let s = self.get_16(src);
-        self.push_stack(s);
     }
 
     fn pop(&mut self, dst: Dst16) {
@@ -711,30 +738,44 @@ impl CPU {
 
 // 3.3.3: 8-bit ALU ops
 impl CPU {
-    fn alu_add(&mut self, _src: Src8) {
-        todo!()
+    fn alu_add(&mut self, src: Src8) {
+        let val = self.get_8(src);
+        let old_reg_a = self.reg.a;
+        let res = self.reg.a.wrapping_add(val);
+        self.reg.flag(Flags::Z, res == 0);
+        self.reg.flag(Flags::N, false);
+        // FIX: this seems sus
+        self.reg.flag(Flags::H, half_carry(old_reg_a, val));
+        self.reg.flag(Flags::C, carry(old_reg_a, val));
+        self.reg.a = res;
     }
 
     fn alu_adc(&mut self, src: Src8) {
         let val = self.get_8(src);
-        let addend = val.wrapping_add(1);
+        let addend = if self.reg.check_flag(Flags::C) {
+            val.wrapping_add(1)
+        } else {
+            val
+        };
+        let old_reg_a = self.reg.a;
         let res = self.reg.a.wrapping_add(addend);
         self.reg.flag(Flags::Z, res == 0);
         self.reg.flag(Flags::N, false);
         // FIX: this seems sus
-        self.reg.flag(Flags::H, half_carry(res, addend));
-        self.reg.flag(Flags::C, carry(res, addend));
+        self.reg.flag(Flags::H, half_carry(old_reg_a, addend));
+        self.reg.flag(Flags::C, carry(old_reg_a, addend));
         self.reg.a = res;
     }
 
     fn alu_sub(&mut self, src: Src8) {
         let val = self.get_8(src);
+        let old_reg_a = self.reg.a;
         let res = self.reg.a.wrapping_sub(val);
         self.reg.flag(Flags::Z, res == 0);
         self.reg.flag(Flags::N, true);
-        // FIX: this is temporary until i figure out how carry works with subtraction
-        self.reg.flag(Flags::H, false);
-        self.reg.flag(Flags::C, false);
+        self.reg.flag(Flags::H, half_carry_sub(old_reg_a, val));
+        self.reg.flag(Flags::C, carry_sub(old_reg_a, val));
+        self.reg.a = res;
     }
 
     fn alu_sbc(&mut self, _src: Src8) {
@@ -774,12 +815,20 @@ impl CPU {
         self.reg.a = res;
     }
 
+    // TODO: consolidate with alu_sub (same except alu_sub assigns to a)
     fn alu_cp(&mut self, src: Src8) {
+        // let val = self.get_8(src);
+        // self.reg.flag(Flags::Z, self.reg.a == val);
+        // self.reg.flag(Flags::N, true);
+        // self.reg.flag(Flags::H, half_carry(val, val));
+        // self.reg.flag(Flags::C, self.reg.a < val);
         let val = self.get_8(src);
-        self.reg.flag(Flags::Z, self.reg.a == val);
+        let old_reg_a = self.reg.a;
+        let res = self.reg.a.wrapping_sub(val);
+        self.reg.flag(Flags::Z, res == 0);
         self.reg.flag(Flags::N, true);
-        self.reg.flag(Flags::H, half_carry(val, val));
-        self.reg.flag(Flags::C, self.reg.a < val);
+        self.reg.flag(Flags::H, half_carry_sub(old_reg_a, val));
+        self.reg.flag(Flags::C, carry_sub(old_reg_a, val));
     }
 
     fn alu_inc(&mut self, dst: Dst8) {
@@ -788,7 +837,7 @@ impl CPU {
         self.reg.flag(Flags::Z, res == 0);
         self.reg.flag(Flags::N, false);
         self.reg.flag(Flags::H, half_carry(val, 1));
-        self.set_8(dst, val);
+        self.set_8(dst, res);
     }
 
     fn alu_dec(&mut self, dst: Dst8) {
@@ -796,9 +845,8 @@ impl CPU {
         let res = val.wrapping_sub(1);
         self.reg.flag(Flags::Z, res == 0);
         self.reg.flag(Flags::N, true);
-        // FIX: is this okay?
-        self.reg.flag(Flags::H, half_carry(val, 0xFF));
-        self.set_8(dst, val);
+        self.reg.flag(Flags::H, half_carry_sub(val, res));
+        self.set_8(dst, res);
     }
 }
 
@@ -827,7 +875,7 @@ impl CPU {
         self.reg.flag(Flags::Z, res == 0);
         self.reg.flag(Flags::N, true);
         // FIX: is this okay?
-        self.reg.flag(Flags::H, half_carry_16(val, 0xFF));
+        self.reg.flag(Flags::H, half_carry_16(val, res));
         self.set_16(dst, res);
     }
 }
@@ -883,7 +931,7 @@ impl CPU {
     }
 
     fn di(&mut self) {
-        unimplemented!("DI")
+        // unimplemented!("DI")
     }
 
     fn ei(&mut self) {
@@ -917,12 +965,7 @@ impl CPU {
     }
 
     fn rra(&mut self) {
-        let old_bit_0 = self.reg.a & 0x1;
-        self.reg.a >>= 1;
-        self.reg.flag(Flags::Z, self.reg.a == 0);
-        self.reg.flag(Flags::N, false);
-        self.reg.flag(Flags::H, false);
-        self.reg.flag(Flags::C, old_bit_0 == 1);
+        self.rr(Dst8::A);
     }
 
     fn rlc(&mut self) {
@@ -937,20 +980,47 @@ impl CPU {
         unimplemented!("rrc")
     }
 
-    fn rr(&mut self) {
-        unimplemented!("rr")
+    fn rr(&mut self, dst: Dst8) {
+        let src = self.get_8(dst.to_src());
+        let old_bit_0 = src & 0x1;
+        let through: u8 = if self.reg.check_flag(Flags::C) {
+            // XXX: WTF why??~
+            0x80
+            // Flags::C.into()
+        } else {
+            0x00
+        };
+        let res = through | src >> 1;
+        self.reg.flag(Flags::Z, res == 0);
+        self.reg.flag(Flags::N, false);
+        self.reg.flag(Flags::H, false);
+        self.reg.flag(Flags::C, old_bit_0 == 1);
+        self.set_8(dst, res);
     }
 
     fn sla(&mut self) {
         unimplemented!("sla")
     }
 
-    fn sra(&mut self) {
-        unimplemented!("sra")
+    fn sra(&mut self, dst: Dst8) {
+        let src = self.get_8(dst.to_src());
+        let old_bit_0 = src & 0x1;
+        let res = src >> 1;
+        self.reg.flag(Flags::Z, res == 0);
+        self.reg.flag(Flags::N, false);
+        self.reg.flag(Flags::H, false);
+        self.reg.flag(Flags::C, old_bit_0 == 1);
     }
 
-    fn srl(&mut self) {
-        unimplemented!("srl")
+    fn srl(&mut self, dst: Dst8) {
+        let src = self.get_8(dst.to_src());
+        let old_bit_0 = src & 0x1;
+        let res = src >> 1;
+        self.reg.flag(Flags::Z, res == 0);
+        self.reg.flag(Flags::N, false);
+        self.reg.flag(Flags::H, false);
+        self.reg.flag(Flags::C, old_bit_0 == 1);
+        self.set_8(dst, res);
     }
 }
 
@@ -984,12 +1054,8 @@ impl CPU {
 // 3.3.8: Jumps
 impl CPU {
     fn jp(&mut self, src: Src16) {
-        let addr = match src {
-            Src16::NN | Src16::Addr(_) => self.get_16(src),
-            _ => {
-                panic!("Tried to jump without an address as the source.")
-            }
-        };
+        // TODO: assert that src has to be an NN immediate or addr
+        let addr = self.get_16(src);
         self.reg.pc = addr;
     }
 }
@@ -999,7 +1065,7 @@ impl CPU {
     /// Push address of next instruction onto stack and then jump to address nn
     fn call(&mut self) {
         // FIX: Will need to increment pc depending where I do that
-        self.push_stack(self.reg.pc);
+        self.push_stack(self.reg.pc + 2);
         let addr = self.fetch_word();
         self.reg.pc = addr;
     }
@@ -1024,6 +1090,7 @@ impl CPU {
     /// Pop two bytes from stack and jump to that address
     fn ret(&mut self) {
         let addr = self.pop_stack();
+        // XXX: comment with why
         self.reg.pc = addr;
     }
 
@@ -1037,15 +1104,23 @@ impl CPU {
 // Helpers to read and write bytes
 impl CPU {
     fn fetch_byte(&mut self) -> u8 {
-        let b = self.mmu.read_byte(self.reg.pc);
-        self.reg.pc += 1;
+        let b = self.peek_byte();
+        self.reg.pc = self.reg.pc.wrapping_add(1);
         b
+    }
+
+    fn peek_byte(&self) -> u8 {
+        self.mmu.read_byte(self.reg.pc)
     }
 
     fn fetch_word(&mut self) -> u16 {
         let lo = self.fetch_byte();
         let hi = self.fetch_byte();
         ((hi as u16) << 8) | (lo as u16)
+    }
+
+    fn peek_word(&self) -> u16 {
+        self.mmu.read_word(self.reg.pc)
     }
 
     fn read_hl_byte(&self) -> u8 {
@@ -1057,8 +1132,8 @@ impl CPU {
     }
 
     fn push_stack(&mut self, addr: u16) {
-        self.mmu.write_word(self.reg.sp, addr);
         self.reg.sp -= 2;
+        self.mmu.write_word(self.reg.sp, addr);
     }
 
     fn pop_stack(&mut self) -> u16 {
@@ -1111,6 +1186,7 @@ impl CPU {
             Src16::N => self.fetch_byte().into(),
             Src16::NN => self.fetch_word(),
             Src16::Addr(addr) => self.mmu.read_word(addr),
+            Src16::Imm(imm) => imm,
         }
     }
 

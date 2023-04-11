@@ -2,11 +2,15 @@
 
 use crate::{io_registers::IORegisters, mem_constants::*};
 
+const BANK_0_SIZE: usize = (ROM_BANK_0_END - ROM_BANK_0_START + 1) as usize;
+const SWITCHABLE_ROM_SIZE: usize = (SWITCHABLE_ROM_END - SWITCHABLE_ROM_START + 1) as usize;
+
 #[derive(Debug)]
 pub struct MMU {
     // ROM 0
-    rom_bank_0: [u8; (ROM_BANK_0_END - ROM_BANK_0_START + 1) as usize],
+    rom_bank_0: [u8; BANK_0_SIZE],
     // SWITCHABLE ROM
+    switchable_rom: [u8; SWITCHABLE_ROM_SIZE],
     // VRAM
     // TODO: can switch banks 0/1 in CGB mode
     vram: [u8; (VRAM_END - VRAM_START + 1) as usize],
@@ -28,14 +32,20 @@ pub struct MMU {
 
 impl MMU {
     pub fn new(rom: &str) -> Self {
-        let mut rom_bank_0 = [0; (ROM_BANK_0_END - ROM_BANK_0_START + 1) as usize];
+        let mut rom_bank_0 = [0; BANK_0_SIZE];
         let bytes = std::fs::read(rom).expect("Reading from ROM failed in MMU::new()");
         // TODO: this is messy
-        for i in 0..(ROM_BANK_0_END - ROM_BANK_0_START + 1) {
+        for i in 0..BANK_0_SIZE {
             rom_bank_0[i as usize] = bytes[i as usize];
+        }
+        let mut switchable_rom = [0; SWITCHABLE_ROM_SIZE];
+        // TODO: this is messy
+        for i in 0..SWITCHABLE_ROM_SIZE {
+            switchable_rom[i as usize] = bytes[BANK_0_SIZE + (i as usize)];
         }
         Self {
             rom_bank_0,
+            switchable_rom,
             ext_ram: [0; (EXT_RAM_END - EXT_RAM_START + 1) as usize],
             vram: [0; (VRAM_END - VRAM_START + 1) as usize],
             wramI: [0; (WRAM_I_END - WRAM_I_START + 1) as usize],
@@ -49,12 +59,19 @@ impl MMU {
 
 impl MMU {
     pub fn read_byte(&self, addr: u16) -> u8 {
+        // Gameboy doctor
+        if addr == 0xFF44 {
+            return 0x90;
+        }
+
         match addr {
             // FIX: assuming a 32 kb cart
             ROM_BANK_0_START..=ROM_BANK_0_END => {
                 self.rom_bank_0[(addr - ROM_BANK_0_START) as usize]
             }
-            SWITCHABLE_ROM_START..=SWITCHABLE_ROM_END => unimplemented!("16kb switchable rom bank"),
+            SWITCHABLE_ROM_START..=SWITCHABLE_ROM_END => {
+                self.switchable_rom[(addr - SWITCHABLE_ROM_START) as usize]
+            }
             VRAM_START..=VRAM_END => self.vram[(addr - VRAM_START) as usize],
             EXT_RAM_START..=EXT_RAM_END => self.ext_ram[(addr - EXT_RAM_START) as usize],
             WRAM_I_START..=WRAM_I_END => self.wramI[(addr - WRAM_I_START) as usize],
@@ -76,7 +93,9 @@ impl MMU {
             ROM_BANK_0_START..=ROM_BANK_0_END => {
                 self.rom_bank_0[(addr - ROM_BANK_0_START) as usize] = val
             }
-            SWITCHABLE_ROM_START..=SWITCHABLE_ROM_END => unimplemented!("16kb switchable rom bank"),
+            SWITCHABLE_ROM_START..=SWITCHABLE_ROM_END => {
+                self.switchable_rom[(addr - SWITCHABLE_ROM_START) as usize] = val
+            }
             VRAM_START..=VRAM_END => self.vram[(addr - VRAM_START) as usize] = val,
             EXT_RAM_START..=EXT_RAM_END => self.ext_ram[(addr - EXT_RAM_START) as usize] = val,
             WRAM_I_START..=WRAM_I_END => self.wramI[(addr - WRAM_I_START) as usize] = val,

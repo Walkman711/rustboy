@@ -17,22 +17,34 @@ pub enum Flags {
 impl Into<u8> for Flags {
     fn into(self) -> u8 {
         match self {
-            Flags::Z => 0b1000_0000,
-            Flags::N => 0b0100_0000,
-            Flags::H => 0b0010_0000,
-            Flags::C => 0b0001_0000,
+            Flags::Z => 1 << 7,
+            Flags::N => 1 << 6,
+            Flags::H => 1 << 5,
+            Flags::C => 1 << 4,
         }
     }
 }
 
 // TODO:
-#[derive(Copy, Clone, Debug, Default)]
+#[derive(Copy, Clone, Debug)]
 #[allow(non_snake_case)]
 pub struct FlagRegister {
     Z: bool,
     N: bool,
     H: bool,
     C: bool,
+}
+
+// FIX: is this right?
+impl Default for FlagRegister {
+    fn default() -> Self {
+        Self {
+            Z: true,
+            N: false,
+            H: false,
+            C: false,
+        }
+    }
 }
 
 #[allow(non_snake_case)]
@@ -118,10 +130,11 @@ impl Display for Registers {
 impl Default for Registers {
     fn default() -> Self {
         Self {
+            // Using DMG0
             // TODO: this depends on if it's a GB/GBP/GBC
-            a: 0x00,
+            a: 0x01,
             // FIX: incorrect for startup
-            f: FlagRegister::default(),
+            f: FlagRegister::from(0xB0),
             b: 0x00,
             c: 0x13,
             d: 0x00,
