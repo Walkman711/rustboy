@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use crate::{mmu::*, registers::*};
+use crate::{instructions::*, mmu::*, registers::*};
 
 #[derive(Debug)]
 pub struct CPU {
@@ -35,122 +35,6 @@ impl CPU {
         println!("clock: {}", self.clock);
         println!("\n\n\n\n");
     }
-}
-
-#[derive(Copy, Clone, Debug)]
-pub enum Instruction {
-    // 3.3.1: 8-bit loads
-    LD8(Dst8, Src8, u32),
-    LDD(Dst8, Src8, u32),
-    LDI(Dst8, Src8, u32),
-    // 3.3.2: 16-bit loads
-    LD16(Dst16, Src16, u32),
-    PUSH(Src16, u32),
-    POP(Dst16, u32),
-    // 3.3.3: 8-bit ALU ops
-    ADD(Src8, u32),
-    ADC(Src8, u32),
-    SUB(Src8, u32),
-    SBC(Src8, u32),
-    AND(Src8, u32),
-    OR(Src8, u32),
-    XOR(Src8, u32),
-    CP(Src8, u32),
-    INC(Dst8, u32),
-    DEC(Dst8, u32),
-    // 3.3.4: 16-bit ALU ops
-    ADD16(Dst16, Src16, u32),
-    INC16(Dst16, u32),
-    DEC16(Dst16, u32),
-    // 3.3.5: Misc
-    SWAP(Dst8, u32),
-    DAA(u32),
-    CPL(u32),
-    CCF(u32),
-    SCF(u32),
-    NOP(u32),
-    HALT(u32),
-    STOP(u32),
-    DI(u32),
-    EI(u32),
-    // 3.3.6: Rotates & Shifts
-    RLCA(u32),
-    RLA(u32),
-    RRCA(u32),
-    RRA(u32),
-    RLC(Dst8, u32),
-    RL(Dst8, u32),
-    RRC(Dst8, u32),
-    RR(Dst8, u32),
-    SLA(Dst8, u32),
-    SRA(Dst8, u32),
-    SRL(Dst8, u32),
-    // 3.3.7: Bit Opcodes
-    BIT(u8, Dst8, u32),
-    SET(u8, Dst8, u32),
-    RES(u8, Dst8, u32),
-    // 3.3.8: Jumps
-    JP(Src16, u32),
-    JPC(Src16, Flags, bool, u32),
-    // 3.3.9: Calls
-    CALL(Src16, Flags, bool, u32),
-    // 3.3.10: Restarts
-    RST(u8, u32),
-    // 3.3.11: Returns
-    RET(u32),
-    // TODO: consolidate with RET
-    RETC(Flags, bool, u32),
-    RETI(u32),
-}
-
-#[derive(Copy, Clone, Debug, PartialEq)]
-pub enum Src8 {
-    A,
-    F,
-    B,
-    C,
-    D,
-    E,
-    H,
-    L,
-    N,
-    HLContents,
-    Addr(u16),
-}
-
-// Same as Src8 except for cutting out the immediate one byte option.
-#[derive(Copy, Clone, Debug, PartialEq)]
-pub enum Dst8 {
-    A,
-    F,
-    B,
-    C,
-    D,
-    E,
-    H,
-    L,
-    HLContents,
-    Addr(u16),
-}
-
-#[derive(Copy, Clone, Debug, PartialEq)]
-pub enum Src16 {
-    AF,
-    BC,
-    DE,
-    HL,
-    NN,
-    Addr(u16),
-}
-
-// Same as Dst16 except for cutting out the immediate one word option.
-#[derive(Copy, Clone, Debug, PartialEq)]
-pub enum Dst16 {
-    AF,
-    BC,
-    DE,
-    HL,
-    Addr(u16),
 }
 
 impl CPU {
@@ -219,99 +103,93 @@ impl CPU {
         }
     }
 
-    // Instruction::NOP(_) => {}
-    // Instruction::LD16(dst, src, _) => {
-    //     let s = self.get_16(src);
-    //     self.set_16(dst, s);
-    // }
-    // _ => unimplemented!(),
-    pub fn execute(&mut self, inst: Instruction) {
+    pub fn execute(&mut self, inst: Inst) {
         match inst {
-            Instruction::LD8(dst, src, _) => {
+            Inst::LD8(dst, src, _) => {
                 let s = self.get_8(src);
                 self.set_8(dst, s);
             }
-            Instruction::LDD(_, _, _) => todo!(),
-            Instruction::LDI(_, _, _) => todo!(),
-            Instruction::LD16(dst, src, _) => {
+            Inst::LDD(_, _, _) => todo!(),
+            Inst::LDI(_, _, _) => todo!(),
+            Inst::LD16(dst, src, _) => {
                 let s = self.get_16(src);
                 self.set_16(dst, s);
             }
-            Instruction::PUSH(src, _) => {
+            Inst::PUSH(src, _) => {
                 match src {
-                    Src16::AF | Src16::BC | Src16::DE | Src16::HL => {}
                     Src16::NN | Src16::Addr(_) => {
                         panic!("Tried to push a non-register onto the stack")
                     }
+                    _ => {}
                 }
                 let s = self.get_16(src);
                 self.push_stack(s);
             }
-            Instruction::POP(dst, _) => {
+            Inst::POP(dst, _) => {
                 let popped_value = self.pop_stack();
                 self.set_16(dst, popped_value);
             }
-            Instruction::ADD(src, _) => {
+            Inst::ADD(src, _) => {
                 let s = self.get_8(src);
                 self.alu_add(s);
             }
-            Instruction::ADC(src, _) => {
+            Inst::ADC(src, _) => {
                 let s = self.get_8(src);
                 self.alu_adc(s);
             }
-            Instruction::SUB(src, _) => {
+            Inst::SUB(src, _) => {
                 let s = self.get_8(src);
                 self.alu_sub(s);
             }
-            Instruction::SBC(src, _) => {
+            Inst::SBC(src, _) => {
                 let s = self.get_8(src);
                 self.alu_sbc(s);
             }
-            Instruction::AND(src, _) => {
+            Inst::AND(src, _) => {
                 let s = self.get_8(src);
                 self.alu_and(s);
             }
-            Instruction::OR(src, _) => {
+            Inst::OR(src, _) => {
                 let s = self.get_8(src);
                 self.alu_or(s);
             }
-            Instruction::XOR(src, _) => {
+            Inst::XOR(src, _) => {
                 let s = self.get_8(src);
                 self.alu_xor(s);
             }
-            Instruction::CP(_, _) => todo!(),
-            Instruction::INC(_, _) => todo!(),
-            Instruction::DEC(_, _) => todo!(),
-            Instruction::ADD16(_, _, _) => todo!(),
-            Instruction::INC16(_, _) => todo!(),
-            Instruction::DEC16(_, _) => todo!(),
-            Instruction::SWAP(_, _) => todo!(),
-            Instruction::DAA(_) => todo!(),
-            Instruction::CPL(_) => {
+            Inst::CP(_, _) => todo!(),
+            Inst::INC(_, _) => todo!(),
+            Inst::DEC(_, _) => todo!(),
+            Inst::ADD16(_, _, _) => todo!(),
+            Inst::INC16(_, _) => todo!(),
+            Inst::DEC16(_, _) => todo!(),
+            Inst::SWAP(_, _) => todo!(),
+            Inst::DAA(_) => todo!(),
+            Inst::CPL(_) => {
                 // bitwise-complement operator (equivalent to '~' in C)
                 self.reg.a = !self.reg.a;
                 self.reg.flag(Flags::N, true);
                 self.reg.flag(Flags::H, true);
             }
-            Instruction::CCF(_) => {
+            Inst::CCF(_) => {
                 self.reg.flag(Flags::N, false);
                 self.reg.flag(Flags::H, false);
                 self.reg.flag(Flags::C, !self.reg.carry_flag_set());
             }
-            Instruction::SCF(_) => {
+            Inst::SCF(_) => {
                 self.reg.flag(Flags::N, false);
                 self.reg.flag(Flags::H, false);
                 self.reg.flag(Flags::C, true);
             }
-            Instruction::NOP(_) => {}
-            Instruction::HALT(_) => self.halted = true,
-            Instruction::STOP(_) => {
+            Inst::NOP(_) => {}
+            Inst::HALT(_) => self.halted = true,
+            Inst::STOP(_) => {
                 self.halted = true;
                 self.stopped = true;
             }
-            Instruction::DI(_) => todo!(),
-            Instruction::EI(_) => todo!(),
-            Instruction::RLCA(_) => {
+            Inst::DI(_) => todo!(),
+            Inst::EI(_) => todo!(),
+            Inst::RLCA(_) => {
                 // TODO: look this over again
                 self.reg.flag(Flags::C, (self.reg.a & 0b1000) == 0b1000);
                 self.reg.a <<= 1;
@@ -320,16 +198,16 @@ impl CPU {
                     self.reg.flag(Flags::Z, true);
                 }
             }
-            Instruction::RLA(_) => todo!(),
+            Inst::RLA(_) => todo!(),
             // TODO: look at how the zero flag is set
-            Instruction::RRCA(_) => {
+            Inst::RRCA(_) => {
                 self.reg.flag(Flags::C, (self.reg.a & 0b0001) == 0b0001);
                 self.reg.a >>= 1;
                 if self.reg.a == 0 {
                     self.reg.flag(Flags::Z, true);
                 }
             }
-            Instruction::RRA(_) => {
+            Inst::RRA(_) => {
                 let old_bit_0 = self.reg.a & 0x1;
                 self.reg.a >>= 1;
                 self.reg.flag(Flags::Z, self.reg.a == 0);
@@ -337,24 +215,25 @@ impl CPU {
                 self.reg.flag(Flags::H, false);
                 self.reg.flag(Flags::C, old_bit_0 == 1);
             }
-            Instruction::RLC(_, _) => todo!(),
-            Instruction::RL(_, _) => todo!(),
-            Instruction::RRC(_, _) => todo!(),
-            Instruction::RR(_, _) => todo!(),
-            Instruction::SLA(_, _) => todo!(),
-            Instruction::SRA(_, _) => todo!(),
-            Instruction::SRL(_, _) => todo!(),
-            Instruction::BIT(_, _, _) => todo!(),
-            Instruction::SET(_, _, _) => todo!(),
-            Instruction::RES(_, _, _) => todo!(),
-            Instruction::JP(src, _) => {
+            Inst::RLC(_, _) => todo!(),
+            Inst::RL(_, _) => todo!(),
+            Inst::RRC(_, _) => todo!(),
+            Inst::RR(_, _) => todo!(),
+            Inst::SLA(_, _) => todo!(),
+            Inst::SRA(_, _) => todo!(),
+            Inst::SRL(_, _) => todo!(),
+            Inst::BIT(_, _, _) => todo!(),
+            Inst::SETN(_, _) => todo!(),
+            Inst::SET(_, _, _) => todo!(),
+            Inst::RES(_, _, _) => todo!(),
+            Inst::JP(src, _) => {
                 if let Src16::Addr(addr) = src {
                     self.reg.pc = addr;
                 } else {
                     panic!("Tried to execute a jump without an address as the source")
                 }
             }
-            Instruction::JPC(src, flag_to_check, desired_state, _) => {
+            Inst::JPC(src, flag_to_check, desired_state, _) => {
                 if let Src16::Addr(addr) = src {
                     let flag_val = match flag_to_check {
                         Flags::Z => self.reg.zero_flag_set(),
@@ -369,8 +248,8 @@ impl CPU {
                     panic!("Tried to execute a conditional jump without an address as the source")
                 }
             }
-            Instruction::CALL(_, _, _, _) => todo!(),
-            Instruction::RST(incr, _) => {
+            Inst::CALL(_, _, _, _) => todo!(),
+            Inst::RST(incr, _) => {
                 let valid_incrs = vec![0x00, 0x08, 0x10, 0x18, 0x20, 0x28, 0x30, 0x38];
                 assert!(
                     valid_incrs.contains(&incr),
@@ -380,11 +259,11 @@ impl CPU {
                 self.reg.pc = 0x0000 + (incr as u16);
             }
             // TODO: pull out and consolidate with RETC
-            Instruction::RET(_) => {
+            Inst::RET(_) => {
                 let addr = self.pop_stack();
                 self.reg.pc = addr;
             }
-            Instruction::RETC(flag_to_check, desired_state, _) => {
+            Inst::RETC(flag_to_check, desired_state, _) => {
                 // Make flag check a fn somewhere
                 let flag_val = match flag_to_check {
                     Flags::Z => self.reg.zero_flag_set(),
@@ -397,7 +276,7 @@ impl CPU {
                     self.reg.pc = addr;
                 }
             }
-            Instruction::RETI(_) => todo!(),
+            Inst::RETI(_) => todo!(),
         }
     }
 }
@@ -615,267 +494,555 @@ impl CPU {
         self.mmu.write_byte(self.reg.hl(), byte)
     }
 
-    fn decode(&mut self, opcode: u8) -> Instruction {
+    fn decode(&mut self, opcode: u8) -> Inst {
         match opcode {
-            0x00 => Instruction::NOP(4),                               // NOP
-            0x01 => todo!("{:#04x}", opcode),                          // LD BC,d16
-            0x02 => todo!("{:#04x}", opcode),                          // LD (BC),A
-            0x03 => todo!("{:#04x}", opcode),                          // INC BC
-            0x04 => todo!("{:#04x}", opcode),                          // INC B
-            0x05 => todo!("{:#04x}", opcode),                          // DEC B
-            0x06 => todo!("{:#04x}", opcode),                          // LD B,d8
-            0x07 => Instruction::RLCA(4),                              // RLCA
-            0x08 => todo!("{:#04x}", opcode),                          // LD (a16),SP
-            0x09 => todo!("{:#04x}", opcode),                          // ADD HL,BC
-            0x0A => todo!("{:#04x}", opcode),                          // LD A,(BC)
-            0x0B => todo!("{:#04x}", opcode),                          // DEC BC
-            0x0C => todo!("{:#04x}", opcode),                          // INC C
-            0x0D => todo!("{:#04x}", opcode),                          // DEC C
-            0x0E => todo!("{:#04x}", opcode),                          // LD C,d8
-            0x0F => Instruction::RRCA(4),                              // RRCA
-            0x10 => Instruction::STOP(4),                              // STOP
-            0x11 => todo!("{:#04x}", opcode),                          // LD DE,d16
-            0x12 => todo!("{:#04x}", opcode),                          // LD (DE),A
-            0x13 => todo!("{:#04x}", opcode),                          // INC DE
-            0x14 => todo!("{:#04x}", opcode),                          // INC D
-            0x15 => todo!("{:#04x}", opcode),                          // DEC D
-            0x16 => todo!("{:#04x}", opcode),                          // LD D,d8
-            0x17 => Instruction::RLA(4),                               // RLA
-            0x18 => todo!("{:#04x}", opcode),                          // JR r8
-            0x19 => todo!("{:#04x}", opcode),                          // ADD HL,DE
-            0x1A => todo!("{:#04x}", opcode),                          // LD A,(DE)
-            0x1B => todo!("{:#04x}", opcode),                          // DEC DE
-            0x1C => todo!("{:#04x}", opcode),                          // INC E
-            0x1D => todo!("{:#04x}", opcode),                          // DEC E
-            0x1E => todo!("{:#04x}", opcode),                          // LD E,d8
-            0x1F => Instruction::RRA(4),                               // RRA
-            0x20 => todo!("{:#04x}", opcode),                          // JR NZ,r8
-            0x21 => todo!("{:#04x}", opcode),                          // LD HL,d16
-            0x22 => todo!("{:#04x}", opcode),                          // LD (HL+),A
-            0x23 => todo!("{:#04x}", opcode),                          // INC HL
-            0x24 => todo!("{:#04x}", opcode),                          // INC H
-            0x25 => todo!("{:#04x}", opcode),                          // DEC H
-            0x26 => todo!("{:#04x}", opcode),                          // LD H,d8
-            0x27 => Instruction::DAA(4),                               // DAA
-            0x28 => todo!("{:#04x}", opcode),                          // JR Z,r8
-            0x29 => todo!("{:#04x}", opcode),                          // ADD HL,HL
-            0x2A => todo!("{:#04x}", opcode),                          // LD A,(HL+)
-            0x2B => todo!("{:#04x}", opcode),                          // DEC HL
-            0x2C => todo!("{:#04x}", opcode),                          // INC L
-            0x2D => todo!("{:#04x}", opcode),                          // DEC L
-            0x2E => todo!("{:#04x}", opcode),                          // LD L,d8
-            0x2F => Instruction::CPL(4),                               // CPL
-            0x30 => todo!("{:#04x}", opcode),                          // JR NC,r8
-            0x31 => todo!("{:#04x}", opcode),                          // LD SP,d16
-            0x32 => todo!("{:#04x}", opcode),                          // LD (HL-),A
-            0x33 => todo!("{:#04x}", opcode),                          // INC SP
-            0x34 => todo!("{:#04x}", opcode),                          // INC (HL)
-            0x35 => todo!("{:#04x}", opcode),                          // DEC (HL)
-            0x36 => todo!("{:#04x}", opcode),                          // LD (HL),d8
-            0x37 => Instruction::SCF(4),                               // SCF
-            0x38 => todo!("{:#04x}", opcode),                          // JR C,r8
-            0x39 => todo!("{:#04x}", opcode),                          // ADD HL,SP
-            0x3A => todo!("{:#04x}", opcode),                          // LD A,(HL-)
-            0x3B => todo!("{:#04x}", opcode),                          // DEC SP
-            0x3C => todo!("{:#04x}", opcode),                          // INC A
-            0x3D => todo!("{:#04x}", opcode),                          // DEC A
-            0x3E => todo!("{:#04x}", opcode),                          // LD A,d8
-            0x3F => Instruction::CCF(4),                               // CCF
-            0x40 => Instruction::LD8(Dst8::B, Src8::B, 4),             // LD B,B
-            0x41 => Instruction::LD8(Dst8::B, Src8::C, 4),             // LD B,C
-            0x42 => Instruction::LD8(Dst8::B, Src8::D, 4),             // LD B,D
-            0x43 => Instruction::LD8(Dst8::B, Src8::E, 4),             // LD B,E
-            0x44 => Instruction::LD8(Dst8::B, Src8::H, 4),             // LD B,H
-            0x45 => Instruction::LD8(Dst8::B, Src8::L, 4),             // LD B,L
-            0x46 => Instruction::LD8(Dst8::B, Src8::HLContents, 8),    // LD B,(HL)
-            0x47 => Instruction::LD8(Dst8::B, Src8::A, 4),             // LD B,A
-            0x48 => Instruction::LD8(Dst8::C, Src8::B, 4),             // LD C,B
-            0x49 => Instruction::LD8(Dst8::C, Src8::C, 4),             // LD C,C
-            0x4A => Instruction::LD8(Dst8::C, Src8::D, 4),             // LD C,D
-            0x4B => Instruction::LD8(Dst8::C, Src8::E, 4),             // LD C,E
-            0x4C => Instruction::LD8(Dst8::C, Src8::H, 4),             // LD C,H
-            0x4D => Instruction::LD8(Dst8::C, Src8::L, 4),             // LD C,L
-            0x4E => Instruction::LD8(Dst8::C, Src8::HLContents, 8),    // LD C,(HL)
-            0x4F => Instruction::LD8(Dst8::C, Src8::A, 4),             // LD C,A
-            0x50 => Instruction::LD8(Dst8::D, Src8::B, 4),             // LD D,B
-            0x51 => Instruction::LD8(Dst8::D, Src8::C, 4),             // LD D,C
-            0x52 => Instruction::LD8(Dst8::D, Src8::D, 4),             // LD D,D
-            0x53 => Instruction::LD8(Dst8::D, Src8::E, 4),             // LD D,E
-            0x54 => Instruction::LD8(Dst8::D, Src8::H, 4),             // LD D,H
-            0x55 => Instruction::LD8(Dst8::D, Src8::L, 4),             // LD D,L
-            0x56 => Instruction::LD8(Dst8::D, Src8::HLContents, 8),    // LD D,(HL)
-            0x57 => Instruction::LD8(Dst8::D, Src8::A, 4),             // LD D,A
-            0x58 => Instruction::LD8(Dst8::E, Src8::B, 4),             // LD E,B
-            0x59 => Instruction::LD8(Dst8::E, Src8::C, 4),             // LD E,C
-            0x5A => Instruction::LD8(Dst8::E, Src8::D, 4),             // LD E,D
-            0x5B => Instruction::LD8(Dst8::E, Src8::E, 4),             // LD E,E
-            0x5C => Instruction::LD8(Dst8::E, Src8::H, 4),             // LD E,H
-            0x5D => Instruction::LD8(Dst8::E, Src8::L, 4),             // LD E,L
-            0x5E => Instruction::LD8(Dst8::E, Src8::HLContents, 8),    // LD E,(HL)
-            0x5F => Instruction::LD8(Dst8::E, Src8::A, 4),             // LD E,A
-            0x60 => Instruction::LD8(Dst8::H, Src8::B, 4),             // LD H,B
-            0x61 => Instruction::LD8(Dst8::H, Src8::C, 4),             // LD H,C
-            0x62 => Instruction::LD8(Dst8::H, Src8::D, 4),             // LD H,D
-            0x63 => Instruction::LD8(Dst8::H, Src8::E, 4),             // LD H,E
-            0x64 => Instruction::LD8(Dst8::H, Src8::H, 4),             // LD H,H
-            0x65 => Instruction::LD8(Dst8::H, Src8::L, 4),             // LD H,L
-            0x66 => Instruction::LD8(Dst8::H, Src8::HLContents, 8),    // LD H,(HL)
-            0x67 => Instruction::LD8(Dst8::H, Src8::A, 4),             // LD H,A
-            0x68 => Instruction::LD8(Dst8::L, Src8::B, 4),             // LD L,B
-            0x69 => Instruction::LD8(Dst8::L, Src8::C, 4),             // LD L,C
-            0x6A => Instruction::LD8(Dst8::L, Src8::D, 4),             // LD L,D
-            0x6B => Instruction::LD8(Dst8::L, Src8::E, 4),             // LD L,E
-            0x6C => Instruction::LD8(Dst8::L, Src8::H, 4),             // LD L,H
-            0x6D => Instruction::LD8(Dst8::L, Src8::L, 4),             // LD L,L
-            0x6E => Instruction::LD8(Dst8::L, Src8::HLContents, 8),    // LD L,(HL)
-            0x6F => Instruction::LD8(Dst8::L, Src8::A, 4),             // LD L,A
-            0x70 => Instruction::LD8(Dst8::HLContents, Src8::B, 8),    // LD (HL),B
-            0x71 => Instruction::LD8(Dst8::HLContents, Src8::C, 8),    // LD (HL),C
-            0x72 => Instruction::LD8(Dst8::HLContents, Src8::D, 8),    // LD (HL),D
-            0x73 => Instruction::LD8(Dst8::HLContents, Src8::E, 8),    // LD (HL),E
-            0x74 => Instruction::LD8(Dst8::HLContents, Src8::H, 8),    // LD (HL),H
-            0x75 => Instruction::LD8(Dst8::HLContents, Src8::L, 8),    // LD (HL),L
-            0x76 => Instruction::HALT(4),                              // HALT
-            0x77 => Instruction::LD8(Dst8::HLContents, Src8::A, 8),    // LD (HL),A
-            0x78 => Instruction::LD8(Dst8::A, Src8::B, 4),             // LD A,B
-            0x79 => Instruction::LD8(Dst8::A, Src8::C, 4),             // LD A,C
-            0x7A => Instruction::LD8(Dst8::A, Src8::D, 4),             // LD A,D
-            0x7B => Instruction::LD8(Dst8::A, Src8::E, 4),             // LD A,E
-            0x7C => Instruction::LD8(Dst8::A, Src8::H, 4),             // LD A,H
-            0x7D => Instruction::LD8(Dst8::A, Src8::L, 4),             // LD A,L
-            0x7E => Instruction::LD8(Dst8::A, Src8::HLContents, 8),    // LD A,(HL)
-            0x7F => Instruction::LD8(Dst8::A, Src8::A, 4),             // LD A,A
-            0x80 => Instruction::ADD(Src8::B, 4),                      // ADD A,B
-            0x81 => Instruction::ADD(Src8::C, 4),                      // ADD A,C
-            0x82 => Instruction::ADD(Src8::D, 4),                      // ADD A,D
-            0x83 => Instruction::ADD(Src8::E, 4),                      // ADD A,E
-            0x84 => Instruction::ADD(Src8::H, 4),                      // ADD A,H
-            0x85 => Instruction::ADD(Src8::L, 4),                      // ADD A,L
-            0x86 => Instruction::ADD(Src8::HLContents, 8),             // ADD A,(HL)
-            0x87 => Instruction::ADD(Src8::A, 4),                      // ADD A,A
-            0x88 => Instruction::ADC(Src8::B, 4),                      // ADC A,B
-            0x89 => Instruction::ADC(Src8::C, 4),                      // ADC A,C
-            0x8A => Instruction::ADC(Src8::D, 4),                      // ADC A,D
-            0x8B => Instruction::ADC(Src8::E, 4),                      // ADC A,E
-            0x8C => Instruction::ADC(Src8::H, 4),                      // ADC A,H
-            0x8D => Instruction::ADC(Src8::L, 4),                      // ADC A,L
-            0x8E => Instruction::ADC(Src8::HLContents, 8),             // ADC A,(HL)
-            0x8F => Instruction::ADC(Src8::A, 4),                      // ADC A,A
-            0x90 => Instruction::SUB(Src8::B, 4),                      // SUB B
-            0x91 => Instruction::SUB(Src8::C, 4),                      // SUB C
-            0x92 => Instruction::SUB(Src8::D, 4),                      // SUB D
-            0x93 => Instruction::SUB(Src8::E, 4),                      // SUB E
-            0x94 => Instruction::SUB(Src8::H, 4),                      // SUB H
-            0x95 => Instruction::SUB(Src8::L, 4),                      // SUB L
-            0x96 => Instruction::SUB(Src8::HLContents, 8),             // SUB (HL)
-            0x97 => Instruction::SUB(Src8::A, 4),                      // SUB A
-            0x98 => Instruction::SBC(Src8::B, 4),                      // SBC A,B
-            0x99 => Instruction::SBC(Src8::C, 4),                      // SBC A,C
-            0x9A => Instruction::SBC(Src8::D, 4),                      // SBC A,D
-            0x9B => Instruction::SBC(Src8::E, 4),                      // SBC A,E
-            0x9C => Instruction::SBC(Src8::H, 4),                      // SBC A,H
-            0x9D => Instruction::SBC(Src8::L, 4),                      // SBC A,L
-            0x9E => Instruction::SBC(Src8::HLContents, 8),             // SBC A,(HL)
-            0x9F => Instruction::SBC(Src8::A, 4),                      // SBC A,A
-            0xA0 => Instruction::AND(Src8::B, 4),                      // AND B
-            0xA1 => Instruction::AND(Src8::C, 4),                      // AND C
-            0xA2 => Instruction::AND(Src8::D, 4),                      // AND D
-            0xA3 => Instruction::AND(Src8::E, 4),                      // AND E
-            0xA4 => Instruction::AND(Src8::H, 4),                      // AND H
-            0xA5 => Instruction::AND(Src8::L, 4),                      // AND L
-            0xA6 => Instruction::AND(Src8::HLContents, 8),             // AND (HL)
-            0xA7 => Instruction::AND(Src8::A, 4),                      // AND A
-            0xA8 => Instruction::XOR(Src8::B, 4),                      // XOR B
-            0xA9 => Instruction::XOR(Src8::C, 4),                      // XOR C
-            0xAA => Instruction::XOR(Src8::D, 4),                      // XOR D
-            0xAB => Instruction::XOR(Src8::E, 4),                      // XOR E
-            0xAC => Instruction::XOR(Src8::H, 4),                      // XOR H
-            0xAD => Instruction::XOR(Src8::L, 4),                      // XOR L
-            0xAE => Instruction::XOR(Src8::HLContents, 8),             // XOR (HL)
-            0xAF => Instruction::XOR(Src8::A, 4),                      // XOR A
-            0xB0 => Instruction::OR(Src8::B, 4),                       // OR B
-            0xB1 => Instruction::OR(Src8::C, 4),                       // OR C
-            0xB2 => Instruction::OR(Src8::D, 4),                       // OR D
-            0xB3 => Instruction::OR(Src8::E, 4),                       // OR E
-            0xB4 => Instruction::OR(Src8::H, 4),                       // OR H
-            0xB5 => Instruction::OR(Src8::L, 4),                       // OR L
-            0xB6 => Instruction::OR(Src8::HLContents, 8),              // OR (HL)
-            0xB7 => Instruction::OR(Src8::A, 4),                       // OR A
-            0xB8 => Instruction::CP(Src8::B, 4),                       // CP B
-            0xB9 => Instruction::CP(Src8::C, 4),                       // CP C
-            0xBA => Instruction::CP(Src8::D, 4),                       // CP D
-            0xBB => Instruction::CP(Src8::E, 4),                       // CP E
-            0xBC => Instruction::CP(Src8::H, 4),                       // CP H
-            0xBD => Instruction::CP(Src8::L, 4),                       // CP L
-            0xBE => Instruction::CP(Src8::HLContents, 8),              // CP (HL)
-            0xBF => Instruction::CP(Src8::A, 4),                       // CP A
-            0xC0 => Instruction::RETC(Flags::Z, false, 8),             // RET NZ
-            0xC1 => Instruction::POP(Dst16::BC, 12),                   // POP BC
-            0xC2 => Instruction::JPC(Src16::NN, Flags::Z, false, 12),  // JP NZ,a16
-            0xC3 => Instruction::JP(Src16::NN, 12),                    // JP a16
-            0xC4 => Instruction::CALL(Src16::NN, Flags::Z, false, 12), // CALL NZ,a16
-            0xC5 => Instruction::PUSH(Src16::BC, 16),                  // PUSH BC
-            0xC6 => Instruction::ADD(Src8::N, 8),                      // ADD A,d8
-            0xC7 => Instruction::RST(0x00, 32),                        // RST 00H
-            0xC8 => Instruction::RETC(Flags::Z, true, 8),              // RET Z
-            0xC9 => Instruction::RET(8),                               // RET
-            0xCA => todo!("{:#04x}", opcode),                          // JP Z,a16
-            0xCB => self.decode_cb(),                                  // CB prefix
-            0xCC => todo!("{:#04x}", opcode),                          // CALL Z,a16
-            0xCD => todo!("{:#04x}", opcode),                          // CALL a16
-            0xCE => todo!("{:#04x}", opcode),                          // ADC A,d8
-            0xCF => Instruction::RST(0x08, 32),                        // RST 08H
-            0xD0 => todo!("{:#04x}", opcode),                          // RET NC
-            0xD1 => Instruction::POP(Dst16::DE, 12),                   // POP DE
-            0xD2 => todo!("{:#04x}", opcode),                          // JP NC,a16
-            0xD3 => panic!("0xD3 is not a valid opcode"),              // -
-            0xD4 => todo!("{:#04x}", opcode),                          // CALL NC,a16
-            0xD5 => todo!("{:#04x}", opcode),                          // PUSH DE
-            0xD6 => todo!("{:#04x}", opcode),                          // SUB d8
-            0xD7 => Instruction::RST(0x10, 32),                        // RST 10H
-            0xD8 => todo!("{:#04x}", opcode),                          // RET C
-            0xD9 => Instruction::RETI(16),                             // RETI
-            0xDA => todo!("{:#04x}", opcode),                          // JP C,a16
-            0xDB => panic!("0xDB is not a valid opcode"),              // -
-            0xDC => todo!("{:#04x}", opcode),                          // CALL C,a16
-            0xDD => panic!("0xDD is not a valid opcode"),              // -
-            0xDE => todo!("{:#04x}", opcode),                          // SBC A,d8
-            0xDF => Instruction::RST(0x18, 32),                        // RST 18H
-            0xE0 => todo!("{:#04x}", opcode),                          // LDH (a8),A
-            0xE1 => Instruction::POP(Dst16::HL, 12),                   // POP HL
-            0xE2 => todo!("{:#04x}", opcode),                          // LD (C),A
-            0xE3 => panic!("0xE3 is not a valid opcode"),              // -
-            0xE4 => panic!("0xE4 is not a valid opcode"),              // -
-            0xE5 => todo!("{:#04x}", opcode),                          // PUSH HL
-            0xE6 => todo!("{:#04x}", opcode),                          // AND d8
-            0xE7 => Instruction::RST(0x20, 32),                        // RST 20H
-            0xE8 => todo!("{:#04x}", opcode),                          // ADD SP,r8
-            0xE9 => todo!("{:#04x}", opcode),                          // JP (HL)
-            0xEA => todo!("{:#04x}", opcode),                          // LD (a16),A
-            0xEB => panic!("0xEB is not a valid opcode"),              // -
-            0xEC => panic!("0xEC is not a valid opcode"),              // -
-            0xED => panic!("0xED is not a valid opcode"),              // -
-            0xEE => Instruction::XOR(Src8::N, 8),                      // XOR d8
-            0xEF => Instruction::RST(0x28, 32),                        // RST 28H
-            0xF0 => todo!("{:#04x}", opcode),                          // LDH A,(a8)
-            0xF1 => Instruction::POP(Dst16::AF, 12),                   // POP AF
-            0xF2 => todo!("{:#04x}", opcode),                          // LD A,(C)
-            0xF3 => Instruction::DI(4),                                // DI
-            0xF4 => panic!("0xF4 is not a valid opcode"),              // -
-            0xF5 => todo!("{:#04x}", opcode),                          // PUSH AF
-            0xF6 => Instruction::OR(Src8::N, 8),                       // OR d8
-            0xF7 => Instruction::RST(0x30, 32),                        // RST 30H
-            0xF8 => todo!("{:#04x}", opcode),                          // LD HL,SP+r8
-            0xF9 => todo!("{:#04x}", opcode),                          // LD SP,HL
-            0xFA => todo!("{:#04x}", opcode),                          // LD A,(a16)
-            0xFB => Instruction::EI(4),                                // EI
-            0xFC => panic!("0xFC is not a valid opcode"),              // -
-            0xFD => panic!("0xFD is not a valid opcode"),              // -
-            0xFE => todo!("{:#04x}", opcode),                          // CP d8
-            0xFF => Instruction::RST(0x38, 32),                        // RST 38H
+            0x00 => Inst::NOP(4),                               // NOP
+            0x01 => todo!("{:#04x}", opcode),                   // LD BC,d16
+            0x02 => todo!("{:#04x}", opcode),                   // LD (BC),A
+            0x03 => Inst::INC16(Dst16::BC, 8),                  // INC BC
+            0x04 => Inst::INC(Dst8::B, 4),                      // INC B
+            0x05 => Inst::DEC(Dst8::B, 4),                      // DEC B
+            0x06 => todo!("{:#04x}", opcode),                   // LD B,d8
+            0x07 => Inst::RLCA(4),                              // RLCA
+            0x08 => todo!("{:#04x}", opcode),                   // LD (a16),SP
+            0x09 => todo!("{:#04x}", opcode),                   // ADD HL,BC
+            0x0A => todo!("{:#04x}", opcode),                   // LD A,(BC)
+            0x0B => todo!("{:#04x}", opcode),                   // DEC BC
+            0x0C => todo!("{:#04x}", opcode),                   // INC C
+            0x0D => todo!("{:#04x}", opcode),                   // DEC C
+            0x0E => todo!("{:#04x}", opcode),                   // LD C,d8
+            0x0F => Inst::RRCA(4),                              // RRCA
+            0x10 => Inst::STOP(4),                              // STOP
+            0x11 => todo!("{:#04x}", opcode),                   // LD DE,d16
+            0x12 => todo!("{:#04x}", opcode),                   // LD (DE),A
+            0x13 => todo!("{:#04x}", opcode),                   // INC DE
+            0x14 => todo!("{:#04x}", opcode),                   // INC D
+            0x15 => todo!("{:#04x}", opcode),                   // DEC D
+            0x16 => todo!("{:#04x}", opcode),                   // LD D,d8
+            0x17 => Inst::RLA(4),                               // RLA
+            0x18 => todo!("{:#04x}", opcode),                   // JR r8
+            0x19 => todo!("{:#04x}", opcode),                   // ADD HL,DE
+            0x1A => todo!("{:#04x}", opcode),                   // LD A,(DE)
+            0x1B => todo!("{:#04x}", opcode),                   // DEC DE
+            0x1C => todo!("{:#04x}", opcode),                   // INC E
+            0x1D => todo!("{:#04x}", opcode),                   // DEC E
+            0x1E => todo!("{:#04x}", opcode),                   // LD E,d8
+            0x1F => Inst::RRA(4),                               // RRA
+            0x20 => todo!("{:#04x}", opcode),                   // JR NZ,r8
+            0x21 => todo!("{:#04x}", opcode),                   // LD HL,d16
+            0x22 => todo!("{:#04x}", opcode),                   // LD (HL+),A
+            0x23 => todo!("{:#04x}", opcode),                   // INC HL
+            0x24 => todo!("{:#04x}", opcode),                   // INC H
+            0x25 => todo!("{:#04x}", opcode),                   // DEC H
+            0x26 => todo!("{:#04x}", opcode),                   // LD H,d8
+            0x27 => Inst::DAA(4),                               // DAA
+            0x28 => todo!("{:#04x}", opcode),                   // JR Z,r8
+            0x29 => todo!("{:#04x}", opcode),                   // ADD HL,HL
+            0x2A => todo!("{:#04x}", opcode),                   // LD A,(HL+)
+            0x2B => todo!("{:#04x}", opcode),                   // DEC HL
+            0x2C => todo!("{:#04x}", opcode),                   // INC L
+            0x2D => todo!("{:#04x}", opcode),                   // DEC L
+            0x2E => todo!("{:#04x}", opcode),                   // LD L,d8
+            0x2F => Inst::CPL(4),                               // CPL
+            0x30 => todo!("{:#04x}", opcode),                   // JR NC,r8
+            0x31 => todo!("{:#04x}", opcode),                   // LD SP,d16
+            0x32 => todo!("{:#04x}", opcode),                   // LD (HL-),A
+            0x33 => todo!("{:#04x}", opcode),                   // INC SP
+            0x34 => todo!("{:#04x}", opcode),                   // INC (HL)
+            0x35 => todo!("{:#04x}", opcode),                   // DEC (HL)
+            0x36 => todo!("{:#04x}", opcode),                   // LD (HL),d8
+            0x37 => Inst::SCF(4),                               // SCF
+            0x38 => todo!("{:#04x}", opcode),                   // JR C,r8
+            0x39 => todo!("{:#04x}", opcode),                   // ADD HL,SP
+            0x3A => todo!("{:#04x}", opcode),                   // LD A,(HL-)
+            0x3B => todo!("{:#04x}", opcode),                   // DEC SP
+            0x3C => todo!("{:#04x}", opcode),                   // INC A
+            0x3D => todo!("{:#04x}", opcode),                   // DEC A
+            0x3E => todo!("{:#04x}", opcode),                   // LD A,d8
+            0x3F => Inst::CCF(4),                               // CCF
+            0x40 => Inst::LD8(Dst8::B, Src8::B, 4),             // LD B,B
+            0x41 => Inst::LD8(Dst8::B, Src8::C, 4),             // LD B,C
+            0x42 => Inst::LD8(Dst8::B, Src8::D, 4),             // LD B,D
+            0x43 => Inst::LD8(Dst8::B, Src8::E, 4),             // LD B,E
+            0x44 => Inst::LD8(Dst8::B, Src8::H, 4),             // LD B,H
+            0x45 => Inst::LD8(Dst8::B, Src8::L, 4),             // LD B,L
+            0x46 => Inst::LD8(Dst8::B, Src8::HLContents, 8),    // LD B,(HL)
+            0x47 => Inst::LD8(Dst8::B, Src8::A, 4),             // LD B,A
+            0x48 => Inst::LD8(Dst8::C, Src8::B, 4),             // LD C,B
+            0x49 => Inst::LD8(Dst8::C, Src8::C, 4),             // LD C,C
+            0x4A => Inst::LD8(Dst8::C, Src8::D, 4),             // LD C,D
+            0x4B => Inst::LD8(Dst8::C, Src8::E, 4),             // LD C,E
+            0x4C => Inst::LD8(Dst8::C, Src8::H, 4),             // LD C,H
+            0x4D => Inst::LD8(Dst8::C, Src8::L, 4),             // LD C,L
+            0x4E => Inst::LD8(Dst8::C, Src8::HLContents, 8),    // LD C,(HL)
+            0x4F => Inst::LD8(Dst8::C, Src8::A, 4),             // LD C,A
+            0x50 => Inst::LD8(Dst8::D, Src8::B, 4),             // LD D,B
+            0x51 => Inst::LD8(Dst8::D, Src8::C, 4),             // LD D,C
+            0x52 => Inst::LD8(Dst8::D, Src8::D, 4),             // LD D,D
+            0x53 => Inst::LD8(Dst8::D, Src8::E, 4),             // LD D,E
+            0x54 => Inst::LD8(Dst8::D, Src8::H, 4),             // LD D,H
+            0x55 => Inst::LD8(Dst8::D, Src8::L, 4),             // LD D,L
+            0x56 => Inst::LD8(Dst8::D, Src8::HLContents, 8),    // LD D,(HL)
+            0x57 => Inst::LD8(Dst8::D, Src8::A, 4),             // LD D,A
+            0x58 => Inst::LD8(Dst8::E, Src8::B, 4),             // LD E,B
+            0x59 => Inst::LD8(Dst8::E, Src8::C, 4),             // LD E,C
+            0x5A => Inst::LD8(Dst8::E, Src8::D, 4),             // LD E,D
+            0x5B => Inst::LD8(Dst8::E, Src8::E, 4),             // LD E,E
+            0x5C => Inst::LD8(Dst8::E, Src8::H, 4),             // LD E,H
+            0x5D => Inst::LD8(Dst8::E, Src8::L, 4),             // LD E,L
+            0x5E => Inst::LD8(Dst8::E, Src8::HLContents, 8),    // LD E,(HL)
+            0x5F => Inst::LD8(Dst8::E, Src8::A, 4),             // LD E,A
+            0x60 => Inst::LD8(Dst8::H, Src8::B, 4),             // LD H,B
+            0x61 => Inst::LD8(Dst8::H, Src8::C, 4),             // LD H,C
+            0x62 => Inst::LD8(Dst8::H, Src8::D, 4),             // LD H,D
+            0x63 => Inst::LD8(Dst8::H, Src8::E, 4),             // LD H,E
+            0x64 => Inst::LD8(Dst8::H, Src8::H, 4),             // LD H,H
+            0x65 => Inst::LD8(Dst8::H, Src8::L, 4),             // LD H,L
+            0x66 => Inst::LD8(Dst8::H, Src8::HLContents, 8),    // LD H,(HL)
+            0x67 => Inst::LD8(Dst8::H, Src8::A, 4),             // LD H,A
+            0x68 => Inst::LD8(Dst8::L, Src8::B, 4),             // LD L,B
+            0x69 => Inst::LD8(Dst8::L, Src8::C, 4),             // LD L,C
+            0x6A => Inst::LD8(Dst8::L, Src8::D, 4),             // LD L,D
+            0x6B => Inst::LD8(Dst8::L, Src8::E, 4),             // LD L,E
+            0x6C => Inst::LD8(Dst8::L, Src8::H, 4),             // LD L,H
+            0x6D => Inst::LD8(Dst8::L, Src8::L, 4),             // LD L,L
+            0x6E => Inst::LD8(Dst8::L, Src8::HLContents, 8),    // LD L,(HL)
+            0x6F => Inst::LD8(Dst8::L, Src8::A, 4),             // LD L,A
+            0x70 => Inst::LD8(Dst8::HLContents, Src8::B, 8),    // LD (HL),B
+            0x71 => Inst::LD8(Dst8::HLContents, Src8::C, 8),    // LD (HL),C
+            0x72 => Inst::LD8(Dst8::HLContents, Src8::D, 8),    // LD (HL),D
+            0x73 => Inst::LD8(Dst8::HLContents, Src8::E, 8),    // LD (HL),E
+            0x74 => Inst::LD8(Dst8::HLContents, Src8::H, 8),    // LD (HL),H
+            0x75 => Inst::LD8(Dst8::HLContents, Src8::L, 8),    // LD (HL),L
+            0x76 => Inst::HALT(4),                              // HALT
+            0x77 => Inst::LD8(Dst8::HLContents, Src8::A, 8),    // LD (HL),A
+            0x78 => Inst::LD8(Dst8::A, Src8::B, 4),             // LD A,B
+            0x79 => Inst::LD8(Dst8::A, Src8::C, 4),             // LD A,C
+            0x7A => Inst::LD8(Dst8::A, Src8::D, 4),             // LD A,D
+            0x7B => Inst::LD8(Dst8::A, Src8::E, 4),             // LD A,E
+            0x7C => Inst::LD8(Dst8::A, Src8::H, 4),             // LD A,H
+            0x7D => Inst::LD8(Dst8::A, Src8::L, 4),             // LD A,L
+            0x7E => Inst::LD8(Dst8::A, Src8::HLContents, 8),    // LD A,(HL)
+            0x7F => Inst::LD8(Dst8::A, Src8::A, 4),             // LD A,A
+            0x80 => Inst::ADD(Src8::B, 4),                      // ADD A,B
+            0x81 => Inst::ADD(Src8::C, 4),                      // ADD A,C
+            0x82 => Inst::ADD(Src8::D, 4),                      // ADD A,D
+            0x83 => Inst::ADD(Src8::E, 4),                      // ADD A,E
+            0x84 => Inst::ADD(Src8::H, 4),                      // ADD A,H
+            0x85 => Inst::ADD(Src8::L, 4),                      // ADD A,L
+            0x86 => Inst::ADD(Src8::HLContents, 8),             // ADD A,(HL)
+            0x87 => Inst::ADD(Src8::A, 4),                      // ADD A,A
+            0x88 => Inst::ADC(Src8::B, 4),                      // ADC A,B
+            0x89 => Inst::ADC(Src8::C, 4),                      // ADC A,C
+            0x8A => Inst::ADC(Src8::D, 4),                      // ADC A,D
+            0x8B => Inst::ADC(Src8::E, 4),                      // ADC A,E
+            0x8C => Inst::ADC(Src8::H, 4),                      // ADC A,H
+            0x8D => Inst::ADC(Src8::L, 4),                      // ADC A,L
+            0x8E => Inst::ADC(Src8::HLContents, 8),             // ADC A,(HL)
+            0x8F => Inst::ADC(Src8::A, 4),                      // ADC A,A
+            0x90 => Inst::SUB(Src8::B, 4),                      // SUB B
+            0x91 => Inst::SUB(Src8::C, 4),                      // SUB C
+            0x92 => Inst::SUB(Src8::D, 4),                      // SUB D
+            0x93 => Inst::SUB(Src8::E, 4),                      // SUB E
+            0x94 => Inst::SUB(Src8::H, 4),                      // SUB H
+            0x95 => Inst::SUB(Src8::L, 4),                      // SUB L
+            0x96 => Inst::SUB(Src8::HLContents, 8),             // SUB (HL)
+            0x97 => Inst::SUB(Src8::A, 4),                      // SUB A
+            0x98 => Inst::SBC(Src8::B, 4),                      // SBC A,B
+            0x99 => Inst::SBC(Src8::C, 4),                      // SBC A,C
+            0x9A => Inst::SBC(Src8::D, 4),                      // SBC A,D
+            0x9B => Inst::SBC(Src8::E, 4),                      // SBC A,E
+            0x9C => Inst::SBC(Src8::H, 4),                      // SBC A,H
+            0x9D => Inst::SBC(Src8::L, 4),                      // SBC A,L
+            0x9E => Inst::SBC(Src8::HLContents, 8),             // SBC A,(HL)
+            0x9F => Inst::SBC(Src8::A, 4),                      // SBC A,A
+            0xA0 => Inst::AND(Src8::B, 4),                      // AND B
+            0xA1 => Inst::AND(Src8::C, 4),                      // AND C
+            0xA2 => Inst::AND(Src8::D, 4),                      // AND D
+            0xA3 => Inst::AND(Src8::E, 4),                      // AND E
+            0xA4 => Inst::AND(Src8::H, 4),                      // AND H
+            0xA5 => Inst::AND(Src8::L, 4),                      // AND L
+            0xA6 => Inst::AND(Src8::HLContents, 8),             // AND (HL)
+            0xA7 => Inst::AND(Src8::A, 4),                      // AND A
+            0xA8 => Inst::XOR(Src8::B, 4),                      // XOR B
+            0xA9 => Inst::XOR(Src8::C, 4),                      // XOR C
+            0xAA => Inst::XOR(Src8::D, 4),                      // XOR D
+            0xAB => Inst::XOR(Src8::E, 4),                      // XOR E
+            0xAC => Inst::XOR(Src8::H, 4),                      // XOR H
+            0xAD => Inst::XOR(Src8::L, 4),                      // XOR L
+            0xAE => Inst::XOR(Src8::HLContents, 8),             // XOR (HL)
+            0xAF => Inst::XOR(Src8::A, 4),                      // XOR A
+            0xB0 => Inst::OR(Src8::B, 4),                       // OR B
+            0xB1 => Inst::OR(Src8::C, 4),                       // OR C
+            0xB2 => Inst::OR(Src8::D, 4),                       // OR D
+            0xB3 => Inst::OR(Src8::E, 4),                       // OR E
+            0xB4 => Inst::OR(Src8::H, 4),                       // OR H
+            0xB5 => Inst::OR(Src8::L, 4),                       // OR L
+            0xB6 => Inst::OR(Src8::HLContents, 8),              // OR (HL)
+            0xB7 => Inst::OR(Src8::A, 4),                       // OR A
+            0xB8 => Inst::CP(Src8::B, 4),                       // CP B
+            0xB9 => Inst::CP(Src8::C, 4),                       // CP C
+            0xBA => Inst::CP(Src8::D, 4),                       // CP D
+            0xBB => Inst::CP(Src8::E, 4),                       // CP E
+            0xBC => Inst::CP(Src8::H, 4),                       // CP H
+            0xBD => Inst::CP(Src8::L, 4),                       // CP L
+            0xBE => Inst::CP(Src8::HLContents, 8),              // CP (HL)
+            0xBF => Inst::CP(Src8::A, 4),                       // CP A
+            0xC0 => Inst::RETC(Flags::Z, false, 8),             // RET NZ
+            0xC1 => Inst::POP(Dst16::BC, 12),                   // POP BC
+            0xC2 => Inst::JPC(Src16::NN, Flags::Z, false, 12),  // JP NZ,a16
+            0xC3 => Inst::JP(Src16::NN, 12),                    // JP a16
+            0xC4 => Inst::CALL(Src16::NN, Flags::Z, false, 12), // CALL NZ,a16
+            0xC5 => Inst::PUSH(Src16::BC, 16),                  // PUSH BC
+            0xC6 => Inst::ADD(Src8::N, 8),                      // ADD A,d8
+            0xC7 => Inst::RST(0x00, 32),                        // RST 00H
+            0xC8 => Inst::RETC(Flags::Z, true, 8),              // RET Z
+            0xC9 => Inst::RET(8),                               // RET
+            0xCA => todo!("{:#04x}", opcode),                   // JP Z,a16
+            0xCB => self.decode_cb(),                           // CB prefix
+            0xCC => todo!("{:#04x}", opcode),                   // CALL Z,a16
+            0xCD => todo!("{:#04x}", opcode),                   // CALL a16
+            0xCE => todo!("{:#04x}", opcode),                   // ADC A,d8
+            0xCF => Inst::RST(0x08, 32),                        // RST 08H
+            0xD0 => todo!("{:#04x}", opcode),                   // RET NC
+            0xD1 => Inst::POP(Dst16::DE, 12),                   // POP DE
+            0xD2 => todo!("{:#04x}", opcode),                   // JP NC,a16
+            0xD3 => panic!("0xD3 is not a valid opcode"),       // -
+            0xD4 => todo!("{:#04x}", opcode),                   // CALL NC,a16
+            0xD5 => todo!("{:#04x}", opcode),                   // PUSH DE
+            0xD6 => todo!("{:#04x}", opcode),                   // SUB d8
+            0xD7 => Inst::RST(0x10, 32),                        // RST 10H
+            0xD8 => todo!("{:#04x}", opcode),                   // RET C
+            0xD9 => Inst::RETI(16),                             // RETI
+            0xDA => todo!("{:#04x}", opcode),                   // JP C,a16
+            0xDB => panic!("0xDB is not a valid opcode"),       // -
+            0xDC => todo!("{:#04x}", opcode),                   // CALL C,a16
+            0xDD => panic!("0xDD is not a valid opcode"),       // -
+            0xDE => todo!("{:#04x}", opcode),                   // SBC A,d8
+            0xDF => Inst::RST(0x18, 32),                        // RST 18H
+            0xE0 => todo!("{:#04x}", opcode),                   // LDH (a8),A
+            0xE1 => Inst::POP(Dst16::HL, 12),                   // POP HL
+            0xE2 => todo!("{:#04x}", opcode),                   // LD (C),A
+            0xE3 => panic!("0xE3 is not a valid opcode"),       // -
+            0xE4 => panic!("0xE4 is not a valid opcode"),       // -
+            0xE5 => todo!("{:#04x}", opcode),                   // PUSH HL
+            0xE6 => todo!("{:#04x}", opcode),                   // AND d8
+            0xE7 => Inst::RST(0x20, 32),                        // RST 20H
+            0xE8 => todo!("{:#04x}", opcode),                   // ADD SP,r8
+            0xE9 => todo!("{:#04x}", opcode),                   // JP (HL)
+            0xEA => todo!("{:#04x}", opcode),                   // LD (a16),A
+            0xEB => panic!("0xEB is not a valid opcode"),       // -
+            0xEC => panic!("0xEC is not a valid opcode"),       // -
+            0xED => panic!("0xED is not a valid opcode"),       // -
+            0xEE => Inst::XOR(Src8::N, 8),                      // XOR d8
+            0xEF => Inst::RST(0x28, 32),                        // RST 28H
+            0xF0 => todo!("{:#04x}", opcode),                   // LDH A,(a8)
+            0xF1 => Inst::POP(Dst16::AF, 12),                   // POP AF
+            0xF2 => todo!("{:#04x}", opcode),                   // LD A,(C)
+            0xF3 => Inst::DI(4),                                // DI
+            0xF4 => panic!("0xF4 is not a valid opcode"),       // -
+            0xF5 => todo!("{:#04x}", opcode),                   // PUSH AF
+            0xF6 => Inst::OR(Src8::N, 8),                       // OR d8
+            0xF7 => Inst::RST(0x30, 32),                        // RST 30H
+            0xF8 => todo!("{:#04x}", opcode),                   // LD HL,SP+r8
+            0xF9 => todo!("{:#04x}", opcode),                   // LD SP,HL
+            0xFA => todo!("{:#04x}", opcode),                   // LD A,(a16)
+            0xFB => Inst::EI(4),                                // EI
+            0xFC => panic!("0xFC is not a valid opcode"),       // -
+            0xFD => panic!("0xFD is not a valid opcode"),       // -
+            0xFE => Inst::CP(Src8::N, 8),                       // CP d8
+            0xFF => Inst::RST(0x38, 32),                        // RST 38H
         }
     }
 
+    fn decode_cb(&mut self) -> Inst {
+        let opcode = self.fetch_byte();
+        match opcode {
+            0x00 => Inst::RLC(Dst8::B, 8),            // RLC B
+            0x01 => Inst::RLC(Dst8::C, 8),            // RLC C
+            0x02 => Inst::RLC(Dst8::D, 8),            // RLC D
+            0x03 => Inst::RLC(Dst8::E, 8),            // RLC E
+            0x04 => Inst::RLC(Dst8::H, 8),            // RLC H
+            0x05 => Inst::RLC(Dst8::L, 8),            // RLC L
+            0x06 => Inst::RLC(Dst8::HLContents, 16),  // RLC (HL)
+            0x07 => Inst::RLC(Dst8::A, 8),            // RLC A
+            0x08 => Inst::RRC(Dst8::B, 8),            // RRC B
+            0x09 => Inst::RRC(Dst8::C, 8),            // RRC C
+            0x0A => Inst::RRC(Dst8::D, 8),            // RRC D
+            0x0B => Inst::RRC(Dst8::E, 8),            // RRC E
+            0x0C => Inst::RRC(Dst8::H, 8),            // RRC H
+            0x0D => Inst::RRC(Dst8::L, 8),            // RRC L
+            0x0E => Inst::RRC(Dst8::HLContents, 16),  // RRC (HL)
+            0x0F => Inst::RRC(Dst8::A, 8),            // RRC A
+            0x10 => Inst::RL(Dst8::B, 8),             // RL B
+            0x11 => Inst::RL(Dst8::C, 8),             // RL C
+            0x12 => Inst::RL(Dst8::D, 8),             // RL D
+            0x13 => Inst::RL(Dst8::E, 8),             // RL E
+            0x14 => Inst::RL(Dst8::H, 8),             // RL H
+            0x15 => Inst::RL(Dst8::L, 8),             // RL L
+            0x16 => Inst::RL(Dst8::HLContents, 16),   // RL (HL)
+            0x17 => Inst::RL(Dst8::A, 8),             // RL A
+            0x18 => Inst::RR(Dst8::B, 8),             // RR B
+            0x19 => Inst::RR(Dst8::C, 8),             // RR C
+            0x1A => Inst::RR(Dst8::D, 8),             // RR D
+            0x1B => Inst::RR(Dst8::E, 8),             // RR E
+            0x1C => Inst::RR(Dst8::H, 8),             // RR H
+            0x1D => Inst::RR(Dst8::L, 8),             // RR L
+            0x1E => Inst::RR(Dst8::HLContents, 16),   // RR (HL)
+            0x1F => Inst::RR(Dst8::A, 8),             // RR A
+            0x20 => Inst::SLA(Dst8::B, 8),            // SLA B
+            0x21 => Inst::SLA(Dst8::C, 8),            // SLA C
+            0x22 => Inst::SLA(Dst8::D, 8),            // SLA D
+            0x23 => Inst::SLA(Dst8::E, 8),            // SLA E
+            0x24 => Inst::SLA(Dst8::H, 8),            // SLA H
+            0x25 => Inst::SLA(Dst8::L, 8),            // SLA L
+            0x26 => Inst::SLA(Dst8::HLContents, 16),  // SLA (HL)
+            0x27 => Inst::SLA(Dst8::A, 8),            // SLA A
+            0x28 => Inst::SRA(Dst8::B, 8),            // SRA B
+            0x29 => Inst::SRA(Dst8::C, 8),            // SRA C
+            0x2A => Inst::SRA(Dst8::D, 8),            // SRA D
+            0x2B => Inst::SRA(Dst8::E, 8),            // SRA E
+            0x2C => Inst::SRA(Dst8::H, 8),            // SRA H
+            0x2D => Inst::SRA(Dst8::L, 8),            // SRA L
+            0x2E => Inst::SRA(Dst8::HLContents, 16),  // SRA (HL)
+            0x2F => Inst::SRA(Dst8::A, 8),            // SRA A
+            0x30 => Inst::SWAP(Dst8::B, 8),           // SWAP B
+            0x31 => Inst::SWAP(Dst8::C, 8),           // SWAP C
+            0x32 => Inst::SWAP(Dst8::D, 8),           // SWAP D
+            0x33 => Inst::SWAP(Dst8::E, 8),           // SWAP E
+            0x34 => Inst::SWAP(Dst8::H, 8),           // SWAP H
+            0x35 => Inst::SWAP(Dst8::L, 8),           // SWAP L
+            0x36 => Inst::SWAP(Dst8::HLContents, 16), // SWAP (HL)
+            0x37 => Inst::SWAP(Dst8::A, 8),           // SWAP A
+            0x38 => Inst::SRL(Dst8::B, 8),            // SRL B
+            0x39 => Inst::SRL(Dst8::C, 8),            // SRL C
+            0x3A => Inst::SRL(Dst8::D, 8),            // SRL D
+            0x3B => Inst::SRL(Dst8::E, 8),            // SRL E
+            0x3C => Inst::SRL(Dst8::H, 8),            // SRL H
+            0x3D => Inst::SRL(Dst8::L, 8),            // SRL L
+            0x3E => Inst::SRL(Dst8::HLContents, 16),  // SRL (HL)
+            0x3F => Inst::SRL(Dst8::A, 8),            // SRL A
+            0x40 => {
+                let b = self.fetch_byte();
+                Inst::BIT(b, Dst8::B, 8) // BIT b, B
+            }
+            0x41 => {
+                let b = self.fetch_byte();
+                Inst::BIT(b, Dst8::C, 8) // BIT b, C
+            }
+            0x42 => {
+                let b = self.fetch_byte();
+                Inst::BIT(b, Dst8::D, 8) // BIT b, D
+            }
+            0x43 => {
+                let b = self.fetch_byte();
+                Inst::BIT(b, Dst8::E, 8) // BIT b, E
+            }
+            0x44 => {
+                let b = self.fetch_byte();
+                Inst::BIT(b, Dst8::H, 8) // BIT b, H
+            }
+            0x45 => {
+                let b = self.fetch_byte();
+                Inst::BIT(b, Dst8::L, 8) // BIT b, L
+            }
+            0x46 => {
+                let b = self.fetch_byte();
+                Inst::BIT(b, Dst8::HLContents, 16) // BIT b, (HL)
+            }
+            0x47 => {
+                let b = self.fetch_byte();
+                Inst::BIT(b, Dst8::A, 8) // BIT b, A
+            }
+            0x48 => Inst::BIT(1, Dst8::B, 8),           // BIT 1, B
+            0x49 => Inst::BIT(1, Dst8::C, 8),           // BIT 1, C
+            0x4A => Inst::BIT(1, Dst8::D, 8),           // BIT 1, D
+            0x4B => Inst::BIT(1, Dst8::E, 8),           // BIT 1, E
+            0x4C => Inst::BIT(1, Dst8::H, 8),           // BIT 1, H
+            0x4D => Inst::BIT(1, Dst8::L, 8),           // BIT 1, L
+            0x4E => Inst::BIT(1, Dst8::HLContents, 16), // BIT 1, (HL)
+            0x4F => Inst::BIT(1, Dst8::A, 8),           // BIT 1, A
+            0x50 => Inst::BIT(2, Dst8::B, 8),           // BIT 2, B
+            0x51 => Inst::BIT(2, Dst8::C, 8),           // BIT 2, C
+            0x52 => Inst::BIT(2, Dst8::D, 8),           // BIT 2, D
+            0x53 => Inst::BIT(2, Dst8::E, 8),           // BIT 2, E
+            0x54 => Inst::BIT(2, Dst8::H, 8),           // BIT 2, H
+            0x55 => Inst::BIT(2, Dst8::L, 8),           // BIT 2, L
+            0x56 => Inst::BIT(2, Dst8::HLContents, 16), // BIT 2, (HL)
+            0x57 => Inst::BIT(2, Dst8::A, 8),           // BIT 2, A
+            0x58 => Inst::BIT(3, Dst8::B, 8),           // BIT 3, B
+            0x59 => Inst::BIT(3, Dst8::C, 8),           // BIT 3, C
+            0x5A => Inst::BIT(3, Dst8::D, 8),           // BIT 3, D
+            0x5B => Inst::BIT(3, Dst8::E, 8),           // BIT 3, E
+            0x5C => Inst::BIT(3, Dst8::H, 8),           // BIT 3, H
+            0x5D => Inst::BIT(3, Dst8::L, 8),           // BIT 3, L
+            0x5E => Inst::BIT(3, Dst8::HLContents, 16), // BIT 3, (HL)
+            0x5F => Inst::BIT(3, Dst8::A, 8),           // BIT 3, A
+            0x60 => Inst::BIT(4, Dst8::B, 8),           // BIT 4, B
+            0x61 => Inst::BIT(4, Dst8::C, 8),           // BIT 4, C
+            0x62 => Inst::BIT(4, Dst8::D, 8),           // BIT 4, D
+            0x63 => Inst::BIT(4, Dst8::E, 8),           // BIT 4, E
+            0x64 => Inst::BIT(4, Dst8::H, 8),           // BIT 4, H
+            0x65 => Inst::BIT(4, Dst8::L, 8),           // BIT 4, L
+            0x66 => Inst::BIT(4, Dst8::HLContents, 16), // BIT 4, (HL)
+            0x67 => Inst::BIT(4, Dst8::A, 8),           // BIT 4, A
+            0x68 => Inst::BIT(5, Dst8::B, 8),           // BIT 5, B
+            0x69 => Inst::BIT(5, Dst8::C, 8),           // BIT 5, C
+            0x6A => Inst::BIT(5, Dst8::D, 8),           // BIT 5, D
+            0x6B => Inst::BIT(5, Dst8::E, 8),           // BIT 5, E
+            0x6C => Inst::BIT(5, Dst8::H, 8),           // BIT 5, H
+            0x6D => Inst::BIT(5, Dst8::L, 8),           // BIT 5, L
+            0x6E => Inst::BIT(5, Dst8::HLContents, 16), // BIT 5, (HL)
+            0x6F => Inst::BIT(5, Dst8::A, 8),           // BIT 5, A
+            0x70 => Inst::BIT(6, Dst8::B, 8),           // BIT 6, B
+            0x71 => Inst::BIT(6, Dst8::C, 8),           // BIT 6, C
+            0x72 => Inst::BIT(6, Dst8::D, 8),           // BIT 6, D
+            0x73 => Inst::BIT(6, Dst8::E, 8),           // BIT 6, E
+            0x74 => Inst::BIT(6, Dst8::H, 8),           // BIT 6, H
+            0x75 => Inst::BIT(6, Dst8::L, 8),           // BIT 6, L
+            0x76 => Inst::BIT(6, Dst8::HLContents, 16), // BIT 6, (HL)
+            0x77 => Inst::BIT(6, Dst8::A, 8),           // BIT 6, A
+            0x78 => Inst::BIT(7, Dst8::B, 8),           // BIT 7, B
+            0x79 => Inst::BIT(7, Dst8::C, 8),           // BIT 7, C
+            0x7A => Inst::BIT(7, Dst8::D, 8),           // BIT 7, D
+            0x7B => Inst::BIT(7, Dst8::E, 8),           // BIT 7, E
+            0x7C => Inst::BIT(7, Dst8::H, 8),           // BIT 7, H
+            0x7D => Inst::BIT(7, Dst8::L, 8),           // BIT 7, L
+            0x7E => Inst::BIT(7, Dst8::HLContents, 16), // BIT 7, (HL)
+            0x7F => Inst::BIT(7, Dst8::A, 8),           // BIT 7, A
+            0x80 => Inst::RES(0, Dst8::B, 8),           // RES 0, B
+            0x81 => Inst::RES(0, Dst8::C, 8),           // RES 0, C
+            0x82 => Inst::RES(0, Dst8::D, 8),           // RES 0, D
+            0x83 => Inst::RES(0, Dst8::E, 8),           // RES 0, E
+            0x84 => Inst::RES(0, Dst8::H, 8),           // RES 0, H
+            0x85 => Inst::RES(0, Dst8::L, 8),           // RES 0, L
+            0x86 => Inst::RES(0, Dst8::HLContents, 16), // RES 0, (HL)
+            0x87 => Inst::RES(0, Dst8::A, 8),           // RES 0, A
+            0x88 => Inst::RES(1, Dst8::B, 8),           // RES 1, B
+            0x89 => Inst::RES(1, Dst8::C, 8),           // RES 1, C
+            0x8A => Inst::RES(1, Dst8::D, 8),           // RES 1, D
+            0x8B => Inst::RES(1, Dst8::E, 8),           // RES 1, E
+            0x8C => Inst::RES(1, Dst8::H, 8),           // RES 1, H
+            0x8D => Inst::RES(1, Dst8::L, 8),           // RES 1, L
+            0x8E => Inst::RES(1, Dst8::HLContents, 16), // RES 1, (HL)
+            0x8F => Inst::RES(1, Dst8::A, 8),           // RES 1, A
+            0x90 => Inst::RES(2, Dst8::B, 8),           // RES 2, B
+            0x91 => Inst::RES(2, Dst8::C, 8),           // RES 2, C
+            0x92 => Inst::RES(2, Dst8::D, 8),           // RES 2, D
+            0x93 => Inst::RES(2, Dst8::E, 8),           // RES 2, E
+            0x94 => Inst::RES(2, Dst8::H, 8),           // RES 2, H
+            0x95 => Inst::RES(2, Dst8::L, 8),           // RES 2, L
+            0x96 => Inst::RES(2, Dst8::HLContents, 16), // RES 2, (HL)
+            0x97 => Inst::RES(2, Dst8::A, 8),           // RES 2, A
+            0x98 => Inst::RES(3, Dst8::B, 8),           // RES 3, B
+            0x99 => Inst::RES(3, Dst8::C, 8),           // RES 3, C
+            0x9A => Inst::RES(3, Dst8::D, 8),           // RES 3, D
+            0x9B => Inst::RES(3, Dst8::E, 8),           // RES 3, E
+            0x9C => Inst::RES(3, Dst8::H, 8),           // RES 3, H
+            0x9D => Inst::RES(3, Dst8::L, 8),           // RES 3, L
+            0x9E => Inst::RES(3, Dst8::HLContents, 16), // RES 3, (HL)
+            0x9F => Inst::RES(3, Dst8::A, 8),           // RES 3, A
+            0xA0 => Inst::RES(4, Dst8::B, 8),           // RES 4, B
+            0xA1 => Inst::RES(4, Dst8::C, 8),           // RES 4, C
+            0xA2 => Inst::RES(4, Dst8::D, 8),           // RES 4, D
+            0xA3 => Inst::RES(4, Dst8::E, 8),           // RES 4, E
+            0xA4 => Inst::RES(4, Dst8::H, 8),           // RES 4, H
+            0xA5 => Inst::RES(4, Dst8::L, 8),           // RES 4, L
+            0xA6 => Inst::RES(4, Dst8::HLContents, 16), // RES 4, (HL)
+            0xA7 => Inst::RES(4, Dst8::A, 8),           // RES 4, A
+            0xA8 => Inst::RES(5, Dst8::B, 8),           // RES 5, B
+            0xA9 => Inst::RES(5, Dst8::C, 8),           // RES 5, C
+            0xAA => Inst::RES(5, Dst8::D, 8),           // RES 5, D
+            0xAB => Inst::RES(5, Dst8::E, 8),           // RES 5, E
+            0xAC => Inst::RES(5, Dst8::H, 8),           // RES 5, H
+            0xAD => Inst::RES(5, Dst8::L, 8),           // RES 5, L
+            0xAE => Inst::RES(5, Dst8::HLContents, 16), // RES 5, (HL)
+            0xAF => Inst::RES(5, Dst8::A, 8),           // RES 5, A
+            0xB0 => Inst::RES(6, Dst8::B, 8),           // RES 6, B
+            0xB1 => Inst::RES(6, Dst8::C, 8),           // RES 6, C
+            0xB2 => Inst::RES(6, Dst8::D, 8),           // RES 6, D
+            0xB3 => Inst::RES(6, Dst8::E, 8),           // RES 6, E
+            0xB4 => Inst::RES(6, Dst8::H, 8),           // RES 6, H
+            0xB5 => Inst::RES(6, Dst8::L, 8),           // RES 6, L
+            0xB6 => Inst::RES(6, Dst8::HLContents, 16), // RES 6, (HL)
+            0xB7 => Inst::RES(6, Dst8::A, 8),           // RES 6, A
+            0xB8 => Inst::RES(7, Dst8::B, 8),           // RES 7, B
+            0xB9 => Inst::RES(7, Dst8::C, 8),           // RES 7, C
+            0xBA => Inst::RES(7, Dst8::D, 8),           // RES 7, D
+            0xBB => Inst::RES(7, Dst8::E, 8),           // RES 7, E
+            0xBC => Inst::RES(7, Dst8::H, 8),           // RES 7, H
+            0xBD => Inst::RES(7, Dst8::L, 8),           // RES 7, L
+            0xBE => Inst::RES(7, Dst8::HLContents, 16), // RES 7, (HL)
+            0xBF => Inst::RES(7, Dst8::A, 8),           // RES 7, A
+            0xC0 => Inst::SETN(Dst8::B, 8),             // SET b, B
+            0xC1 => Inst::SETN(Dst8::C, 8),             // SET b, C
+            0xC2 => Inst::SETN(Dst8::D, 8),             // SET b, D
+            0xC3 => Inst::SETN(Dst8::E, 8),             // SET b, E
+            0xC4 => Inst::SETN(Dst8::H, 8),             // SET b, H
+            0xC5 => Inst::SETN(Dst8::L, 8),             // SET b, L
+            0xC6 => Inst::SETN(Dst8::HLContents, 16),   // SET b,(HL)
+            0xC7 => Inst::SETN(Dst8::A, 8),             // SET b,A
+            0xC8 => Inst::SET(1, Dst8::B, 8),           // SET 1, B
+            0xC9 => Inst::SET(1, Dst8::C, 8),           // SET 1, C
+            0xCA => Inst::SET(1, Dst8::D, 8),           // SET 1, D
+            0xCB => Inst::SET(1, Dst8::E, 8),           // SET 1, E
+            0xCC => Inst::SET(1, Dst8::H, 8),           // SET 1, H
+            0xCD => Inst::SET(1, Dst8::L, 8),           // SET 1, L
+            0xCE => Inst::SET(1, Dst8::HLContents, 16), // SET 1, (HL)
+            0xCF => Inst::SET(1, Dst8::A, 8),           // SET 1, A
+            0xD0 => Inst::SET(2, Dst8::B, 8),           // SET 2, B
+            0xD1 => Inst::SET(2, Dst8::C, 8),           // SET 2, C
+            0xD2 => Inst::SET(2, Dst8::D, 8),           // SET 2, D
+            0xD3 => Inst::SET(2, Dst8::E, 8),           // SET 2, E
+            0xD4 => Inst::SET(2, Dst8::H, 8),           // SET 2, H
+            0xD5 => Inst::SET(2, Dst8::L, 8),           // SET 2, L
+            0xD6 => Inst::SET(2, Dst8::HLContents, 16), // SET 2, (HL)
+            0xD7 => Inst::SET(2, Dst8::A, 8),           // SET 2, A
+            0xD8 => Inst::SET(3, Dst8::B, 8),           // SET 3, B
+            0xD9 => Inst::SET(3, Dst8::C, 8),           // SET 3, C
+            0xDA => Inst::SET(3, Dst8::D, 8),           // SET 3, D
+            0xDB => Inst::SET(3, Dst8::E, 8),           // SET 3, E
+            0xDC => Inst::SET(3, Dst8::H, 8),           // SET 3, H
+            0xDD => Inst::SET(3, Dst8::L, 8),           // SET 3, L
+            0xDE => Inst::SET(3, Dst8::HLContents, 16), // SET 3, (HL)
+            0xDF => Inst::SET(3, Dst8::A, 8),           // SET 3, A
+            0xE0 => Inst::SET(4, Dst8::B, 8),           // SET 4, B
+            0xE1 => Inst::SET(4, Dst8::C, 8),           // SET 4, C
+            0xE2 => Inst::SET(4, Dst8::D, 8),           // SET 4, D
+            0xE3 => Inst::SET(4, Dst8::E, 8),           // SET 4, E
+            0xE4 => Inst::SET(4, Dst8::H, 8),           // SET 4, H
+            0xE5 => Inst::SET(4, Dst8::L, 8),           // SET 4, L
+            0xE6 => Inst::SET(4, Dst8::HLContents, 16), // SET 4, (HL)
+            0xE7 => Inst::SET(4, Dst8::A, 8),           // SET 4, A
+            0xE8 => Inst::SET(5, Dst8::B, 8),           // SET 5, B
+            0xE9 => Inst::SET(5, Dst8::C, 8),           // SET 5, C
+            0xEA => Inst::SET(5, Dst8::D, 8),           // SET 5, D
+            0xEB => Inst::SET(5, Dst8::E, 8),           // SET 5, E
+            0xEC => Inst::SET(5, Dst8::H, 8),           // SET 5, H
+            0xED => Inst::SET(5, Dst8::L, 8),           // SET 5, L
+            0xEE => Inst::SET(5, Dst8::HLContents, 16), // SET 5, (HL)
+            0xEF => Inst::SET(5, Dst8::A, 8),           // SET 5, A
+            0xF0 => Inst::SET(6, Dst8::B, 8),           // SET 6, B
+            0xF1 => Inst::SET(6, Dst8::C, 8),           // SET 6, C
+            0xF2 => Inst::SET(6, Dst8::D, 8),           // SET 6, D
+            0xF3 => Inst::SET(6, Dst8::E, 8),           // SET 6, E
+            0xF4 => Inst::SET(6, Dst8::H, 8),           // SET 6, H
+            0xF5 => Inst::SET(6, Dst8::L, 8),           // SET 6, L
+            0xF6 => Inst::SET(6, Dst8::HLContents, 16), // SET 6, (HL)
+            0xF7 => Inst::SET(6, Dst8::A, 8),           // SET 6, A
+            0xF8 => Inst::SET(7, Dst8::B, 8),           // SET 7, B
+            0xF9 => Inst::SET(7, Dst8::C, 8),           // SET 7, C
+            0xFA => Inst::SET(7, Dst8::D, 8),           // SET 7, D
+            0xFB => Inst::SET(7, Dst8::E, 8),           // SET 7, E
+            0xFC => Inst::SET(7, Dst8::H, 8),           // SET 7, H
+            0xFD => Inst::SET(7, Dst8::L, 8),           // SET 7, L
+            0xFE => Inst::SET(7, Dst8::HLContents, 16), // SET 7, (HL)
+            0xFF => Inst::SET(7, Dst8::A, 8),           // SET 7, A
+        }
+    }
+}
+
+impl CPU {
     // Returns cycles elapsed
     fn call(&mut self, opcode: u8) -> u32 {
         match opcode {
@@ -2173,316 +2340,6 @@ impl CPU {
                 panic!("{opcode} is not a valid opcode")
             }
             238 => todo!(),
-        }
-    }
-
-    fn decode_cb(&mut self) -> Instruction {
-        let opcode = self.fetch_byte();
-        match opcode {
-            0x00 => Instruction::RLC(Dst8::B, 8),            // RLC B
-            0x01 => Instruction::RLC(Dst8::C, 8),            // RLC C
-            0x02 => Instruction::RLC(Dst8::D, 8),            // RLC D
-            0x03 => Instruction::RLC(Dst8::E, 8),            // RLC E
-            0x04 => Instruction::RLC(Dst8::H, 8),            // RLC H
-            0x05 => Instruction::RLC(Dst8::L, 8),            // RLC L
-            0x06 => Instruction::RLC(Dst8::HLContents, 16),  // RLC (HL)
-            0x07 => Instruction::RLC(Dst8::A, 8),            // RLC A
-            0x08 => Instruction::RRC(Dst8::B, 8),            // RRC B
-            0x09 => Instruction::RRC(Dst8::C, 8),            // RRC C
-            0x0A => Instruction::RRC(Dst8::D, 8),            // RRC D
-            0x0B => Instruction::RRC(Dst8::E, 8),            // RRC E
-            0x0C => Instruction::RRC(Dst8::H, 8),            // RRC H
-            0x0D => Instruction::RRC(Dst8::L, 8),            // RRC L
-            0x0E => Instruction::RRC(Dst8::HLContents, 16),  // RRC (HL)
-            0x0F => Instruction::RRC(Dst8::A, 8),            // RRC A
-            0x10 => Instruction::RL(Dst8::B, 8),             // RL B
-            0x11 => Instruction::RL(Dst8::C, 8),             // RL C
-            0x12 => Instruction::RL(Dst8::D, 8),             // RL D
-            0x13 => Instruction::RL(Dst8::E, 8),             // RL E
-            0x14 => Instruction::RL(Dst8::H, 8),             // RL H
-            0x15 => Instruction::RL(Dst8::L, 8),             // RL L
-            0x16 => Instruction::RL(Dst8::HLContents, 16),   // RL (HL)
-            0x17 => Instruction::RL(Dst8::A, 8),             // RL A
-            0x18 => Instruction::RR(Dst8::B, 8),             // RR B
-            0x19 => Instruction::RR(Dst8::C, 8),             // RR C
-            0x1A => Instruction::RR(Dst8::D, 8),             // RR D
-            0x1B => Instruction::RR(Dst8::E, 8),             // RR E
-            0x1C => Instruction::RR(Dst8::H, 8),             // RR H
-            0x1D => Instruction::RR(Dst8::L, 8),             // RR L
-            0x1E => Instruction::RR(Dst8::HLContents, 16),   // RR (HL)
-            0x1F => Instruction::RR(Dst8::A, 8),             // RR A
-            0x20 => Instruction::SLA(Dst8::B, 8),            // SLA B
-            0x21 => Instruction::SLA(Dst8::C, 8),            // SLA C
-            0x22 => Instruction::SLA(Dst8::D, 8),            // SLA D
-            0x23 => Instruction::SLA(Dst8::E, 8),            // SLA E
-            0x24 => Instruction::SLA(Dst8::H, 8),            // SLA H
-            0x25 => Instruction::SLA(Dst8::L, 8),            // SLA L
-            0x26 => Instruction::SLA(Dst8::HLContents, 16),  // SLA (HL)
-            0x27 => Instruction::SLA(Dst8::A, 8),            // SLA A
-            0x28 => Instruction::SRA(Dst8::B, 8),            // SRA B
-            0x29 => Instruction::SRA(Dst8::C, 8),            // SRA C
-            0x2A => Instruction::SRA(Dst8::D, 8),            // SRA D
-            0x2B => Instruction::SRA(Dst8::E, 8),            // SRA E
-            0x2C => Instruction::SRA(Dst8::H, 8),            // SRA H
-            0x2D => Instruction::SRA(Dst8::L, 8),            // SRA L
-            0x2E => Instruction::SRA(Dst8::HLContents, 16),  // SRA (HL)
-            0x2F => Instruction::SRA(Dst8::A, 8),            // SRA A
-            0x30 => Instruction::SWAP(Dst8::B, 8),           // SWAP B
-            0x31 => Instruction::SWAP(Dst8::C, 8),           // SWAP C
-            0x32 => Instruction::SWAP(Dst8::D, 8),           // SWAP D
-            0x33 => Instruction::SWAP(Dst8::E, 8),           // SWAP E
-            0x34 => Instruction::SWAP(Dst8::H, 8),           // SWAP H
-            0x35 => Instruction::SWAP(Dst8::L, 8),           // SWAP L
-            0x36 => Instruction::SWAP(Dst8::HLContents, 16), // SWAP (HL)
-            0x37 => Instruction::SWAP(Dst8::A, 8),           // SWAP A
-            0x38 => Instruction::SRL(Dst8::B, 8),            // SRL B
-            0x39 => Instruction::SRL(Dst8::C, 8),            // SRL C
-            0x3A => Instruction::SRL(Dst8::D, 8),            // SRL D
-            0x3B => Instruction::SRL(Dst8::E, 8),            // SRL E
-            0x3C => Instruction::SRL(Dst8::H, 8),            // SRL H
-            0x3D => Instruction::SRL(Dst8::L, 8),            // SRL L
-            0x3E => Instruction::SRL(Dst8::HLContents, 16),  // SRL (HL)
-            0x3F => Instruction::SRL(Dst8::A, 8),            // SRL A
-            0x40 => {
-                let b = self.fetch_byte();
-                Instruction::BIT(b, Dst8::B, 8) // BIT b, B
-            }
-            0x41 => {
-                let b = self.fetch_byte();
-                Instruction::BIT(b, Dst8::C, 8) // BIT b, C
-            }
-            0x42 => {
-                let b = self.fetch_byte();
-                Instruction::BIT(b, Dst8::D, 8) // BIT b, D
-            }
-            0x43 => {
-                let b = self.fetch_byte();
-                Instruction::BIT(b, Dst8::E, 8) // BIT b, E
-            }
-            0x44 => {
-                let b = self.fetch_byte();
-                Instruction::BIT(b, Dst8::H, 8) // BIT b, H
-            }
-            0x45 => {
-                let b = self.fetch_byte();
-                Instruction::BIT(b, Dst8::L, 8) // BIT b, L
-            }
-            0x46 => {
-                let b = self.fetch_byte();
-                Instruction::BIT(b, Dst8::HLContents, 16) // BIT b, (HL)
-            }
-            0x47 => {
-                let b = self.fetch_byte();
-                Instruction::BIT(b, Dst8::A, 8) // BIT b, A
-            }
-            0x48 => Instruction::BIT(1, Dst8::B, 8), // BIT 1, B
-            0x49 => Instruction::BIT(1, Dst8::C, 8), // BIT 1, C
-            0x4A => Instruction::BIT(1, Dst8::D, 8), // BIT 1, D
-            0x4B => Instruction::BIT(1, Dst8::E, 8), // BIT 1, E
-            0x4C => Instruction::BIT(1, Dst8::H, 8), // BIT 1, H
-            0x4D => Instruction::BIT(1, Dst8::L, 8), // BIT 1, L
-            0x4E => Instruction::BIT(1, Dst8::HLContents, 16), // BIT 1, (HL)
-            0x4F => Instruction::BIT(1, Dst8::A, 8), // BIT 1, A
-            0x50 => Instruction::BIT(2, Dst8::B, 8), // BIT 2, B
-            0x51 => Instruction::BIT(2, Dst8::C, 8), // BIT 2, C
-            0x52 => Instruction::BIT(2, Dst8::D, 8), // BIT 2, D
-            0x53 => Instruction::BIT(2, Dst8::E, 8), // BIT 2, E
-            0x54 => Instruction::BIT(2, Dst8::H, 8), // BIT 2, H
-            0x55 => Instruction::BIT(2, Dst8::L, 8), // BIT 2, L
-            0x56 => Instruction::BIT(2, Dst8::HLContents, 16), // BIT 2, (HL)
-            0x57 => Instruction::BIT(2, Dst8::A, 8), // BIT 2, A
-            0x58 => Instruction::BIT(3, Dst8::B, 8), // BIT 3, B
-            0x59 => Instruction::BIT(3, Dst8::C, 8), // BIT 3, C
-            0x5A => Instruction::BIT(3, Dst8::D, 8), // BIT 3, D
-            0x5B => Instruction::BIT(3, Dst8::E, 8), // BIT 3, E
-            0x5C => Instruction::BIT(3, Dst8::H, 8), // BIT 3, H
-            0x5D => Instruction::BIT(3, Dst8::L, 8), // BIT 3, L
-            0x5E => Instruction::BIT(3, Dst8::HLContents, 16), // BIT 3, (HL)
-            0x5F => Instruction::BIT(3, Dst8::A, 8), // BIT 3, A
-            0x60 => Instruction::BIT(4, Dst8::B, 8), // BIT 4, B
-            0x61 => Instruction::BIT(4, Dst8::C, 8), // BIT 4, C
-            0x62 => Instruction::BIT(4, Dst8::D, 8), // BIT 4, D
-            0x63 => Instruction::BIT(4, Dst8::E, 8), // BIT 4, E
-            0x64 => Instruction::BIT(4, Dst8::H, 8), // BIT 4, H
-            0x65 => Instruction::BIT(4, Dst8::L, 8), // BIT 4, L
-            0x66 => Instruction::BIT(4, Dst8::HLContents, 16), // BIT 4, (HL)
-            0x67 => Instruction::BIT(4, Dst8::A, 8), // BIT 4, A
-            0x68 => Instruction::BIT(5, Dst8::B, 8), // BIT 5, B
-            0x69 => Instruction::BIT(5, Dst8::C, 8), // BIT 5, C
-            0x6A => Instruction::BIT(5, Dst8::D, 8), // BIT 5, D
-            0x6B => Instruction::BIT(5, Dst8::E, 8), // BIT 5, E
-            0x6C => Instruction::BIT(5, Dst8::H, 8), // BIT 5, H
-            0x6D => Instruction::BIT(5, Dst8::L, 8), // BIT 5, L
-            0x6E => Instruction::BIT(5, Dst8::HLContents, 16), // BIT 5, (HL)
-            0x6F => Instruction::BIT(5, Dst8::A, 8), // BIT 5, A
-            0x70 => Instruction::BIT(6, Dst8::B, 8), // BIT 6, B
-            0x71 => Instruction::BIT(6, Dst8::C, 8), // BIT 6, C
-            0x72 => Instruction::BIT(6, Dst8::D, 8), // BIT 6, D
-            0x73 => Instruction::BIT(6, Dst8::E, 8), // BIT 6, E
-            0x74 => Instruction::BIT(6, Dst8::H, 8), // BIT 6, H
-            0x75 => Instruction::BIT(6, Dst8::L, 8), // BIT 6, L
-            0x76 => Instruction::BIT(6, Dst8::HLContents, 16), // BIT 6, (HL)
-            0x77 => Instruction::BIT(6, Dst8::A, 8), // BIT 6, A
-            0x78 => Instruction::BIT(7, Dst8::B, 8), // BIT 7, B
-            0x79 => Instruction::BIT(7, Dst8::C, 8), // BIT 7, C
-            0x7A => Instruction::BIT(7, Dst8::D, 8), // BIT 7, D
-            0x7B => Instruction::BIT(7, Dst8::E, 8), // BIT 7, E
-            0x7C => Instruction::BIT(7, Dst8::H, 8), // BIT 7, H
-            0x7D => Instruction::BIT(7, Dst8::L, 8), // BIT 7, L
-            0x7E => Instruction::BIT(7, Dst8::HLContents, 16), // BIT 7, (HL)
-            0x7F => Instruction::BIT(7, Dst8::A, 8), // BIT 7, A
-            0x80 => Instruction::RES(0, Dst8::B, 8), // RES 0, B
-            0x81 => Instruction::RES(0, Dst8::C, 8), // RES 0, C
-            0x82 => Instruction::RES(0, Dst8::D, 8), // RES 0, D
-            0x83 => Instruction::RES(0, Dst8::E, 8), // RES 0, E
-            0x84 => Instruction::RES(0, Dst8::H, 8), // RES 0, H
-            0x85 => Instruction::RES(0, Dst8::L, 8), // RES 0, L
-            0x86 => Instruction::RES(0, Dst8::HLContents, 16), // RES 0, (HL)
-            0x87 => Instruction::RES(0, Dst8::A, 8), // RES 0, A
-            0x88 => Instruction::RES(1, Dst8::B, 8), // RES 1, B
-            0x89 => Instruction::RES(1, Dst8::C, 8), // RES 1, C
-            0x8A => Instruction::RES(1, Dst8::D, 8), // RES 1, D
-            0x8B => Instruction::RES(1, Dst8::E, 8), // RES 1, E
-            0x8C => Instruction::RES(1, Dst8::H, 8), // RES 1, H
-            0x8D => Instruction::RES(1, Dst8::L, 8), // RES 1, L
-            0x8E => Instruction::RES(1, Dst8::HLContents, 16), // RES 1, (HL)
-            0x8F => Instruction::RES(1, Dst8::A, 8), // RES 1, A
-            0x90 => Instruction::RES(2, Dst8::B, 8), // RES 2, B
-            0x91 => Instruction::RES(2, Dst8::C, 8), // RES 2, C
-            0x92 => Instruction::RES(2, Dst8::D, 8), // RES 2, D
-            0x93 => Instruction::RES(2, Dst8::E, 8), // RES 2, E
-            0x94 => Instruction::RES(2, Dst8::H, 8), // RES 2, H
-            0x95 => Instruction::RES(2, Dst8::L, 8), // RES 2, L
-            0x96 => Instruction::RES(2, Dst8::HLContents, 16), // RES 2, (HL)
-            0x97 => Instruction::RES(2, Dst8::A, 8), // RES 2, A
-            0x98 => Instruction::RES(3, Dst8::B, 8), // RES 3, B
-            0x99 => Instruction::RES(3, Dst8::C, 8), // RES 3, C
-            0x9A => Instruction::RES(3, Dst8::D, 8), // RES 3, D
-            0x9B => Instruction::RES(3, Dst8::E, 8), // RES 3, E
-            0x9C => Instruction::RES(3, Dst8::H, 8), // RES 3, H
-            0x9D => Instruction::RES(3, Dst8::L, 8), // RES 3, L
-            0x9E => Instruction::RES(3, Dst8::HLContents, 16), // RES 3, (HL)
-            0x9F => Instruction::RES(3, Dst8::A, 8), // RES 3, A
-            0xA0 => Instruction::RES(4, Dst8::B, 8), // RES 4, B
-            0xA1 => Instruction::RES(4, Dst8::C, 8), // RES 4, C
-            0xA2 => Instruction::RES(4, Dst8::D, 8), // RES 4, D
-            0xA3 => Instruction::RES(4, Dst8::E, 8), // RES 4, E
-            0xA4 => Instruction::RES(4, Dst8::H, 8), // RES 4, H
-            0xA5 => Instruction::RES(4, Dst8::L, 8), // RES 4, L
-            0xA6 => Instruction::RES(4, Dst8::HLContents, 16), // RES 4, (HL)
-            0xA7 => Instruction::RES(4, Dst8::A, 8), // RES 4, A
-            0xA8 => Instruction::RES(5, Dst8::B, 8), // RES 5, B
-            0xA9 => Instruction::RES(5, Dst8::C, 8), // RES 5, C
-            0xAA => Instruction::RES(5, Dst8::D, 8), // RES 5, D
-            0xAB => Instruction::RES(5, Dst8::E, 8), // RES 5, E
-            0xAC => Instruction::RES(5, Dst8::H, 8), // RES 5, H
-            0xAD => Instruction::RES(5, Dst8::L, 8), // RES 5, L
-            0xAE => Instruction::RES(5, Dst8::HLContents, 16), // RES 5, (HL)
-            0xAF => Instruction::RES(5, Dst8::A, 8), // RES 5, A
-            0xB0 => Instruction::RES(6, Dst8::B, 8), // RES 6, B
-            0xB1 => Instruction::RES(6, Dst8::C, 8), // RES 6, C
-            0xB2 => Instruction::RES(6, Dst8::D, 8), // RES 6, D
-            0xB3 => Instruction::RES(6, Dst8::E, 8), // RES 6, E
-            0xB4 => Instruction::RES(6, Dst8::H, 8), // RES 6, H
-            0xB5 => Instruction::RES(6, Dst8::L, 8), // RES 6, L
-            0xB6 => Instruction::RES(6, Dst8::HLContents, 16), // RES 6, (HL)
-            0xB7 => Instruction::RES(6, Dst8::A, 8), // RES 6, A
-            0xB8 => Instruction::RES(7, Dst8::B, 8), // RES 7, B
-            0xB9 => Instruction::RES(7, Dst8::C, 8), // RES 7, C
-            0xBA => Instruction::RES(7, Dst8::D, 8), // RES 7, D
-            0xBB => Instruction::RES(7, Dst8::E, 8), // RES 7, E
-            0xBC => Instruction::RES(7, Dst8::H, 8), // RES 7, H
-            0xBD => Instruction::RES(7, Dst8::L, 8), // RES 7, L
-            0xBE => Instruction::RES(7, Dst8::HLContents, 16), // RES 7, (HL)
-            0xBF => Instruction::RES(7, Dst8::A, 8), // RES 7, A
-            0xC0 => {
-                let b = self.fetch_byte();
-                Instruction::SET(b, Dst8::B, 8) // SET b, B
-            }
-            0xC1 => {
-                let b = self.fetch_byte();
-                Instruction::SET(b, Dst8::C, 8) // SET b, C
-            }
-            0xC2 => {
-                let b = self.fetch_byte();
-                Instruction::SET(b, Dst8::D, 8) // SET b, D
-            }
-            0xC3 => {
-                let b = self.fetch_byte();
-                Instruction::SET(b, Dst8::E, 8) // SET b, E
-            }
-            0xC4 => {
-                let b = self.fetch_byte();
-                Instruction::SET(b, Dst8::H, 8) // SET b, H
-            }
-            0xC5 => {
-                let b = self.fetch_byte();
-                Instruction::SET(b, Dst8::L, 8) // SET b, L
-            }
-            0xC6 => {
-                let b = self.fetch_byte();
-                Instruction::SET(b, Dst8::HLContents, 16) // SET b,(HL)
-            }
-            0xC7 => {
-                let b = self.fetch_byte();
-                Instruction::SET(b, Dst8::A, 8) // SET b,A
-            }
-            0xC8 => Instruction::SET(1, Dst8::B, 8), // SET 1, B
-            0xC9 => Instruction::SET(1, Dst8::C, 8), // SET 1, C
-            0xCA => Instruction::SET(1, Dst8::D, 8), // SET 1, D
-            0xCB => Instruction::SET(1, Dst8::E, 8), // SET 1, E
-            0xCC => Instruction::SET(1, Dst8::H, 8), // SET 1, H
-            0xCD => Instruction::SET(1, Dst8::L, 8), // SET 1, L
-            0xCE => Instruction::SET(1, Dst8::HLContents, 16), // SET 1, (HL)
-            0xCF => Instruction::SET(1, Dst8::A, 8), // SET 1, A
-            0xD0 => Instruction::SET(2, Dst8::B, 8), // SET 2, B
-            0xD1 => Instruction::SET(2, Dst8::C, 8), // SET 2, C
-            0xD2 => Instruction::SET(2, Dst8::D, 8), // SET 2, D
-            0xD3 => Instruction::SET(2, Dst8::E, 8), // SET 2, E
-            0xD4 => Instruction::SET(2, Dst8::H, 8), // SET 2, H
-            0xD5 => Instruction::SET(2, Dst8::L, 8), // SET 2, L
-            0xD6 => Instruction::SET(2, Dst8::HLContents, 16), // SET 2, (HL)
-            0xD7 => Instruction::SET(2, Dst8::A, 8), // SET 2, A
-            0xD8 => Instruction::SET(3, Dst8::B, 8), // SET 3, B
-            0xD9 => Instruction::SET(3, Dst8::C, 8), // SET 3, C
-            0xDA => Instruction::SET(3, Dst8::D, 8), // SET 3, D
-            0xDB => Instruction::SET(3, Dst8::E, 8), // SET 3, E
-            0xDC => Instruction::SET(3, Dst8::H, 8), // SET 3, H
-            0xDD => Instruction::SET(3, Dst8::L, 8), // SET 3, L
-            0xDE => Instruction::SET(3, Dst8::HLContents, 16), // SET 3, (HL)
-            0xDF => Instruction::SET(3, Dst8::A, 8), // SET 3, A
-            0xE0 => Instruction::SET(4, Dst8::B, 8), // SET 4, B
-            0xE1 => Instruction::SET(4, Dst8::C, 8), // SET 4, C
-            0xE2 => Instruction::SET(4, Dst8::D, 8), // SET 4, D
-            0xE3 => Instruction::SET(4, Dst8::E, 8), // SET 4, E
-            0xE4 => Instruction::SET(4, Dst8::H, 8), // SET 4, H
-            0xE5 => Instruction::SET(4, Dst8::L, 8), // SET 4, L
-            0xE6 => Instruction::SET(4, Dst8::HLContents, 16), // SET 4, (HL)
-            0xE7 => Instruction::SET(4, Dst8::A, 8), // SET 4, A
-            0xE8 => Instruction::SET(5, Dst8::B, 8), // SET 5, B
-            0xE9 => Instruction::SET(5, Dst8::C, 8), // SET 5, C
-            0xEA => Instruction::SET(5, Dst8::D, 8), // SET 5, D
-            0xEB => Instruction::SET(5, Dst8::E, 8), // SET 5, E
-            0xEC => Instruction::SET(5, Dst8::H, 8), // SET 5, H
-            0xED => Instruction::SET(5, Dst8::L, 8), // SET 5, L
-            0xEE => Instruction::SET(5, Dst8::HLContents, 16), // SET 5, (HL)
-            0xEF => Instruction::SET(5, Dst8::A, 8), // SET 5, A
-            0xF0 => Instruction::SET(6, Dst8::B, 8), // SET 6, B
-            0xF1 => Instruction::SET(6, Dst8::C, 8), // SET 6, C
-            0xF2 => Instruction::SET(6, Dst8::D, 8), // SET 6, D
-            0xF3 => Instruction::SET(6, Dst8::E, 8), // SET 6, E
-            0xF4 => Instruction::SET(6, Dst8::H, 8), // SET 6, H
-            0xF5 => Instruction::SET(6, Dst8::L, 8), // SET 6, L
-            0xF6 => Instruction::SET(6, Dst8::HLContents, 16), // SET 6, (HL)
-            0xF7 => Instruction::SET(6, Dst8::A, 8), // SET 6, A
-            0xF8 => Instruction::SET(7, Dst8::B, 8), // SET 7, B
-            0xF9 => Instruction::SET(7, Dst8::C, 8), // SET 7, C
-            0xFA => Instruction::SET(7, Dst8::D, 8), // SET 7, D
-            0xFB => Instruction::SET(7, Dst8::E, 8), // SET 7, E
-            0xFC => Instruction::SET(7, Dst8::H, 8), // SET 7, H
-            0xFD => Instruction::SET(7, Dst8::L, 8), // SET 7, L
-            0xFE => Instruction::SET(7, Dst8::HLContents, 16), // SET 7, (HL)
-            0xFF => Instruction::SET(7, Dst8::A, 8), // SET 7, A
         }
     }
 }
