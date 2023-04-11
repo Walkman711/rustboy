@@ -4,7 +4,7 @@ use crate::registers::Flags;
 pub enum Inst {
     // 3.3.1: 8-bit loads
     LD8(Dst8, Src8, u32),
-    LDD(Dst8, Src8, u32),
+    LDD(u32),
     LDI(Dst8, Src8, u32),
     // 3.3.2: 16-bit loads
     LD16(Dst16, Src16, u32),
@@ -55,14 +55,19 @@ pub enum Inst {
     RES(u8, Dst8, u32),
     // 3.3.8: Jumps
     JP(Src16, u32),
+    // FIX: all JPC ops have different cycles depending on if the jump happense
     JPC(Src16, Flags, bool, u32),
     // 3.3.9: Calls
-    CALL(Src16, Flags, bool, u32),
+    CALL(u32),
+    // TODO: consolidate with CALL
+    // FIX: all CALLC ops have different cycles depending on if the call happens
+    CALLC(Flags, bool, u32),
     // 3.3.10: Restarts
     RST(u8, u32),
     // 3.3.11: Returns
     RET(u32),
     // TODO: consolidate with RET
+    // FIX: all RETC ops have different cycles depending on if the ret happens
     RETC(Flags, bool, u32),
     RETI(u32),
 }
@@ -71,7 +76,7 @@ impl Inst {
     pub fn cycles(&self) -> u32 {
         match self {
             Inst::LD8(_, _, cycles)
-            | Inst::LDD(_, _, cycles)
+            | Inst::LDD(cycles)
             | Inst::LDI(_, _, cycles)
             | Inst::LD16(_, _, cycles)
             | Inst::PUSH(_, cycles)
@@ -116,7 +121,8 @@ impl Inst {
             | Inst::RES(_, _, cycles)
             | Inst::JP(_, cycles)
             | Inst::JPC(_, _, _, cycles)
-            | Inst::CALL(_, _, _, cycles)
+            | Inst::CALL(cycles)
+            | Inst::CALLC(_, _, cycles)
             | Inst::RST(_, cycles)
             | Inst::RET(cycles)
             | Inst::RETC(_, _, cycles)
@@ -161,6 +167,7 @@ pub enum Src16 {
     BC,
     DE,
     HL,
+    SP,
     NN,
     Addr(u16),
 }
@@ -172,5 +179,6 @@ pub enum Dst16 {
     BC,
     DE,
     HL,
+    SP,
     Addr(u16),
 }
