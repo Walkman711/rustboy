@@ -6,3 +6,4 @@ pub mod io_registers;
 pub mod mem_constants;
 pub mod mmu;
 pub mod registers;
+pub mod utils;

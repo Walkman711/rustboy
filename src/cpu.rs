@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use crate::{instructions::*, mmu::*, registers::*};
+use crate::{instructions::*, mmu::*, registers::*, utils::*};
 
 #[derive(Debug)]
 pub struct CPU {
@@ -287,34 +287,6 @@ impl CPU {
     }
 }
 
-// Flag ops
-impl CPU {
-    // Taken from gist.github/com/meganesu
-    fn half_carry(a: u8, b: u8) -> bool {
-        // 1) mask a and b to only look at bits 0-3.
-        // 2) add them together
-        // 3) check if the fourth bit is set
-        (((a & 0xF) + (b & 0xF)) & (1 << 4)) == (1 << 4)
-    }
-
-    // TODO: test
-    fn half_carry_16(a: u16, b: u16) -> bool {
-        (((a & 0x0F00) + (b & 0x0F00)) & (1 << 12)) == (1 << 12)
-    }
-
-    fn carry(a: u8, b: u8) -> bool {
-        let wrapped = a.wrapping_add(b);
-        let unwrapped: u16 = (a as u16) + (b as u16);
-        (wrapped as u16) < unwrapped
-    }
-
-    fn carry_16(a: u16, b: u16) -> bool {
-        let wrapped = a.wrapping_add(b);
-        let unwrapped: u32 = (a as u32) + (b as u32);
-        (wrapped as u32) < unwrapped
-    }
-}
-
 // alu ops
 impl CPU {
     fn alu_add(&mut self, _val: u8) {
@@ -325,8 +297,8 @@ impl CPU {
         let hl = self.reg.hl();
         let res = hl.wrapping_add(val);
         self.reg.flag(Flags::N, false);
-        self.reg.flag(Flags::H, Self::half_carry_16(hl, val));
-        self.reg.flag(Flags::C, Self::carry_16(hl, val));
+        self.reg.flag(Flags::H, half_carry_16(hl, val));
+        self.reg.flag(Flags::C, carry_16(hl, val));
         self.reg.set_hl(res);
     }
 
@@ -336,8 +308,8 @@ impl CPU {
         self.reg.flag(Flags::Z, res == 0);
         self.reg.flag(Flags::N, false);
         // FIX: this seems sus
-        self.reg.flag(Flags::H, Self::half_carry(res, addend));
-        self.reg.flag(Flags::C, Self::carry(res, addend));
+        self.reg.flag(Flags::H, half_carry(res, addend));
+        self.reg.flag(Flags::C, carry(res, addend));
         self.reg.a = res;
     }
 
@@ -387,7 +359,7 @@ impl CPU {
     fn alu_cp(&mut self, val: u8) {
         self.reg.flag(Flags::Z, self.reg.a == val);
         self.reg.flag(Flags::N, true);
-        self.reg.flag(Flags::H, Self::half_carry(val, val));
+        self.reg.flag(Flags::H, half_carry(val, val));
         self.reg.flag(Flags::C, self.reg.a < val);
     }
 
@@ -395,7 +367,7 @@ impl CPU {
         let res = val.wrapping_add(1);
         self.reg.flag(Flags::Z, res == 0);
         self.reg.flag(Flags::N, false);
-        self.reg.flag(Flags::H, Self::half_carry(val, 1));
+        self.reg.flag(Flags::H, half_carry(val, 1));
         res
     }
 
@@ -409,7 +381,7 @@ impl CPU {
         self.reg.flag(Flags::Z, res == 0);
         self.reg.flag(Flags::N, true);
         // FIX: is this okay?
-        self.reg.flag(Flags::H, Self::half_carry(val, 0xFF));
+        self.reg.flag(Flags::H, half_carry(val, 0xFF));
         res
     }
 
@@ -418,7 +390,7 @@ impl CPU {
         self.reg.flag(Flags::Z, res == 0);
         self.reg.flag(Flags::N, true);
         // FIX: is this okay?
-        self.reg.flag(Flags::H, Self::half_carry_16(val, 0xFF));
+        self.reg.flag(Flags::H, half_carry_16(val, 0xFF));
         res
     }
 
