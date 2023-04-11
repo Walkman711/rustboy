@@ -309,7 +309,7 @@ impl CPU {
             0xE6 => Inst::AND(Src8::N, 8),                                           // AND d8
             0xE7 => Inst::RST(0x20, 32),                                             // RST 20H
             0xE8 => unimplemented!("{:#04x}", opcode),                               // ADD SP,r8
-            0xE9 => Inst::JP(Src16::Addr(self.reg.hl()), 4),                         // JP (HL)
+            0xE9 => Inst::JP(Src16::Imm(self.reg.hl()), 4),                          // JP (HL)
             0xEA => Inst::LD8(Dst8::Addr(self.fetch_word()), Src8::A, 16),           // LD (a16),A
             0xEE => Inst::XOR(Src8::N, 8),                                           // XOR d8
             0xEF => Inst::RST(0x28, 32),                                             // RST 28H
@@ -335,262 +335,262 @@ impl CPU {
     fn decode_cb(&mut self) -> Inst {
         let opcode = self.fetch_byte();
         match opcode {
-            0x00 => Inst::RLC(Dst8::B, 8),                              // RLC B
-            0x01 => Inst::RLC(Dst8::C, 8),                              // RLC C
-            0x02 => Inst::RLC(Dst8::D, 8),                              // RLC D
-            0x03 => Inst::RLC(Dst8::E, 8),                              // RLC E
-            0x04 => Inst::RLC(Dst8::H, 8),                              // RLC H
-            0x05 => Inst::RLC(Dst8::L, 8),                              // RLC L
-            0x06 => Inst::RLC(Dst8::HLContents, 16),                    // RLC (HL)
-            0x07 => Inst::RLC(Dst8::A, 8),                              // RLC A
-            0x08 => Inst::RRC(Dst8::B, 8),                              // RRC B
-            0x09 => Inst::RRC(Dst8::C, 8),                              // RRC C
-            0x0A => Inst::RRC(Dst8::D, 8),                              // RRC D
-            0x0B => Inst::RRC(Dst8::E, 8),                              // RRC E
-            0x0C => Inst::RRC(Dst8::H, 8),                              // RRC H
-            0x0D => Inst::RRC(Dst8::L, 8),                              // RRC L
-            0x0E => Inst::RRC(Dst8::HLContents, 16),                    // RRC (HL)
-            0x0F => Inst::RRC(Dst8::A, 8),                              // RRC A
-            0x10 => Inst::RL(Dst8::B, 8),                               // RL B
-            0x11 => Inst::RL(Dst8::C, 8),                               // RL C
-            0x12 => Inst::RL(Dst8::D, 8),                               // RL D
-            0x13 => Inst::RL(Dst8::E, 8),                               // RL E
-            0x14 => Inst::RL(Dst8::H, 8),                               // RL H
-            0x15 => Inst::RL(Dst8::L, 8),                               // RL L
-            0x16 => Inst::RL(Dst8::HLContents, 16),                     // RL (HL)
-            0x17 => Inst::RL(Dst8::A, 8),                               // RL A
-            0x18 => Inst::RR(Dst8::B, 8),                               // RR B
-            0x19 => Inst::RR(Dst8::C, 8),                               // RR C
-            0x1A => Inst::RR(Dst8::D, 8),                               // RR D
-            0x1B => Inst::RR(Dst8::E, 8),                               // RR E
-            0x1C => Inst::RR(Dst8::H, 8),                               // RR H
-            0x1D => Inst::RR(Dst8::L, 8),                               // RR L
-            0x1E => Inst::RR(Dst8::HLContents, 16),                     // RR (HL)
-            0x1F => Inst::RR(Dst8::A, 8),                               // RR A
-            0x20 => Inst::SLA(Dst8::B, 8),                              // SLA B
-            0x21 => Inst::SLA(Dst8::C, 8),                              // SLA C
-            0x22 => Inst::SLA(Dst8::D, 8),                              // SLA D
-            0x23 => Inst::SLA(Dst8::E, 8),                              // SLA E
-            0x24 => Inst::SLA(Dst8::H, 8),                              // SLA H
-            0x25 => Inst::SLA(Dst8::L, 8),                              // SLA L
-            0x26 => Inst::SLA(Dst8::HLContents, 16),                    // SLA (HL)
-            0x27 => Inst::SLA(Dst8::A, 8),                              // SLA A
-            0x28 => Inst::SRA(Dst8::B, 8),                              // SRA B
-            0x29 => Inst::SRA(Dst8::C, 8),                              // SRA C
-            0x2A => Inst::SRA(Dst8::D, 8),                              // SRA D
-            0x2B => Inst::SRA(Dst8::E, 8),                              // SRA E
-            0x2C => Inst::SRA(Dst8::H, 8),                              // SRA H
-            0x2D => Inst::SRA(Dst8::L, 8),                              // SRA L
-            0x2E => Inst::SRA(Dst8::HLContents, 16),                    // SRA (HL)
-            0x2F => Inst::SRA(Dst8::A, 8),                              // SRA A
-            0x30 => Inst::SWAP(Dst8::B, 8),                             // SWAP B
-            0x31 => Inst::SWAP(Dst8::C, 8),                             // SWAP C
-            0x32 => Inst::SWAP(Dst8::D, 8),                             // SWAP D
-            0x33 => Inst::SWAP(Dst8::E, 8),                             // SWAP E
-            0x34 => Inst::SWAP(Dst8::H, 8),                             // SWAP H
-            0x35 => Inst::SWAP(Dst8::L, 8),                             // SWAP L
-            0x36 => Inst::SWAP(Dst8::HLContents, 16),                   // SWAP (HL)
-            0x37 => Inst::SWAP(Dst8::A, 8),                             // SWAP A
-            0x38 => Inst::SRL(Dst8::B, 8),                              // SRL B
-            0x39 => Inst::SRL(Dst8::C, 8),                              // SRL C
-            0x3A => Inst::SRL(Dst8::D, 8),                              // SRL D
-            0x3B => Inst::SRL(Dst8::E, 8),                              // SRL E
-            0x3C => Inst::SRL(Dst8::H, 8),                              // SRL H
-            0x3D => Inst::SRL(Dst8::L, 8),                              // SRL L
-            0x3E => Inst::SRL(Dst8::HLContents, 16),                    // SRL (HL)
-            0x3F => Inst::SRL(Dst8::A, 8),                              // SRL A
-            0x40 => Inst::BIT(self.fetch_byte(), Src8::B, 8),           // BIT b, B
-            0x41 => Inst::BIT(self.fetch_byte(), Src8::C, 8),           // BIT b, C
-            0x42 => Inst::BIT(self.fetch_byte(), Src8::D, 8),           // BIT b, D
-            0x43 => Inst::BIT(self.fetch_byte(), Src8::E, 8),           // BIT b, E
-            0x44 => Inst::BIT(self.fetch_byte(), Src8::H, 8),           // BIT b, H
-            0x45 => Inst::BIT(self.fetch_byte(), Src8::L, 8),           // BIT b, L
-            0x46 => Inst::BIT(self.fetch_byte(), Src8::HLContents, 16), // BIT b, (HL)
-            0x47 => Inst::BIT(self.fetch_byte(), Src8::A, 8),           // BIT b, A
-            0x48 => Inst::BIT(1, Src8::B, 8),                           // BIT 1, B
-            0x49 => Inst::BIT(1, Src8::C, 8),                           // BIT 1, C
-            0x4A => Inst::BIT(1, Src8::D, 8),                           // BIT 1, D
-            0x4B => Inst::BIT(1, Src8::E, 8),                           // BIT 1, E
-            0x4C => Inst::BIT(1, Src8::H, 8),                           // BIT 1, H
-            0x4D => Inst::BIT(1, Src8::L, 8),                           // BIT 1, L
-            0x4E => Inst::BIT(1, Src8::HLContents, 16),                 // BIT 1, (HL)
-            0x4F => Inst::BIT(1, Src8::A, 8),                           // BIT 1, A
-            0x50 => Inst::BIT(2, Src8::B, 8),                           // BIT 2, B
-            0x51 => Inst::BIT(2, Src8::C, 8),                           // BIT 2, C
-            0x52 => Inst::BIT(2, Src8::D, 8),                           // BIT 2, D
-            0x53 => Inst::BIT(2, Src8::E, 8),                           // BIT 2, E
-            0x54 => Inst::BIT(2, Src8::H, 8),                           // BIT 2, H
-            0x55 => Inst::BIT(2, Src8::L, 8),                           // BIT 2, L
-            0x56 => Inst::BIT(2, Src8::HLContents, 16),                 // BIT 2, (HL)
-            0x57 => Inst::BIT(2, Src8::A, 8),                           // BIT 2, A
-            0x58 => Inst::BIT(3, Src8::B, 8),                           // BIT 3, B
-            0x59 => Inst::BIT(3, Src8::C, 8),                           // BIT 3, C
-            0x5A => Inst::BIT(3, Src8::D, 8),                           // BIT 3, D
-            0x5B => Inst::BIT(3, Src8::E, 8),                           // BIT 3, E
-            0x5C => Inst::BIT(3, Src8::H, 8),                           // BIT 3, H
-            0x5D => Inst::BIT(3, Src8::L, 8),                           // BIT 3, L
-            0x5E => Inst::BIT(3, Src8::HLContents, 16),                 // BIT 3, (HL)
-            0x5F => Inst::BIT(3, Src8::A, 8),                           // BIT 3, A
-            0x60 => Inst::BIT(4, Src8::B, 8),                           // BIT 4, B
-            0x61 => Inst::BIT(4, Src8::C, 8),                           // BIT 4, C
-            0x62 => Inst::BIT(4, Src8::D, 8),                           // BIT 4, D
-            0x63 => Inst::BIT(4, Src8::E, 8),                           // BIT 4, E
-            0x64 => Inst::BIT(4, Src8::H, 8),                           // BIT 4, H
-            0x65 => Inst::BIT(4, Src8::L, 8),                           // BIT 4, L
-            0x66 => Inst::BIT(4, Src8::HLContents, 16),                 // BIT 4, (HL)
-            0x67 => Inst::BIT(4, Src8::A, 8),                           // BIT 4, A
-            0x68 => Inst::BIT(5, Src8::B, 8),                           // BIT 5, B
-            0x69 => Inst::BIT(5, Src8::C, 8),                           // BIT 5, C
-            0x6A => Inst::BIT(5, Src8::D, 8),                           // BIT 5, D
-            0x6B => Inst::BIT(5, Src8::E, 8),                           // BIT 5, E
-            0x6C => Inst::BIT(5, Src8::H, 8),                           // BIT 5, H
-            0x6D => Inst::BIT(5, Src8::L, 8),                           // BIT 5, L
-            0x6E => Inst::BIT(5, Src8::HLContents, 16),                 // BIT 5, (HL)
-            0x6F => Inst::BIT(5, Src8::A, 8),                           // BIT 5, A
-            0x70 => Inst::BIT(6, Src8::B, 8),                           // BIT 6, B
-            0x71 => Inst::BIT(6, Src8::C, 8),                           // BIT 6, C
-            0x72 => Inst::BIT(6, Src8::D, 8),                           // BIT 6, D
-            0x73 => Inst::BIT(6, Src8::E, 8),                           // BIT 6, E
-            0x74 => Inst::BIT(6, Src8::H, 8),                           // BIT 6, H
-            0x75 => Inst::BIT(6, Src8::L, 8),                           // BIT 6, L
-            0x76 => Inst::BIT(6, Src8::HLContents, 16),                 // BIT 6, (HL)
-            0x77 => Inst::BIT(6, Src8::A, 8),                           // BIT 6, A
-            0x78 => Inst::BIT(7, Src8::B, 8),                           // BIT 7, B
-            0x79 => Inst::BIT(7, Src8::C, 8),                           // BIT 7, C
-            0x7A => Inst::BIT(7, Src8::D, 8),                           // BIT 7, D
-            0x7B => Inst::BIT(7, Src8::E, 8),                           // BIT 7, E
-            0x7C => Inst::BIT(7, Src8::H, 8),                           // BIT 7, H
-            0x7D => Inst::BIT(7, Src8::L, 8),                           // BIT 7, L
-            0x7E => Inst::BIT(7, Src8::HLContents, 16),                 // BIT 7, (HL)
-            0x7F => Inst::BIT(7, Src8::A, 8),                           // BIT 7, A
-            0x80 => Inst::RES(0, Dst8::B, 8),                           // RES 0, B
-            0x81 => Inst::RES(0, Dst8::C, 8),                           // RES 0, C
-            0x82 => Inst::RES(0, Dst8::D, 8),                           // RES 0, D
-            0x83 => Inst::RES(0, Dst8::E, 8),                           // RES 0, E
-            0x84 => Inst::RES(0, Dst8::H, 8),                           // RES 0, H
-            0x85 => Inst::RES(0, Dst8::L, 8),                           // RES 0, L
-            0x86 => Inst::RES(0, Dst8::HLContents, 16),                 // RES 0, (HL)
-            0x87 => Inst::RES(0, Dst8::A, 8),                           // RES 0, A
-            0x88 => Inst::RES(1, Dst8::B, 8),                           // RES 1, B
-            0x89 => Inst::RES(1, Dst8::C, 8),                           // RES 1, C
-            0x8A => Inst::RES(1, Dst8::D, 8),                           // RES 1, D
-            0x8B => Inst::RES(1, Dst8::E, 8),                           // RES 1, E
-            0x8C => Inst::RES(1, Dst8::H, 8),                           // RES 1, H
-            0x8D => Inst::RES(1, Dst8::L, 8),                           // RES 1, L
-            0x8E => Inst::RES(1, Dst8::HLContents, 16),                 // RES 1, (HL)
-            0x8F => Inst::RES(1, Dst8::A, 8),                           // RES 1, A
-            0x90 => Inst::RES(2, Dst8::B, 8),                           // RES 2, B
-            0x91 => Inst::RES(2, Dst8::C, 8),                           // RES 2, C
-            0x92 => Inst::RES(2, Dst8::D, 8),                           // RES 2, D
-            0x93 => Inst::RES(2, Dst8::E, 8),                           // RES 2, E
-            0x94 => Inst::RES(2, Dst8::H, 8),                           // RES 2, H
-            0x95 => Inst::RES(2, Dst8::L, 8),                           // RES 2, L
-            0x96 => Inst::RES(2, Dst8::HLContents, 16),                 // RES 2, (HL)
-            0x97 => Inst::RES(2, Dst8::A, 8),                           // RES 2, A
-            0x98 => Inst::RES(3, Dst8::B, 8),                           // RES 3, B
-            0x99 => Inst::RES(3, Dst8::C, 8),                           // RES 3, C
-            0x9A => Inst::RES(3, Dst8::D, 8),                           // RES 3, D
-            0x9B => Inst::RES(3, Dst8::E, 8),                           // RES 3, E
-            0x9C => Inst::RES(3, Dst8::H, 8),                           // RES 3, H
-            0x9D => Inst::RES(3, Dst8::L, 8),                           // RES 3, L
-            0x9E => Inst::RES(3, Dst8::HLContents, 16),                 // RES 3, (HL)
-            0x9F => Inst::RES(3, Dst8::A, 8),                           // RES 3, A
-            0xA0 => Inst::RES(4, Dst8::B, 8),                           // RES 4, B
-            0xA1 => Inst::RES(4, Dst8::C, 8),                           // RES 4, C
-            0xA2 => Inst::RES(4, Dst8::D, 8),                           // RES 4, D
-            0xA3 => Inst::RES(4, Dst8::E, 8),                           // RES 4, E
-            0xA4 => Inst::RES(4, Dst8::H, 8),                           // RES 4, H
-            0xA5 => Inst::RES(4, Dst8::L, 8),                           // RES 4, L
-            0xA6 => Inst::RES(4, Dst8::HLContents, 16),                 // RES 4, (HL)
-            0xA7 => Inst::RES(4, Dst8::A, 8),                           // RES 4, A
-            0xA8 => Inst::RES(5, Dst8::B, 8),                           // RES 5, B
-            0xA9 => Inst::RES(5, Dst8::C, 8),                           // RES 5, C
-            0xAA => Inst::RES(5, Dst8::D, 8),                           // RES 5, D
-            0xAB => Inst::RES(5, Dst8::E, 8),                           // RES 5, E
-            0xAC => Inst::RES(5, Dst8::H, 8),                           // RES 5, H
-            0xAD => Inst::RES(5, Dst8::L, 8),                           // RES 5, L
-            0xAE => Inst::RES(5, Dst8::HLContents, 16),                 // RES 5, (HL)
-            0xAF => Inst::RES(5, Dst8::A, 8),                           // RES 5, A
-            0xB0 => Inst::RES(6, Dst8::B, 8),                           // RES 6, B
-            0xB1 => Inst::RES(6, Dst8::C, 8),                           // RES 6, C
-            0xB2 => Inst::RES(6, Dst8::D, 8),                           // RES 6, D
-            0xB3 => Inst::RES(6, Dst8::E, 8),                           // RES 6, E
-            0xB4 => Inst::RES(6, Dst8::H, 8),                           // RES 6, H
-            0xB5 => Inst::RES(6, Dst8::L, 8),                           // RES 6, L
-            0xB6 => Inst::RES(6, Dst8::HLContents, 16),                 // RES 6, (HL)
-            0xB7 => Inst::RES(6, Dst8::A, 8),                           // RES 6, A
-            0xB8 => Inst::RES(7, Dst8::B, 8),                           // RES 7, B
-            0xB9 => Inst::RES(7, Dst8::C, 8),                           // RES 7, C
-            0xBA => Inst::RES(7, Dst8::D, 8),                           // RES 7, D
-            0xBB => Inst::RES(7, Dst8::E, 8),                           // RES 7, E
-            0xBC => Inst::RES(7, Dst8::H, 8),                           // RES 7, H
-            0xBD => Inst::RES(7, Dst8::L, 8),                           // RES 7, L
-            0xBE => Inst::RES(7, Dst8::HLContents, 16),                 // RES 7, (HL)
-            0xBF => Inst::RES(7, Dst8::A, 8),                           // RES 7, A
-            0xC0 => Inst::SETN(Dst8::B, 8),                             // SET b, B
-            0xC1 => Inst::SETN(Dst8::C, 8),                             // SET b, C
-            0xC2 => Inst::SETN(Dst8::D, 8),                             // SET b, D
-            0xC3 => Inst::SETN(Dst8::E, 8),                             // SET b, E
-            0xC4 => Inst::SETN(Dst8::H, 8),                             // SET b, H
-            0xC5 => Inst::SETN(Dst8::L, 8),                             // SET b, L
-            0xC6 => Inst::SETN(Dst8::HLContents, 16),                   // SET b,(HL)
-            0xC7 => Inst::SETN(Dst8::A, 8),                             // SET b,A
-            0xC8 => Inst::SET(1, Dst8::B, 8),                           // SET 1, B
-            0xC9 => Inst::SET(1, Dst8::C, 8),                           // SET 1, C
-            0xCA => Inst::SET(1, Dst8::D, 8),                           // SET 1, D
-            0xCB => Inst::SET(1, Dst8::E, 8),                           // SET 1, E
-            0xCC => Inst::SET(1, Dst8::H, 8),                           // SET 1, H
-            0xCD => Inst::SET(1, Dst8::L, 8),                           // SET 1, L
-            0xCE => Inst::SET(1, Dst8::HLContents, 16),                 // SET 1, (HL)
-            0xCF => Inst::SET(1, Dst8::A, 8),                           // SET 1, A
-            0xD0 => Inst::SET(2, Dst8::B, 8),                           // SET 2, B
-            0xD1 => Inst::SET(2, Dst8::C, 8),                           // SET 2, C
-            0xD2 => Inst::SET(2, Dst8::D, 8),                           // SET 2, D
-            0xD3 => Inst::SET(2, Dst8::E, 8),                           // SET 2, E
-            0xD4 => Inst::SET(2, Dst8::H, 8),                           // SET 2, H
-            0xD5 => Inst::SET(2, Dst8::L, 8),                           // SET 2, L
-            0xD6 => Inst::SET(2, Dst8::HLContents, 16),                 // SET 2, (HL)
-            0xD7 => Inst::SET(2, Dst8::A, 8),                           // SET 2, A
-            0xD8 => Inst::SET(3, Dst8::B, 8),                           // SET 3, B
-            0xD9 => Inst::SET(3, Dst8::C, 8),                           // SET 3, C
-            0xDA => Inst::SET(3, Dst8::D, 8),                           // SET 3, D
-            0xDB => Inst::SET(3, Dst8::E, 8),                           // SET 3, E
-            0xDC => Inst::SET(3, Dst8::H, 8),                           // SET 3, H
-            0xDD => Inst::SET(3, Dst8::L, 8),                           // SET 3, L
-            0xDE => Inst::SET(3, Dst8::HLContents, 16),                 // SET 3, (HL)
-            0xDF => Inst::SET(3, Dst8::A, 8),                           // SET 3, A
-            0xE0 => Inst::SET(4, Dst8::B, 8),                           // SET 4, B
-            0xE1 => Inst::SET(4, Dst8::C, 8),                           // SET 4, C
-            0xE2 => Inst::SET(4, Dst8::D, 8),                           // SET 4, D
-            0xE3 => Inst::SET(4, Dst8::E, 8),                           // SET 4, E
-            0xE4 => Inst::SET(4, Dst8::H, 8),                           // SET 4, H
-            0xE5 => Inst::SET(4, Dst8::L, 8),                           // SET 4, L
-            0xE6 => Inst::SET(4, Dst8::HLContents, 16),                 // SET 4, (HL)
-            0xE7 => Inst::SET(4, Dst8::A, 8),                           // SET 4, A
-            0xE8 => Inst::SET(5, Dst8::B, 8),                           // SET 5, B
-            0xE9 => Inst::SET(5, Dst8::C, 8),                           // SET 5, C
-            0xEA => Inst::SET(5, Dst8::D, 8),                           // SET 5, D
-            0xEB => Inst::SET(5, Dst8::E, 8),                           // SET 5, E
-            0xEC => Inst::SET(5, Dst8::H, 8),                           // SET 5, H
-            0xED => Inst::SET(5, Dst8::L, 8),                           // SET 5, L
-            0xEE => Inst::SET(5, Dst8::HLContents, 16),                 // SET 5, (HL)
-            0xEF => Inst::SET(5, Dst8::A, 8),                           // SET 5, A
-            0xF0 => Inst::SET(6, Dst8::B, 8),                           // SET 6, B
-            0xF1 => Inst::SET(6, Dst8::C, 8),                           // SET 6, C
-            0xF2 => Inst::SET(6, Dst8::D, 8),                           // SET 6, D
-            0xF3 => Inst::SET(6, Dst8::E, 8),                           // SET 6, E
-            0xF4 => Inst::SET(6, Dst8::H, 8),                           // SET 6, H
-            0xF5 => Inst::SET(6, Dst8::L, 8),                           // SET 6, L
-            0xF6 => Inst::SET(6, Dst8::HLContents, 16),                 // SET 6, (HL)
-            0xF7 => Inst::SET(6, Dst8::A, 8),                           // SET 6, A
-            0xF8 => Inst::SET(7, Dst8::B, 8),                           // SET 7, B
-            0xF9 => Inst::SET(7, Dst8::C, 8),                           // SET 7, C
-            0xFA => Inst::SET(7, Dst8::D, 8),                           // SET 7, D
-            0xFB => Inst::SET(7, Dst8::E, 8),                           // SET 7, E
-            0xFC => Inst::SET(7, Dst8::H, 8),                           // SET 7, H
-            0xFD => Inst::SET(7, Dst8::L, 8),                           // SET 7, L
-            0xFE => Inst::SET(7, Dst8::HLContents, 16),                 // SET 7, (HL)
-            0xFF => Inst::SET(7, Dst8::A, 8),                           // SET 7, A
+            0x00 => Inst::RLC(Dst8::B, 8),                             // RLC B
+            0x01 => Inst::RLC(Dst8::C, 8),                             // RLC C
+            0x02 => Inst::RLC(Dst8::D, 8),                             // RLC D
+            0x03 => Inst::RLC(Dst8::E, 8),                             // RLC E
+            0x04 => Inst::RLC(Dst8::H, 8),                             // RLC H
+            0x05 => Inst::RLC(Dst8::L, 8),                             // RLC L
+            0x06 => Inst::RLC(Dst8::HLContents, 16),                   // RLC (HL)
+            0x07 => Inst::RLC(Dst8::A, 8),                             // RLC A
+            0x08 => Inst::RRC(Dst8::B, 8),                             // RRC B
+            0x09 => Inst::RRC(Dst8::C, 8),                             // RRC C
+            0x0A => Inst::RRC(Dst8::D, 8),                             // RRC D
+            0x0B => Inst::RRC(Dst8::E, 8),                             // RRC E
+            0x0C => Inst::RRC(Dst8::H, 8),                             // RRC H
+            0x0D => Inst::RRC(Dst8::L, 8),                             // RRC L
+            0x0E => Inst::RRC(Dst8::HLContents, 16),                   // RRC (HL)
+            0x0F => Inst::RRC(Dst8::A, 8),                             // RRC A
+            0x10 => Inst::RL(Dst8::B, 8),                              // RL B
+            0x11 => Inst::RL(Dst8::C, 8),                              // RL C
+            0x12 => Inst::RL(Dst8::D, 8),                              // RL D
+            0x13 => Inst::RL(Dst8::E, 8),                              // RL E
+            0x14 => Inst::RL(Dst8::H, 8),                              // RL H
+            0x15 => Inst::RL(Dst8::L, 8),                              // RL L
+            0x16 => Inst::RL(Dst8::HLContents, 16),                    // RL (HL)
+            0x17 => Inst::RL(Dst8::A, 8),                              // RL A
+            0x18 => Inst::RR(Dst8::B, 8),                              // RR B
+            0x19 => Inst::RR(Dst8::C, 8),                              // RR C
+            0x1A => Inst::RR(Dst8::D, 8),                              // RR D
+            0x1B => Inst::RR(Dst8::E, 8),                              // RR E
+            0x1C => Inst::RR(Dst8::H, 8),                              // RR H
+            0x1D => Inst::RR(Dst8::L, 8),                              // RR L
+            0x1E => Inst::RR(Dst8::HLContents, 16),                    // RR (HL)
+            0x1F => Inst::RR(Dst8::A, 8),                              // RR A
+            0x20 => Inst::SLA(Dst8::B, 8),                             // SLA B
+            0x21 => Inst::SLA(Dst8::C, 8),                             // SLA C
+            0x22 => Inst::SLA(Dst8::D, 8),                             // SLA D
+            0x23 => Inst::SLA(Dst8::E, 8),                             // SLA E
+            0x24 => Inst::SLA(Dst8::H, 8),                             // SLA H
+            0x25 => Inst::SLA(Dst8::L, 8),                             // SLA L
+            0x26 => Inst::SLA(Dst8::HLContents, 16),                   // SLA (HL)
+            0x27 => Inst::SLA(Dst8::A, 8),                             // SLA A
+            0x28 => Inst::SRA(Dst8::B, 8),                             // SRA B
+            0x29 => Inst::SRA(Dst8::C, 8),                             // SRA C
+            0x2A => Inst::SRA(Dst8::D, 8),                             // SRA D
+            0x2B => Inst::SRA(Dst8::E, 8),                             // SRA E
+            0x2C => Inst::SRA(Dst8::H, 8),                             // SRA H
+            0x2D => Inst::SRA(Dst8::L, 8),                             // SRA L
+            0x2E => Inst::SRA(Dst8::HLContents, 16),                   // SRA (HL)
+            0x2F => Inst::SRA(Dst8::A, 8),                             // SRA A
+            0x30 => Inst::SWAP(Dst8::B, 8),                            // SWAP B
+            0x31 => Inst::SWAP(Dst8::C, 8),                            // SWAP C
+            0x32 => Inst::SWAP(Dst8::D, 8),                            // SWAP D
+            0x33 => Inst::SWAP(Dst8::E, 8),                            // SWAP E
+            0x34 => Inst::SWAP(Dst8::H, 8),                            // SWAP H
+            0x35 => Inst::SWAP(Dst8::L, 8),                            // SWAP L
+            0x36 => Inst::SWAP(Dst8::HLContents, 16),                  // SWAP (HL)
+            0x37 => Inst::SWAP(Dst8::A, 8),                            // SWAP A
+            0x38 => Inst::SRL(Dst8::B, 8),                             // SRL B
+            0x39 => Inst::SRL(Dst8::C, 8),                             // SRL C
+            0x3A => Inst::SRL(Dst8::D, 8),                             // SRL D
+            0x3B => Inst::SRL(Dst8::E, 8),                             // SRL E
+            0x3C => Inst::SRL(Dst8::H, 8),                             // SRL H
+            0x3D => Inst::SRL(Dst8::L, 8),                             // SRL L
+            0x3E => Inst::SRL(Dst8::HLContents, 16),                   // SRL (HL)
+            0x3F => Inst::SRL(Dst8::A, 8),                             // SRL A
+            0x40 => Inst::BIT(self.peek_byte(), Src8::B, 8),           // BIT b, B
+            0x41 => Inst::BIT(self.peek_byte(), Src8::C, 8),           // BIT b, C
+            0x42 => Inst::BIT(self.peek_byte(), Src8::D, 8),           // BIT b, D
+            0x43 => Inst::BIT(self.peek_byte(), Src8::E, 8),           // BIT b, E
+            0x44 => Inst::BIT(self.peek_byte(), Src8::H, 8),           // BIT b, H
+            0x45 => Inst::BIT(self.peek_byte(), Src8::L, 8),           // BIT b, L
+            0x46 => Inst::BIT(self.peek_byte(), Src8::HLContents, 16), // BIT b, (HL)
+            0x47 => Inst::BIT(self.peek_byte(), Src8::A, 8),           // BIT b, A
+            0x48 => Inst::BIT(1, Src8::B, 8),                          // BIT 1, B
+            0x49 => Inst::BIT(1, Src8::C, 8),                          // BIT 1, C
+            0x4A => Inst::BIT(1, Src8::D, 8),                          // BIT 1, D
+            0x4B => Inst::BIT(1, Src8::E, 8),                          // BIT 1, E
+            0x4C => Inst::BIT(1, Src8::H, 8),                          // BIT 1, H
+            0x4D => Inst::BIT(1, Src8::L, 8),                          // BIT 1, L
+            0x4E => Inst::BIT(1, Src8::HLContents, 16),                // BIT 1, (HL)
+            0x4F => Inst::BIT(1, Src8::A, 8),                          // BIT 1, A
+            0x50 => Inst::BIT(2, Src8::B, 8),                          // BIT 2, B
+            0x51 => Inst::BIT(2, Src8::C, 8),                          // BIT 2, C
+            0x52 => Inst::BIT(2, Src8::D, 8),                          // BIT 2, D
+            0x53 => Inst::BIT(2, Src8::E, 8),                          // BIT 2, E
+            0x54 => Inst::BIT(2, Src8::H, 8),                          // BIT 2, H
+            0x55 => Inst::BIT(2, Src8::L, 8),                          // BIT 2, L
+            0x56 => Inst::BIT(2, Src8::HLContents, 16),                // BIT 2, (HL)
+            0x57 => Inst::BIT(2, Src8::A, 8),                          // BIT 2, A
+            0x58 => Inst::BIT(3, Src8::B, 8),                          // BIT 3, B
+            0x59 => Inst::BIT(3, Src8::C, 8),                          // BIT 3, C
+            0x5A => Inst::BIT(3, Src8::D, 8),                          // BIT 3, D
+            0x5B => Inst::BIT(3, Src8::E, 8),                          // BIT 3, E
+            0x5C => Inst::BIT(3, Src8::H, 8),                          // BIT 3, H
+            0x5D => Inst::BIT(3, Src8::L, 8),                          // BIT 3, L
+            0x5E => Inst::BIT(3, Src8::HLContents, 16),                // BIT 3, (HL)
+            0x5F => Inst::BIT(3, Src8::A, 8),                          // BIT 3, A
+            0x60 => Inst::BIT(4, Src8::B, 8),                          // BIT 4, B
+            0x61 => Inst::BIT(4, Src8::C, 8),                          // BIT 4, C
+            0x62 => Inst::BIT(4, Src8::D, 8),                          // BIT 4, D
+            0x63 => Inst::BIT(4, Src8::E, 8),                          // BIT 4, E
+            0x64 => Inst::BIT(4, Src8::H, 8),                          // BIT 4, H
+            0x65 => Inst::BIT(4, Src8::L, 8),                          // BIT 4, L
+            0x66 => Inst::BIT(4, Src8::HLContents, 16),                // BIT 4, (HL)
+            0x67 => Inst::BIT(4, Src8::A, 8),                          // BIT 4, A
+            0x68 => Inst::BIT(5, Src8::B, 8),                          // BIT 5, B
+            0x69 => Inst::BIT(5, Src8::C, 8),                          // BIT 5, C
+            0x6A => Inst::BIT(5, Src8::D, 8),                          // BIT 5, D
+            0x6B => Inst::BIT(5, Src8::E, 8),                          // BIT 5, E
+            0x6C => Inst::BIT(5, Src8::H, 8),                          // BIT 5, H
+            0x6D => Inst::BIT(5, Src8::L, 8),                          // BIT 5, L
+            0x6E => Inst::BIT(5, Src8::HLContents, 16),                // BIT 5, (HL)
+            0x6F => Inst::BIT(5, Src8::A, 8),                          // BIT 5, A
+            0x70 => Inst::BIT(6, Src8::B, 8),                          // BIT 6, B
+            0x71 => Inst::BIT(6, Src8::C, 8),                          // BIT 6, C
+            0x72 => Inst::BIT(6, Src8::D, 8),                          // BIT 6, D
+            0x73 => Inst::BIT(6, Src8::E, 8),                          // BIT 6, E
+            0x74 => Inst::BIT(6, Src8::H, 8),                          // BIT 6, H
+            0x75 => Inst::BIT(6, Src8::L, 8),                          // BIT 6, L
+            0x76 => Inst::BIT(6, Src8::HLContents, 16),                // BIT 6, (HL)
+            0x77 => Inst::BIT(6, Src8::A, 8),                          // BIT 6, A
+            0x78 => Inst::BIT(7, Src8::B, 8),                          // BIT 7, B
+            0x79 => Inst::BIT(7, Src8::C, 8),                          // BIT 7, C
+            0x7A => Inst::BIT(7, Src8::D, 8),                          // BIT 7, D
+            0x7B => Inst::BIT(7, Src8::E, 8),                          // BIT 7, E
+            0x7C => Inst::BIT(7, Src8::H, 8),                          // BIT 7, H
+            0x7D => Inst::BIT(7, Src8::L, 8),                          // BIT 7, L
+            0x7E => Inst::BIT(7, Src8::HLContents, 16),                // BIT 7, (HL)
+            0x7F => Inst::BIT(7, Src8::A, 8),                          // BIT 7, A
+            0x80 => Inst::RES(0, Dst8::B, 8),                          // RES 0, B
+            0x81 => Inst::RES(0, Dst8::C, 8),                          // RES 0, C
+            0x82 => Inst::RES(0, Dst8::D, 8),                          // RES 0, D
+            0x83 => Inst::RES(0, Dst8::E, 8),                          // RES 0, E
+            0x84 => Inst::RES(0, Dst8::H, 8),                          // RES 0, H
+            0x85 => Inst::RES(0, Dst8::L, 8),                          // RES 0, L
+            0x86 => Inst::RES(0, Dst8::HLContents, 16),                // RES 0, (HL)
+            0x87 => Inst::RES(0, Dst8::A, 8),                          // RES 0, A
+            0x88 => Inst::RES(1, Dst8::B, 8),                          // RES 1, B
+            0x89 => Inst::RES(1, Dst8::C, 8),                          // RES 1, C
+            0x8A => Inst::RES(1, Dst8::D, 8),                          // RES 1, D
+            0x8B => Inst::RES(1, Dst8::E, 8),                          // RES 1, E
+            0x8C => Inst::RES(1, Dst8::H, 8),                          // RES 1, H
+            0x8D => Inst::RES(1, Dst8::L, 8),                          // RES 1, L
+            0x8E => Inst::RES(1, Dst8::HLContents, 16),                // RES 1, (HL)
+            0x8F => Inst::RES(1, Dst8::A, 8),                          // RES 1, A
+            0x90 => Inst::RES(2, Dst8::B, 8),                          // RES 2, B
+            0x91 => Inst::RES(2, Dst8::C, 8),                          // RES 2, C
+            0x92 => Inst::RES(2, Dst8::D, 8),                          // RES 2, D
+            0x93 => Inst::RES(2, Dst8::E, 8),                          // RES 2, E
+            0x94 => Inst::RES(2, Dst8::H, 8),                          // RES 2, H
+            0x95 => Inst::RES(2, Dst8::L, 8),                          // RES 2, L
+            0x96 => Inst::RES(2, Dst8::HLContents, 16),                // RES 2, (HL)
+            0x97 => Inst::RES(2, Dst8::A, 8),                          // RES 2, A
+            0x98 => Inst::RES(3, Dst8::B, 8),                          // RES 3, B
+            0x99 => Inst::RES(3, Dst8::C, 8),                          // RES 3, C
+            0x9A => Inst::RES(3, Dst8::D, 8),                          // RES 3, D
+            0x9B => Inst::RES(3, Dst8::E, 8),                          // RES 3, E
+            0x9C => Inst::RES(3, Dst8::H, 8),                          // RES 3, H
+            0x9D => Inst::RES(3, Dst8::L, 8),                          // RES 3, L
+            0x9E => Inst::RES(3, Dst8::HLContents, 16),                // RES 3, (HL)
+            0x9F => Inst::RES(3, Dst8::A, 8),                          // RES 3, A
+            0xA0 => Inst::RES(4, Dst8::B, 8),                          // RES 4, B
+            0xA1 => Inst::RES(4, Dst8::C, 8),                          // RES 4, C
+            0xA2 => Inst::RES(4, Dst8::D, 8),                          // RES 4, D
+            0xA3 => Inst::RES(4, Dst8::E, 8),                          // RES 4, E
+            0xA4 => Inst::RES(4, Dst8::H, 8),                          // RES 4, H
+            0xA5 => Inst::RES(4, Dst8::L, 8),                          // RES 4, L
+            0xA6 => Inst::RES(4, Dst8::HLContents, 16),                // RES 4, (HL)
+            0xA7 => Inst::RES(4, Dst8::A, 8),                          // RES 4, A
+            0xA8 => Inst::RES(5, Dst8::B, 8),                          // RES 5, B
+            0xA9 => Inst::RES(5, Dst8::C, 8),                          // RES 5, C
+            0xAA => Inst::RES(5, Dst8::D, 8),                          // RES 5, D
+            0xAB => Inst::RES(5, Dst8::E, 8),                          // RES 5, E
+            0xAC => Inst::RES(5, Dst8::H, 8),                          // RES 5, H
+            0xAD => Inst::RES(5, Dst8::L, 8),                          // RES 5, L
+            0xAE => Inst::RES(5, Dst8::HLContents, 16),                // RES 5, (HL)
+            0xAF => Inst::RES(5, Dst8::A, 8),                          // RES 5, A
+            0xB0 => Inst::RES(6, Dst8::B, 8),                          // RES 6, B
+            0xB1 => Inst::RES(6, Dst8::C, 8),                          // RES 6, C
+            0xB2 => Inst::RES(6, Dst8::D, 8),                          // RES 6, D
+            0xB3 => Inst::RES(6, Dst8::E, 8),                          // RES 6, E
+            0xB4 => Inst::RES(6, Dst8::H, 8),                          // RES 6, H
+            0xB5 => Inst::RES(6, Dst8::L, 8),                          // RES 6, L
+            0xB6 => Inst::RES(6, Dst8::HLContents, 16),                // RES 6, (HL)
+            0xB7 => Inst::RES(6, Dst8::A, 8),                          // RES 6, A
+            0xB8 => Inst::RES(7, Dst8::B, 8),                          // RES 7, B
+            0xB9 => Inst::RES(7, Dst8::C, 8),                          // RES 7, C
+            0xBA => Inst::RES(7, Dst8::D, 8),                          // RES 7, D
+            0xBB => Inst::RES(7, Dst8::E, 8),                          // RES 7, E
+            0xBC => Inst::RES(7, Dst8::H, 8),                          // RES 7, H
+            0xBD => Inst::RES(7, Dst8::L, 8),                          // RES 7, L
+            0xBE => Inst::RES(7, Dst8::HLContents, 16),                // RES 7, (HL)
+            0xBF => Inst::RES(7, Dst8::A, 8),                          // RES 7, A
+            0xC0 => Inst::SETN(Dst8::B, 8),                            // SET b, B
+            0xC1 => Inst::SETN(Dst8::C, 8),                            // SET b, C
+            0xC2 => Inst::SETN(Dst8::D, 8),                            // SET b, D
+            0xC3 => Inst::SETN(Dst8::E, 8),                            // SET b, E
+            0xC4 => Inst::SETN(Dst8::H, 8),                            // SET b, H
+            0xC5 => Inst::SETN(Dst8::L, 8),                            // SET b, L
+            0xC6 => Inst::SETN(Dst8::HLContents, 16),                  // SET b,(HL)
+            0xC7 => Inst::SETN(Dst8::A, 8),                            // SET b,A
+            0xC8 => Inst::SET(1, Dst8::B, 8),                          // SET 1, B
+            0xC9 => Inst::SET(1, Dst8::C, 8),                          // SET 1, C
+            0xCA => Inst::SET(1, Dst8::D, 8),                          // SET 1, D
+            0xCB => Inst::SET(1, Dst8::E, 8),                          // SET 1, E
+            0xCC => Inst::SET(1, Dst8::H, 8),                          // SET 1, H
+            0xCD => Inst::SET(1, Dst8::L, 8),                          // SET 1, L
+            0xCE => Inst::SET(1, Dst8::HLContents, 16),                // SET 1, (HL)
+            0xCF => Inst::SET(1, Dst8::A, 8),                          // SET 1, A
+            0xD0 => Inst::SET(2, Dst8::B, 8),                          // SET 2, B
+            0xD1 => Inst::SET(2, Dst8::C, 8),                          // SET 2, C
+            0xD2 => Inst::SET(2, Dst8::D, 8),                          // SET 2, D
+            0xD3 => Inst::SET(2, Dst8::E, 8),                          // SET 2, E
+            0xD4 => Inst::SET(2, Dst8::H, 8),                          // SET 2, H
+            0xD5 => Inst::SET(2, Dst8::L, 8),                          // SET 2, L
+            0xD6 => Inst::SET(2, Dst8::HLContents, 16),                // SET 2, (HL)
+            0xD7 => Inst::SET(2, Dst8::A, 8),                          // SET 2, A
+            0xD8 => Inst::SET(3, Dst8::B, 8),                          // SET 3, B
+            0xD9 => Inst::SET(3, Dst8::C, 8),                          // SET 3, C
+            0xDA => Inst::SET(3, Dst8::D, 8),                          // SET 3, D
+            0xDB => Inst::SET(3, Dst8::E, 8),                          // SET 3, E
+            0xDC => Inst::SET(3, Dst8::H, 8),                          // SET 3, H
+            0xDD => Inst::SET(3, Dst8::L, 8),                          // SET 3, L
+            0xDE => Inst::SET(3, Dst8::HLContents, 16),                // SET 3, (HL)
+            0xDF => Inst::SET(3, Dst8::A, 8),                          // SET 3, A
+            0xE0 => Inst::SET(4, Dst8::B, 8),                          // SET 4, B
+            0xE1 => Inst::SET(4, Dst8::C, 8),                          // SET 4, C
+            0xE2 => Inst::SET(4, Dst8::D, 8),                          // SET 4, D
+            0xE3 => Inst::SET(4, Dst8::E, 8),                          // SET 4, E
+            0xE4 => Inst::SET(4, Dst8::H, 8),                          // SET 4, H
+            0xE5 => Inst::SET(4, Dst8::L, 8),                          // SET 4, L
+            0xE6 => Inst::SET(4, Dst8::HLContents, 16),                // SET 4, (HL)
+            0xE7 => Inst::SET(4, Dst8::A, 8),                          // SET 4, A
+            0xE8 => Inst::SET(5, Dst8::B, 8),                          // SET 5, B
+            0xE9 => Inst::SET(5, Dst8::C, 8),                          // SET 5, C
+            0xEA => Inst::SET(5, Dst8::D, 8),                          // SET 5, D
+            0xEB => Inst::SET(5, Dst8::E, 8),                          // SET 5, E
+            0xEC => Inst::SET(5, Dst8::H, 8),                          // SET 5, H
+            0xED => Inst::SET(5, Dst8::L, 8),                          // SET 5, L
+            0xEE => Inst::SET(5, Dst8::HLContents, 16),                // SET 5, (HL)
+            0xEF => Inst::SET(5, Dst8::A, 8),                          // SET 5, A
+            0xF0 => Inst::SET(6, Dst8::B, 8),                          // SET 6, B
+            0xF1 => Inst::SET(6, Dst8::C, 8),                          // SET 6, C
+            0xF2 => Inst::SET(6, Dst8::D, 8),                          // SET 6, D
+            0xF3 => Inst::SET(6, Dst8::E, 8),                          // SET 6, E
+            0xF4 => Inst::SET(6, Dst8::H, 8),                          // SET 6, H
+            0xF5 => Inst::SET(6, Dst8::L, 8),                          // SET 6, L
+            0xF6 => Inst::SET(6, Dst8::HLContents, 16),                // SET 6, (HL)
+            0xF7 => Inst::SET(6, Dst8::A, 8),                          // SET 6, A
+            0xF8 => Inst::SET(7, Dst8::B, 8),                          // SET 7, B
+            0xF9 => Inst::SET(7, Dst8::C, 8),                          // SET 7, C
+            0xFA => Inst::SET(7, Dst8::D, 8),                          // SET 7, D
+            0xFB => Inst::SET(7, Dst8::E, 8),                          // SET 7, E
+            0xFC => Inst::SET(7, Dst8::H, 8),                          // SET 7, H
+            0xFD => Inst::SET(7, Dst8::L, 8),                          // SET 7, L
+            0xFE => Inst::SET(7, Dst8::HLContents, 16),                // SET 7, (HL)
+            0xFF => Inst::SET(7, Dst8::A, 8),                          // SET 7, A
         }
     }
 
@@ -630,18 +630,15 @@ impl CPU {
             Inst::RLA(_) => self.rla(),
             Inst::RRCA(_) => self.rrca(),
             Inst::RRA(_) => self.rra(),
-            Inst::RLC(_, _) => self.rlc(),
-            Inst::RL(_, _) => self.rl(),
-            Inst::RRC(_, _) => self.rrc(),
+            Inst::RLC(dst, _) => self.rlc(dst),
+            Inst::RL(dst, _) => self.rl(dst),
+            Inst::RRC(dst, _) => self.rrc(dst),
             Inst::RR(dst, _) => self.rr(dst),
-            Inst::SLA(_, _) => self.sla(),
+            Inst::SLA(dst, _) => self.sla(dst),
             Inst::SRA(dst, _) => self.sra(dst),
             Inst::SRL(dst, _) => self.srl(dst),
             Inst::BIT(b, test, _) => self.cb_bit(test, b),
-            Inst::SETN(dst, _) => {
-                let b = self.fetch_byte();
-                self.cb_set(dst, b);
-            }
+            Inst::SETN(dst, _) => self.cb_set(dst, self.peek_byte()),
             Inst::SET(b, dst, _) => self.cb_set(dst, b),
             Inst::RES(b, dst, _) => self.cb_reset(dst, b),
             Inst::JP(src, _) => self.jp(src),
@@ -649,6 +646,8 @@ impl CPU {
                 if self.reg.check_flag(flag) == desired_state {
                     self.jp(src);
                     cycles += 4
+                } else {
+                    self.reg.pc += 2;
                 }
             }
             Inst::JR(_) => {
@@ -752,18 +751,15 @@ impl CPU {
 
     fn alu_adc(&mut self, src: Src8) {
         let val = self.get_8(src);
-        let addend = if self.reg.check_flag(Flags::C) {
-            val.wrapping_add(1)
-        } else {
-            val
-        };
+        let c = if self.reg.check_flag(Flags::C) { 1 } else { 0 };
         let old_reg_a = self.reg.a;
-        let res = self.reg.a.wrapping_add(addend);
+        let res = self.reg.a.wrapping_add(val).wrapping_add(c);
         self.reg.flag(Flags::Z, res == 0);
         self.reg.flag(Flags::N, false);
-        // FIX: this seems sus
-        self.reg.flag(Flags::H, half_carry(old_reg_a, addend));
-        self.reg.flag(Flags::C, carry(old_reg_a, addend));
+        let hc = (old_reg_a & 0xF) + (val & 0xF) + c > 0xF;
+        let c = (old_reg_a as u16) + (val as u16) + (c as u16) > 0xFF;
+        self.reg.flag(Flags::H, hc);
+        self.reg.flag(Flags::C, c);
         self.reg.a = res;
     }
 
@@ -778,8 +774,18 @@ impl CPU {
         self.reg.a = res;
     }
 
-    fn alu_sbc(&mut self, _src: Src8) {
-        todo!("alu sbc")
+    fn alu_sbc(&mut self, src: Src8) {
+        let old_reg_a = self.reg.a;
+        let c = if self.reg.check_flag(Flags::C) { 1 } else { 0 };
+        let b = self.get_8(src);
+        let res = self.reg.a.wrapping_sub(b).wrapping_sub(c);
+        let hc = (old_reg_a & 0xF) < ((b & 0xF) + c);
+        let c = (old_reg_a as u16) < ((b as u16) + (c as u16));
+        self.reg.flag(Flags::Z, res == 0);
+        self.reg.flag(Flags::N, true);
+        self.reg.flag(Flags::H, hc);
+        self.reg.flag(Flags::C, c);
+        self.reg.a = res;
     }
 
     /// AND reg A with `val`
@@ -869,13 +875,10 @@ impl CPU {
         self.set_16(dst, res);
     }
 
+    // NOTE: seems weird that this doesn't modify flags??
     fn alu_dec_16(&mut self, dst: Dst16) {
         let val = self.get_16(dst.to_src());
         let res = val.wrapping_sub(1);
-        self.reg.flag(Flags::Z, res == 0);
-        self.reg.flag(Flags::N, true);
-        // FIX: is this okay?
-        self.reg.flag(Flags::H, half_carry_16(val, res));
         self.set_16(dst, res);
     }
 }
@@ -895,8 +898,35 @@ impl CPU {
         self.set_8(dst, res);
     }
 
+    // TODO: this is wild
+    // Source: mvdnes/rboy
     fn daa(&mut self) {
-        unimplemented!("DAA")
+        let mut a = self.reg.a;
+        // XXX: gotta explain this
+        let mut adjust = if self.reg.check_flag(Flags::C) {
+            0x60
+        } else {
+            0x00
+        };
+        if self.reg.check_flag(Flags::H) {
+            adjust |= 0x06
+        }
+        if !self.reg.check_flag(Flags::N) {
+            if a & 0x0F > 0x09 {
+                adjust |= 0x06
+            }
+            if a > 0x99 {
+                adjust |= 0x60
+            }
+            a = a.wrapping_add(adjust)
+        } else {
+            a = a.wrapping_sub(adjust)
+        }
+
+        self.reg.flag(Flags::Z, a == 0);
+        self.reg.flag(Flags::H, false);
+        self.reg.flag(Flags::C, adjust >= 0x60);
+        self.reg.a = a;
     }
 
     fn cpl(&mut self) {
@@ -942,51 +972,71 @@ impl CPU {
 // 3.3.6: Rotates & shifts
 impl CPU {
     fn rlca(&mut self) {
-        // TODO: look this over again
-        self.reg.flag(Flags::C, (self.reg.a & 0b1000) == 0b1000);
-        self.reg.a <<= 1;
-        // Don't think we can be clever and inline this. Don't want to reset Zero flag
-        if self.reg.a == 0 {
-            self.reg.flag(Flags::Z, true);
-        }
+        self.rlc(Dst8::A);
+        // Disagrees with manual but appears to be correct
+        self.reg.flag(Flags::Z, false);
     }
 
     fn rla(&mut self) {
-        unimplemented!("rla")
+        self.rl(Dst8::A);
+        // Disagrees with manual but appears to be correct
+        self.reg.flag(Flags::Z, false);
     }
 
     // TODO: look at how the zero flag is set
     fn rrca(&mut self) {
-        self.reg.flag(Flags::C, (self.reg.a & 0b0001) == 0b0001);
-        self.reg.a >>= 1;
-        if self.reg.a == 0 {
-            self.reg.flag(Flags::Z, true);
-        }
+        self.rrc(Dst8::A);
+        self.reg.flag(Flags::Z, false);
     }
 
     fn rra(&mut self) {
         self.rr(Dst8::A);
+        // Disagrees with manual but appears to be correct
+        self.reg.flag(Flags::Z, false);
     }
 
-    fn rlc(&mut self) {
-        unimplemented!("rlc")
+    fn rlc(&mut self, dst: Dst8) {
+        let src = self.get_8(dst.to_src());
+        // TODO: look this over again
+        self.reg.flag(Flags::C, (src & 0x80) == 0x80);
+        self.reg.flag(Flags::H, false);
+        self.reg.flag(Flags::N, false);
+        let res = src.rotate_left(1);
+        self.reg.flag(Flags::Z, res == 0);
+        self.set_8(dst, res);
     }
 
-    fn rl(&mut self) {
-        unimplemented!("rl")
+    fn rl(&mut self, dst: Dst8) {
+        let src = self.get_8(dst.to_src());
+        let through: u8 = if self.reg.check_flag(Flags::C) {
+            1
+        } else {
+            0x00
+        };
+        let res = through | src << 1;
+        self.reg.flag(Flags::Z, res == 0);
+        self.reg.flag(Flags::N, false);
+        self.reg.flag(Flags::H, false);
+        self.reg.flag(Flags::C, src & 0x80 == 0x80);
+        self.set_8(dst, res);
     }
 
-    fn rrc(&mut self) {
-        unimplemented!("rrc")
+    fn rrc(&mut self, dst: Dst8) {
+        let src = self.get_8(dst.to_src());
+        let res = src.rotate_right(1);
+        self.reg.flag(Flags::Z, res == 0);
+        self.reg.flag(Flags::N, false);
+        self.reg.flag(Flags::H, false);
+        self.reg.flag(Flags::C, src & 0x01 == 0x01);
+        self.set_8(dst, res);
     }
 
     fn rr(&mut self, dst: Dst8) {
         let src = self.get_8(dst.to_src());
         let old_bit_0 = src & 0x1;
+
         let through: u8 = if self.reg.check_flag(Flags::C) {
-            // XXX: WTF why??~
-            0x80
-            // Flags::C.into()
+            1 << 7
         } else {
             0x00
         };
@@ -998,18 +1048,26 @@ impl CPU {
         self.set_8(dst, res);
     }
 
-    fn sla(&mut self) {
-        unimplemented!("sla")
+    fn sla(&mut self, dst: Dst8) {
+        let src = self.get_8(dst.to_src());
+        let old_bit_7 = src & 0x80;
+        let res = src << 1;
+        self.reg.flag(Flags::Z, res == 0);
+        self.reg.flag(Flags::N, false);
+        self.reg.flag(Flags::H, false);
+        self.reg.flag(Flags::C, old_bit_7 == 0x80);
+        self.set_8(dst, res);
     }
 
     fn sra(&mut self, dst: Dst8) {
         let src = self.get_8(dst.to_src());
         let old_bit_0 = src & 0x1;
-        let res = src >> 1;
+        let res = src >> 1 | (src & 0x80);
         self.reg.flag(Flags::Z, res == 0);
         self.reg.flag(Flags::N, false);
         self.reg.flag(Flags::H, false);
         self.reg.flag(Flags::C, old_bit_0 == 1);
+        self.set_8(dst, res);
     }
 
     fn srl(&mut self, dst: Dst8) {
@@ -1045,9 +1103,12 @@ impl CPU {
     }
 
     /// Reset bit b in register `reg`
-    fn cb_reset(&mut self, _dst: Dst8, bit: u8) {
+    fn cb_reset(&mut self, dst: Dst8, bit: u8) {
         assert!(bit <= 7);
-        todo!()
+        let val = self.get_8(dst.to_src());
+        let mask: u8 = 0b1111_1110;
+        let res = val & mask.rotate_left(bit as u32);
+        self.set_8(dst, res);
     }
 }
 

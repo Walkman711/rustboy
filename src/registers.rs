@@ -17,10 +17,10 @@ pub enum Flags {
 impl Into<u8> for Flags {
     fn into(self) -> u8 {
         match self {
-            Flags::Z => 1 << 7,
-            Flags::N => 1 << 6,
-            Flags::H => 1 << 5,
-            Flags::C => 1 << 4,
+            Flags::Z => 0b1000_0000,
+            Flags::N => 0b0100_0000,
+            Flags::H => 0b0010_0000,
+            Flags::C => 0b0001_0000,
         }
     }
 }

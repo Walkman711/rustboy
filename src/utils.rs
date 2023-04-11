@@ -15,7 +15,7 @@ pub fn half_carry_sub(a: u8, b: u8) -> bool {
 
 // TODO: test
 pub fn half_carry_16(a: u16, b: u16) -> bool {
-    (((a & 0x0F00) + (b & 0x0F00)) & (1 << 12)) == (1 << 12)
+    (((a & 0x0FFF) + (b & 0x0FFF)) & (1 << 12)) == (1 << 12)
 }
 
 pub fn half_carry_16_sub(a: u16, b: u16) -> bool {
