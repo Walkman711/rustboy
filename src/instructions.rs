@@ -4,7 +4,7 @@ use crate::registers::Flags;
 pub enum Inst {
     // 3.3.1: 8-bit loads
     LD8(Dst8, Src8, u32),
-    LDD(u32),
+    LDD(Dst8, Src8, u32),
     LDI(Dst8, Src8, u32),
     // 3.3.2: 16-bit loads
     LD16(Dst16, Src16, u32),
@@ -77,7 +77,7 @@ impl Inst {
     pub fn cycles(&self) -> u32 {
         match self {
             Inst::LD8(_, _, cycles)
-            | Inst::LDD(cycles)
+            | Inst::LDD(_, _, cycles)
             | Inst::LDI(_, _, cycles)
             | Inst::LD16(_, _, cycles)
             | Inst::PUSH(_, cycles)
@@ -162,6 +162,24 @@ pub enum Dst8 {
     Addr(u16),
 }
 
+impl Dst8 {
+    // used for in-place modifies (e.x. INC or DEC)
+    pub fn to_src(&self) -> Src8 {
+        match self {
+            Dst8::A => Src8::A,
+            Dst8::F => Src8::F,
+            Dst8::B => Src8::B,
+            Dst8::C => Src8::C,
+            Dst8::D => Src8::D,
+            Dst8::E => Src8::E,
+            Dst8::H => Src8::H,
+            Dst8::L => Src8::L,
+            Dst8::HLContents => Src8::HLContents,
+            Dst8::Addr(addr) => Src8::Addr(*addr),
+        }
+    }
+}
+
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Src16 {
     AF,
@@ -183,4 +201,18 @@ pub enum Dst16 {
     HL,
     SP,
     Addr(u16),
+}
+
+impl Dst16 {
+    // used for in-place modifies (e.x. INC or DEC)
+    pub fn to_src(&self) -> Src16 {
+        match self {
+            Dst16::AF => Src16::AF,
+            Dst16::BC => Src16::BC,
+            Dst16::DE => Src16::DE,
+            Dst16::HL => Src16::HL,
+            Dst16::SP => Src16::SP,
+            Dst16::Addr(addr) => Src16::Addr(*addr),
+        }
+    }
 }
