@@ -22,7 +22,8 @@ pub enum Inst {
     INC(Dst8, u32),
     DEC(Dst8, u32),
     // 3.3.4: 16-bit ALU ops
-    ADD16(Dst16, Src16, u32),
+    // All 16-bit adds use HL as the DST
+    ADD16(Src16, u32),
     INC16(Dst16, u32),
     DEC16(Dst16, u32),
     // 3.3.5: Misc
@@ -49,7 +50,7 @@ pub enum Inst {
     SRA(Dst8, u32),
     SRL(Dst8, u32),
     // 3.3.7: Bit Opcodes
-    BIT(u8, Dst8, u32),
+    BIT(u8, Src8, u32),
     SETN(Dst8, u32),
     SET(u8, Dst8, u32),
     RES(u8, Dst8, u32),
@@ -91,7 +92,7 @@ impl Inst {
             | Inst::CP(_, cycles)
             | Inst::INC(_, cycles)
             | Inst::DEC(_, cycles)
-            | Inst::ADD16(_, _, cycles)
+            | Inst::ADD16(_, cycles)
             | Inst::INC16(_, cycles)
             | Inst::DEC16(_, cycles)
             | Inst::SWAP(_, cycles)
@@ -168,6 +169,7 @@ pub enum Src16 {
     DE,
     HL,
     SP,
+    N,
     NN,
     Addr(u16),
 }
