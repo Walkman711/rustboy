@@ -30,7 +30,7 @@ impl CPU {
 
     fn debug_step(&self, opcode: u8) {
         println!("==========STEP==========");
-        println!("exec {:#02x}", opcode);
+        println!("exec {:#04x}", opcode);
         println!("{}", self.reg);
         println!("clock: {}", self.clock);
         println!("\n\n\n\n");
@@ -93,7 +93,7 @@ pub enum Instruction {
     JP(Src16, u32),
     JPC(Src16, Flags, bool, u32),
     // 3.3.9: Calls
-    CALL(u16, Flags, bool, u32),
+    CALL(Src16, Flags, bool, u32),
     // 3.3.10: Restarts
     RST(u8, u32),
     // 3.3.11: Returns
@@ -159,8 +159,8 @@ impl CPU {
             // Fetch
             let opcode = self.fetch_byte();
             self.debug_step(opcode);
-            // let inst = self.decode(opcode);
-            // dbg!(inst);
+            let inst = self.decode(opcode);
+            dbg!(inst);
             // Decode & Execute
             let cycles_elapsed: u32 = self.call(opcode).into();
             self.clock += cycles_elapsed;
@@ -613,6 +613,267 @@ impl CPU {
 
     fn write_hl_byte(&mut self, byte: u8) {
         self.mmu.write_byte(self.reg.hl(), byte)
+    }
+
+    fn decode(&mut self, opcode: u8) -> Instruction {
+        match opcode {
+            0x00 => Instruction::NOP(4),                               // NOP
+            0x01 => todo!("{:#04x}", opcode),                          // LD BC,d16
+            0x02 => todo!("{:#04x}", opcode),                          // LD (BC),A
+            0x03 => todo!("{:#04x}", opcode),                          // INC BC
+            0x04 => todo!("{:#04x}", opcode),                          // INC B
+            0x05 => todo!("{:#04x}", opcode),                          // DEC B
+            0x06 => todo!("{:#04x}", opcode),                          // LD B,d8
+            0x07 => Instruction::RLCA(4),                              // RLCA
+            0x08 => todo!("{:#04x}", opcode),                          // LD (a16),SP
+            0x09 => todo!("{:#04x}", opcode),                          // ADD HL,BC
+            0x0A => todo!("{:#04x}", opcode),                          // LD A,(BC)
+            0x0B => todo!("{:#04x}", opcode),                          // DEC BC
+            0x0C => todo!("{:#04x}", opcode),                          // INC C
+            0x0D => todo!("{:#04x}", opcode),                          // DEC C
+            0x0E => todo!("{:#04x}", opcode),                          // LD C,d8
+            0x0F => Instruction::RRCA(4),                              // RRCA
+            0x10 => Instruction::STOP(4),                              // STOP
+            0x11 => todo!("{:#04x}", opcode),                          // LD DE,d16
+            0x12 => todo!("{:#04x}", opcode),                          // LD (DE),A
+            0x13 => todo!("{:#04x}", opcode),                          // INC DE
+            0x14 => todo!("{:#04x}", opcode),                          // INC D
+            0x15 => todo!("{:#04x}", opcode),                          // DEC D
+            0x16 => todo!("{:#04x}", opcode),                          // LD D,d8
+            0x17 => Instruction::RLA(4),                               // RLA
+            0x18 => todo!("{:#04x}", opcode),                          // JR r8
+            0x19 => todo!("{:#04x}", opcode),                          // ADD HL,DE
+            0x1A => todo!("{:#04x}", opcode),                          // LD A,(DE)
+            0x1B => todo!("{:#04x}", opcode),                          // DEC DE
+            0x1C => todo!("{:#04x}", opcode),                          // INC E
+            0x1D => todo!("{:#04x}", opcode),                          // DEC E
+            0x1E => todo!("{:#04x}", opcode),                          // LD E,d8
+            0x1F => Instruction::RRA(4),                               // RRA
+            0x20 => todo!("{:#04x}", opcode),                          // JR NZ,r8
+            0x21 => todo!("{:#04x}", opcode),                          // LD HL,d16
+            0x22 => todo!("{:#04x}", opcode),                          // LD (HL+),A
+            0x23 => todo!("{:#04x}", opcode),                          // INC HL
+            0x24 => todo!("{:#04x}", opcode),                          // INC H
+            0x25 => todo!("{:#04x}", opcode),                          // DEC H
+            0x26 => todo!("{:#04x}", opcode),                          // LD H,d8
+            0x27 => Instruction::DAA(4),                               // DAA
+            0x28 => todo!("{:#04x}", opcode),                          // JR Z,r8
+            0x29 => todo!("{:#04x}", opcode),                          // ADD HL,HL
+            0x2A => todo!("{:#04x}", opcode),                          // LD A,(HL+)
+            0x2B => todo!("{:#04x}", opcode),                          // DEC HL
+            0x2C => todo!("{:#04x}", opcode),                          // INC L
+            0x2D => todo!("{:#04x}", opcode),                          // DEC L
+            0x2E => todo!("{:#04x}", opcode),                          // LD L,d8
+            0x2F => Instruction::CPL(4),                               // CPL
+            0x30 => todo!("{:#04x}", opcode),                          // JR NC,r8
+            0x31 => todo!("{:#04x}", opcode),                          // LD SP,d16
+            0x32 => todo!("{:#04x}", opcode),                          // LD (HL-),A
+            0x33 => todo!("{:#04x}", opcode),                          // INC SP
+            0x34 => todo!("{:#04x}", opcode),                          // INC (HL)
+            0x35 => todo!("{:#04x}", opcode),                          // DEC (HL)
+            0x36 => todo!("{:#04x}", opcode),                          // LD (HL),d8
+            0x37 => Instruction::SCF(4),                               // SCF
+            0x38 => todo!("{:#04x}", opcode),                          // JR C,r8
+            0x39 => todo!("{:#04x}", opcode),                          // ADD HL,SP
+            0x3A => todo!("{:#04x}", opcode),                          // LD A,(HL-)
+            0x3B => todo!("{:#04x}", opcode),                          // DEC SP
+            0x3C => todo!("{:#04x}", opcode),                          // INC A
+            0x3D => todo!("{:#04x}", opcode),                          // DEC A
+            0x3E => todo!("{:#04x}", opcode),                          // LD A,d8
+            0x3F => Instruction::CCF(4),                               // CCF
+            0x40 => Instruction::LD8(Dst8::B, Src8::B, 4),             // LD B,B
+            0x41 => Instruction::LD8(Dst8::B, Src8::C, 4),             // LD B,C
+            0x42 => Instruction::LD8(Dst8::B, Src8::D, 4),             // LD B,D
+            0x43 => Instruction::LD8(Dst8::B, Src8::E, 4),             // LD B,E
+            0x44 => Instruction::LD8(Dst8::B, Src8::H, 4),             // LD B,H
+            0x45 => Instruction::LD8(Dst8::B, Src8::L, 4),             // LD B,L
+            0x46 => Instruction::LD8(Dst8::B, Src8::HLContents, 8),    // LD B,(HL)
+            0x47 => Instruction::LD8(Dst8::B, Src8::A, 4),             // LD B,A
+            0x48 => Instruction::LD8(Dst8::C, Src8::B, 4),             // LD C,B
+            0x49 => Instruction::LD8(Dst8::C, Src8::C, 4),             // LD C,C
+            0x4A => Instruction::LD8(Dst8::C, Src8::D, 4),             // LD C,D
+            0x4B => Instruction::LD8(Dst8::C, Src8::E, 4),             // LD C,E
+            0x4C => Instruction::LD8(Dst8::C, Src8::H, 4),             // LD C,H
+            0x4D => Instruction::LD8(Dst8::C, Src8::L, 4),             // LD C,L
+            0x4E => Instruction::LD8(Dst8::C, Src8::HLContents, 8),    // LD C,(HL)
+            0x4F => Instruction::LD8(Dst8::C, Src8::A, 4),             // LD C,A
+            0x50 => Instruction::LD8(Dst8::D, Src8::B, 4),             // LD D,B
+            0x51 => Instruction::LD8(Dst8::D, Src8::C, 4),             // LD D,C
+            0x52 => Instruction::LD8(Dst8::D, Src8::D, 4),             // LD D,D
+            0x53 => Instruction::LD8(Dst8::D, Src8::E, 4),             // LD D,E
+            0x54 => Instruction::LD8(Dst8::D, Src8::H, 4),             // LD D,H
+            0x55 => Instruction::LD8(Dst8::D, Src8::L, 4),             // LD D,L
+            0x56 => Instruction::LD8(Dst8::D, Src8::HLContents, 8),    // LD D,(HL)
+            0x57 => Instruction::LD8(Dst8::D, Src8::A, 4),             // LD D,A
+            0x58 => Instruction::LD8(Dst8::E, Src8::B, 4),             // LD E,B
+            0x59 => Instruction::LD8(Dst8::E, Src8::C, 4),             // LD E,C
+            0x5A => Instruction::LD8(Dst8::E, Src8::D, 4),             // LD E,D
+            0x5B => Instruction::LD8(Dst8::E, Src8::E, 4),             // LD E,E
+            0x5C => Instruction::LD8(Dst8::E, Src8::H, 4),             // LD E,H
+            0x5D => Instruction::LD8(Dst8::E, Src8::L, 4),             // LD E,L
+            0x5E => Instruction::LD8(Dst8::E, Src8::HLContents, 8),    // LD E,(HL)
+            0x5F => Instruction::LD8(Dst8::E, Src8::A, 4),             // LD E,A
+            0x60 => Instruction::LD8(Dst8::H, Src8::B, 4),             // LD H,B
+            0x61 => Instruction::LD8(Dst8::H, Src8::C, 4),             // LD H,C
+            0x62 => Instruction::LD8(Dst8::H, Src8::D, 4),             // LD H,D
+            0x63 => Instruction::LD8(Dst8::H, Src8::E, 4),             // LD H,E
+            0x64 => Instruction::LD8(Dst8::H, Src8::H, 4),             // LD H,H
+            0x65 => Instruction::LD8(Dst8::H, Src8::L, 4),             // LD H,L
+            0x66 => Instruction::LD8(Dst8::H, Src8::HLContents, 8),    // LD H,(HL)
+            0x67 => Instruction::LD8(Dst8::H, Src8::A, 4),             // LD H,A
+            0x68 => Instruction::LD8(Dst8::L, Src8::B, 4),             // LD L,B
+            0x69 => Instruction::LD8(Dst8::L, Src8::C, 4),             // LD L,C
+            0x6A => Instruction::LD8(Dst8::L, Src8::D, 4),             // LD L,D
+            0x6B => Instruction::LD8(Dst8::L, Src8::E, 4),             // LD L,E
+            0x6C => Instruction::LD8(Dst8::L, Src8::H, 4),             // LD L,H
+            0x6D => Instruction::LD8(Dst8::L, Src8::L, 4),             // LD L,L
+            0x6E => Instruction::LD8(Dst8::L, Src8::HLContents, 8),    // LD L,(HL)
+            0x6F => Instruction::LD8(Dst8::L, Src8::A, 4),             // LD L,A
+            0x70 => Instruction::LD8(Dst8::HLContents, Src8::B, 8),    // LD (HL),B
+            0x71 => Instruction::LD8(Dst8::HLContents, Src8::C, 8),    // LD (HL),C
+            0x72 => Instruction::LD8(Dst8::HLContents, Src8::D, 8),    // LD (HL),D
+            0x73 => Instruction::LD8(Dst8::HLContents, Src8::E, 8),    // LD (HL),E
+            0x74 => Instruction::LD8(Dst8::HLContents, Src8::H, 8),    // LD (HL),H
+            0x75 => Instruction::LD8(Dst8::HLContents, Src8::L, 8),    // LD (HL),L
+            0x76 => Instruction::HALT(4),                              // HALT
+            0x77 => Instruction::LD8(Dst8::HLContents, Src8::A, 8),    // LD (HL),A
+            0x78 => Instruction::LD8(Dst8::A, Src8::B, 4),             // LD A,B
+            0x79 => Instruction::LD8(Dst8::A, Src8::C, 4),             // LD A,C
+            0x7A => Instruction::LD8(Dst8::A, Src8::D, 4),             // LD A,D
+            0x7B => Instruction::LD8(Dst8::A, Src8::E, 4),             // LD A,E
+            0x7C => Instruction::LD8(Dst8::A, Src8::H, 4),             // LD A,H
+            0x7D => Instruction::LD8(Dst8::A, Src8::L, 4),             // LD A,L
+            0x7E => Instruction::LD8(Dst8::A, Src8::HLContents, 8),    // LD A,(HL)
+            0x7F => Instruction::LD8(Dst8::A, Src8::A, 4),             // LD A,A
+            0x80 => Instruction::ADD(Src8::B, 4),                      // ADD A,B
+            0x81 => Instruction::ADD(Src8::C, 4),                      // ADD A,C
+            0x82 => Instruction::ADD(Src8::D, 4),                      // ADD A,D
+            0x83 => Instruction::ADD(Src8::E, 4),                      // ADD A,E
+            0x84 => Instruction::ADD(Src8::H, 4),                      // ADD A,H
+            0x85 => Instruction::ADD(Src8::L, 4),                      // ADD A,L
+            0x86 => Instruction::ADD(Src8::HLContents, 8),             // ADD A,(HL)
+            0x87 => Instruction::ADD(Src8::A, 4),                      // ADD A,A
+            0x88 => Instruction::ADC(Src8::B, 4),                      // ADC A,B
+            0x89 => Instruction::ADC(Src8::C, 4),                      // ADC A,C
+            0x8A => Instruction::ADC(Src8::D, 4),                      // ADC A,D
+            0x8B => Instruction::ADC(Src8::E, 4),                      // ADC A,E
+            0x8C => Instruction::ADC(Src8::H, 4),                      // ADC A,H
+            0x8D => Instruction::ADC(Src8::L, 4),                      // ADC A,L
+            0x8E => Instruction::ADC(Src8::HLContents, 8),             // ADC A,(HL)
+            0x8F => Instruction::ADC(Src8::A, 4),                      // ADC A,A
+            0x90 => Instruction::SUB(Src8::B, 4),                      // SUB B
+            0x91 => Instruction::SUB(Src8::C, 4),                      // SUB C
+            0x92 => Instruction::SUB(Src8::D, 4),                      // SUB D
+            0x93 => Instruction::SUB(Src8::E, 4),                      // SUB E
+            0x94 => Instruction::SUB(Src8::H, 4),                      // SUB H
+            0x95 => Instruction::SUB(Src8::L, 4),                      // SUB L
+            0x96 => Instruction::SUB(Src8::HLContents, 8),             // SUB (HL)
+            0x97 => Instruction::SUB(Src8::A, 4),                      // SUB A
+            0x98 => Instruction::SBC(Src8::B, 4),                      // SBC A,B
+            0x99 => Instruction::SBC(Src8::C, 4),                      // SBC A,C
+            0x9A => Instruction::SBC(Src8::D, 4),                      // SBC A,D
+            0x9B => Instruction::SBC(Src8::E, 4),                      // SBC A,E
+            0x9C => Instruction::SBC(Src8::H, 4),                      // SBC A,H
+            0x9D => Instruction::SBC(Src8::L, 4),                      // SBC A,L
+            0x9E => Instruction::SBC(Src8::HLContents, 8),             // SBC A,(HL)
+            0x9F => Instruction::SBC(Src8::A, 4),                      // SBC A,A
+            0xA0 => Instruction::AND(Src8::B, 4),                      // AND B
+            0xA1 => Instruction::AND(Src8::C, 4),                      // AND C
+            0xA2 => Instruction::AND(Src8::D, 4),                      // AND D
+            0xA3 => Instruction::AND(Src8::E, 4),                      // AND E
+            0xA4 => Instruction::AND(Src8::H, 4),                      // AND H
+            0xA5 => Instruction::AND(Src8::L, 4),                      // AND L
+            0xA6 => Instruction::AND(Src8::HLContents, 8),             // AND (HL)
+            0xA7 => Instruction::AND(Src8::A, 4),                      // AND A
+            0xA8 => Instruction::XOR(Src8::B, 4),                      // XOR B
+            0xA9 => Instruction::XOR(Src8::C, 4),                      // XOR C
+            0xAA => Instruction::XOR(Src8::D, 4),                      // XOR D
+            0xAB => Instruction::XOR(Src8::E, 4),                      // XOR E
+            0xAC => Instruction::XOR(Src8::H, 4),                      // XOR H
+            0xAD => Instruction::XOR(Src8::L, 4),                      // XOR L
+            0xAE => Instruction::XOR(Src8::HLContents, 8),             // XOR (HL)
+            0xAF => Instruction::XOR(Src8::A, 4),                      // XOR A
+            0xB0 => Instruction::OR(Src8::B, 4),                       // OR B
+            0xB1 => Instruction::OR(Src8::C, 4),                       // OR C
+            0xB2 => Instruction::OR(Src8::D, 4),                       // OR D
+            0xB3 => Instruction::OR(Src8::E, 4),                       // OR E
+            0xB4 => Instruction::OR(Src8::H, 4),                       // OR H
+            0xB5 => Instruction::OR(Src8::L, 4),                       // OR L
+            0xB6 => Instruction::OR(Src8::HLContents, 8),              // OR (HL)
+            0xB7 => Instruction::OR(Src8::A, 4),                       // OR A
+            0xB8 => Instruction::CP(Src8::B, 4),                       // CP B
+            0xB9 => Instruction::CP(Src8::C, 4),                       // CP C
+            0xBA => Instruction::CP(Src8::D, 4),                       // CP D
+            0xBB => Instruction::CP(Src8::E, 4),                       // CP E
+            0xBC => Instruction::CP(Src8::H, 4),                       // CP H
+            0xBD => Instruction::CP(Src8::L, 4),                       // CP L
+            0xBE => Instruction::CP(Src8::HLContents, 8),              // CP (HL)
+            0xBF => Instruction::CP(Src8::A, 4),                       // CP A
+            0xC0 => Instruction::RETC(Flags::Z, false, 8),             // RET NZ
+            0xC1 => Instruction::POP(Dst16::BC, 12),                   // POP BC
+            0xC2 => Instruction::JPC(Src16::NN, Flags::Z, false, 12),  // JP NZ,a16
+            0xC3 => Instruction::JP(Src16::NN, 12),                    // JP a16
+            0xC4 => Instruction::CALL(Src16::NN, Flags::Z, false, 12), // CALL NZ,a16
+            0xC5 => Instruction::PUSH(Src16::BC, 16),                  // PUSH BC
+            0xC6 => Instruction::ADD(Src8::N, 8),                      // ADD A,d8
+            0xC7 => Instruction::RST(0x00, 32),                        // RST 00H
+            0xC8 => Instruction::RETC(Flags::Z, true, 8),              // RET Z
+            0xC9 => Instruction::RET(8),                               // RET
+            0xCA => todo!("{:#04x}", opcode),                          // JP Z,a16
+            0xCB => self.decode_cb(),                                  // CB prefix
+            0xCC => todo!("{:#04x}", opcode),                          // CALL Z,a16
+            0xCD => todo!("{:#04x}", opcode),                          // CALL a16
+            0xCE => todo!("{:#04x}", opcode),                          // ADC A,d8
+            0xCF => Instruction::RST(0x08, 32),                        // RST 08H
+            0xD0 => todo!("{:#04x}", opcode),                          // RET NC
+            0xD1 => Instruction::POP(Dst16::DE, 12),                   // POP DE
+            0xD2 => todo!("{:#04x}", opcode),                          // JP NC,a16
+            0xD3 => panic!("0xD3 is not a valid opcode"),              // -
+            0xD4 => todo!("{:#04x}", opcode),                          // CALL NC,a16
+            0xD5 => todo!("{:#04x}", opcode),                          // PUSH DE
+            0xD6 => todo!("{:#04x}", opcode),                          // SUB d8
+            0xD7 => Instruction::RST(0x10, 32),                        // RST 10H
+            0xD8 => todo!("{:#04x}", opcode),                          // RET C
+            0xD9 => Instruction::RETI(16),                             // RETI
+            0xDA => todo!("{:#04x}", opcode),                          // JP C,a16
+            0xDB => panic!("0xDB is not a valid opcode"),              // -
+            0xDC => todo!("{:#04x}", opcode),                          // CALL C,a16
+            0xDD => panic!("0xDD is not a valid opcode"),              // -
+            0xDE => todo!("{:#04x}", opcode),                          // SBC A,d8
+            0xDF => Instruction::RST(0x18, 32),                        // RST 18H
+            0xE0 => todo!("{:#04x}", opcode),                          // LDH (a8),A
+            0xE1 => Instruction::POP(Dst16::HL, 12),                   // POP HL
+            0xE2 => todo!("{:#04x}", opcode),                          // LD (C),A
+            0xE3 => panic!("0xE3 is not a valid opcode"),              // -
+            0xE4 => panic!("0xE4 is not a valid opcode"),              // -
+            0xE5 => todo!("{:#04x}", opcode),                          // PUSH HL
+            0xE6 => todo!("{:#04x}", opcode),                          // AND d8
+            0xE7 => Instruction::RST(0x20, 32),                        // RST 20H
+            0xE8 => todo!("{:#04x}", opcode),                          // ADD SP,r8
+            0xE9 => todo!("{:#04x}", opcode),                          // JP (HL)
+            0xEA => todo!("{:#04x}", opcode),                          // LD (a16),A
+            0xEB => panic!("0xEB is not a valid opcode"),              // -
+            0xEC => panic!("0xEC is not a valid opcode"),              // -
+            0xED => panic!("0xED is not a valid opcode"),              // -
+            0xEE => Instruction::XOR(Src8::N, 8),                      // XOR d8
+            0xEF => Instruction::RST(0x28, 32),                        // RST 28H
+            0xF0 => todo!("{:#04x}", opcode),                          // LDH A,(a8)
+            0xF1 => Instruction::POP(Dst16::AF, 12),                   // POP AF
+            0xF2 => todo!("{:#04x}", opcode),                          // LD A,(C)
+            0xF3 => Instruction::DI(4),                                // DI
+            0xF4 => panic!("0xF4 is not a valid opcode"),              // -
+            0xF5 => todo!("{:#04x}", opcode),                          // PUSH AF
+            0xF6 => Instruction::OR(Src8::N, 8),                       // OR d8
+            0xF7 => Instruction::RST(0x30, 32),                        // RST 30H
+            0xF8 => todo!("{:#04x}", opcode),                          // LD HL,SP+r8
+            0xF9 => todo!("{:#04x}", opcode),                          // LD SP,HL
+            0xFA => todo!("{:#04x}", opcode),                          // LD A,(a16)
+            0xFB => Instruction::EI(4),                                // EI
+            0xFC => panic!("0xFC is not a valid opcode"),              // -
+            0xFD => panic!("0xFD is not a valid opcode"),              // -
+            0xFE => todo!("{:#04x}", opcode),                          // CP d8
+            0xFF => Instruction::RST(0x38, 32),                        // RST 38H
+        }
     }
 
     // Returns cycles elapsed
@@ -1835,7 +2096,7 @@ impl CPU {
                 16
             }
             // XOR d8
-            0xEE16 => {
+            0xEE => {
                 let n = self.fetch_byte();
                 self.alu_xor(n);
                 8
@@ -1911,6 +2172,7 @@ impl CPU {
             0xD3 | 0xDB | 0xDD | 0xE3 | 0xE4 | 0xEB | 0xEC | 0xED | 0xF4 | 0xFC | 0xFD => {
                 panic!("{opcode} is not a valid opcode")
             }
+            238 => todo!(),
         }
     }
 
@@ -1932,7 +2194,7 @@ impl CPU {
             0x0C => Instruction::RRC(Dst8::H, 8),            // RRC H
             0x0D => Instruction::RRC(Dst8::L, 8),            // RRC L
             0x0E => Instruction::RRC(Dst8::HLContents, 16),  // RRC (HL)
-            0x0E => Instruction::RRC(Dst8::A, 8),            // RRC A
+            0x0F => Instruction::RRC(Dst8::A, 8),            // RRC A
             0x10 => Instruction::RL(Dst8::B, 8),             // RL B
             0x11 => Instruction::RL(Dst8::C, 8),             // RL C
             0x12 => Instruction::RL(Dst8::D, 8),             // RL D
@@ -2019,7 +2281,7 @@ impl CPU {
             0x4B => Instruction::BIT(1, Dst8::E, 8), // BIT 1, E
             0x4C => Instruction::BIT(1, Dst8::H, 8), // BIT 1, H
             0x4D => Instruction::BIT(1, Dst8::L, 8), // BIT 1, L
-            0x4E => Instruction::BIT(1, Dst8::Addr(self.reg.hl()), 16), // BIT 1, (HL)
+            0x4E => Instruction::BIT(1, Dst8::HLContents, 16), // BIT 1, (HL)
             0x4F => Instruction::BIT(1, Dst8::A, 8), // BIT 1, A
             0x50 => Instruction::BIT(2, Dst8::B, 8), // BIT 2, B
             0x51 => Instruction::BIT(2, Dst8::C, 8), // BIT 2, C
@@ -2027,7 +2289,7 @@ impl CPU {
             0x53 => Instruction::BIT(2, Dst8::E, 8), // BIT 2, E
             0x54 => Instruction::BIT(2, Dst8::H, 8), // BIT 2, H
             0x55 => Instruction::BIT(2, Dst8::L, 8), // BIT 2, L
-            0x56 => Instruction::BIT(2, Dst8::Addr(self.reg.hl()), 16), // BIT 2, (HL)
+            0x56 => Instruction::BIT(2, Dst8::HLContents, 16), // BIT 2, (HL)
             0x57 => Instruction::BIT(2, Dst8::A, 8), // BIT 2, A
             0x58 => Instruction::BIT(3, Dst8::B, 8), // BIT 3, B
             0x59 => Instruction::BIT(3, Dst8::C, 8), // BIT 3, C
@@ -2035,7 +2297,7 @@ impl CPU {
             0x5B => Instruction::BIT(3, Dst8::E, 8), // BIT 3, E
             0x5C => Instruction::BIT(3, Dst8::H, 8), // BIT 3, H
             0x5D => Instruction::BIT(3, Dst8::L, 8), // BIT 3, L
-            0x5E => Instruction::BIT(3, Dst8::Addr(self.reg.hl()), 16), // BIT 3, (HL)
+            0x5E => Instruction::BIT(3, Dst8::HLContents, 16), // BIT 3, (HL)
             0x5F => Instruction::BIT(3, Dst8::A, 8), // BIT 3, A
             0x60 => Instruction::BIT(4, Dst8::B, 8), // BIT 4, B
             0x61 => Instruction::BIT(4, Dst8::C, 8), // BIT 4, C
@@ -2043,7 +2305,7 @@ impl CPU {
             0x63 => Instruction::BIT(4, Dst8::E, 8), // BIT 4, E
             0x64 => Instruction::BIT(4, Dst8::H, 8), // BIT 4, H
             0x65 => Instruction::BIT(4, Dst8::L, 8), // BIT 4, L
-            0x66 => Instruction::BIT(4, Dst8::Addr(self.reg.hl()), 16), // BIT 4, (HL)
+            0x66 => Instruction::BIT(4, Dst8::HLContents, 16), // BIT 4, (HL)
             0x67 => Instruction::BIT(4, Dst8::A, 8), // BIT 4, A
             0x68 => Instruction::BIT(5, Dst8::B, 8), // BIT 5, B
             0x69 => Instruction::BIT(5, Dst8::C, 8), // BIT 5, C
@@ -2051,7 +2313,7 @@ impl CPU {
             0x6B => Instruction::BIT(5, Dst8::E, 8), // BIT 5, E
             0x6C => Instruction::BIT(5, Dst8::H, 8), // BIT 5, H
             0x6D => Instruction::BIT(5, Dst8::L, 8), // BIT 5, L
-            0x6E => Instruction::BIT(5, Dst8::Addr(self.reg.hl()), 16), // BIT 5, (HL)
+            0x6E => Instruction::BIT(5, Dst8::HLContents, 16), // BIT 5, (HL)
             0x6F => Instruction::BIT(5, Dst8::A, 8), // BIT 5, A
             0x70 => Instruction::BIT(6, Dst8::B, 8), // BIT 6, B
             0x71 => Instruction::BIT(6, Dst8::C, 8), // BIT 6, C
@@ -2059,7 +2321,7 @@ impl CPU {
             0x73 => Instruction::BIT(6, Dst8::E, 8), // BIT 6, E
             0x74 => Instruction::BIT(6, Dst8::H, 8), // BIT 6, H
             0x75 => Instruction::BIT(6, Dst8::L, 8), // BIT 6, L
-            0x76 => Instruction::BIT(6, Dst8::Addr(self.reg.hl()), 16), // BIT 6, (HL)
+            0x76 => Instruction::BIT(6, Dst8::HLContents, 16), // BIT 6, (HL)
             0x77 => Instruction::BIT(6, Dst8::A, 8), // BIT 6, A
             0x78 => Instruction::BIT(7, Dst8::B, 8), // BIT 7, B
             0x79 => Instruction::BIT(7, Dst8::C, 8), // BIT 7, C
@@ -2067,11 +2329,11 @@ impl CPU {
             0x7B => Instruction::BIT(7, Dst8::E, 8), // BIT 7, E
             0x7C => Instruction::BIT(7, Dst8::H, 8), // BIT 7, H
             0x7D => Instruction::BIT(7, Dst8::L, 8), // BIT 7, L
-            0x7E => Instruction::BIT(7, Dst8::Addr(self.reg.hl()), 16), // BIT 7, (HL)
+            0x7E => Instruction::BIT(7, Dst8::HLContents, 16), // BIT 7, (HL)
             0x7F => Instruction::BIT(7, Dst8::A, 8), // BIT 7, A
             0x80 => Instruction::RES(0, Dst8::B, 8), // RES 0, B
             0x81 => Instruction::RES(0, Dst8::C, 8), // RES 0, C
-            0x80 => Instruction::RES(0, Dst8::D, 8), // RES 0, D
+            0x82 => Instruction::RES(0, Dst8::D, 8), // RES 0, D
             0x83 => Instruction::RES(0, Dst8::E, 8), // RES 0, E
             0x84 => Instruction::RES(0, Dst8::H, 8), // RES 0, H
             0x85 => Instruction::RES(0, Dst8::L, 8), // RES 0, L

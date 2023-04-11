@@ -100,15 +100,15 @@ pub struct Registers {
 impl Display for Registers {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "==========Registers==========")?;
-        writeln!(f, "Register A:  {:#02x}", self.a)?;
-        writeln!(f, "Register B:  {:#02x}", self.b)?;
-        writeln!(f, "Register C:  {:#02x}", self.c)?;
-        writeln!(f, "Register D:  {:#02x}", self.d)?;
-        writeln!(f, "Register E:  {:#02x}", self.e)?;
-        writeln!(f, "Register H:  {:#02x}", self.h)?;
-        writeln!(f, "Register L:  {:#02x}", self.l)?;
-        writeln!(f, "Stack Ptr:   {:#02x}", self.sp)?;
-        writeln!(f, "Program Ctr: {:#02x}", self.pc)?;
+        writeln!(f, "Register A:  {:#04x}", self.a)?;
+        writeln!(f, "Register B:  {:#04x}", self.b)?;
+        writeln!(f, "Register C:  {:#04x}", self.c)?;
+        writeln!(f, "Register D:  {:#04x}", self.d)?;
+        writeln!(f, "Register E:  {:#04x}", self.e)?;
+        writeln!(f, "Register H:  {:#04x}", self.h)?;
+        writeln!(f, "Register L:  {:#04x}", self.l)?;
+        writeln!(f, "Stack Ptr:   {:#04x}", self.sp)?;
+        writeln!(f, "Program Ctr: {:#04x}", self.pc)?;
         writeln!(f, "{}", self.f)?;
         Ok(())
     }
@@ -129,7 +129,8 @@ impl Default for Registers {
             h: 0x01,
             l: 0x4D,
             sp: 0xFFFE,
-            pc: 0,
+            // 3.2.3
+            pc: 0x0100,
         }
     }
 }

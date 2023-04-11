@@ -1,0 +1,22 @@
+```
+match opcode {
+    0x00 => unimplemented!(), // NOP
+    0x01 => unimplemented!(), // LD BC,d16
+    0x02 => unimplemented!(), // LD (BC),A
+    0x03 => unimplemented!(), // INC BC
+    0x04 => unimplemented!(), // INC B
+    0x05 => unimplemented!(), // DEC B
+    0x06 => unimplemented!(), // LD B,d8
+    0x07 => unimplemented!(), // RLCA
+    0x08 => unimplemented!(), // LD (a16),SP
+    0x09 => unimplemented!(), // ADD HL,BC
+    0x0A => unimplemented!(), // LD A,(BC)
+    0x0B => unimplemented!(), // DEC BC
+    0x0C => unimplemented!(), // INC C
+    0x0D => unimplemented!(), // DEC C
+    0x0E => unimplemented!(), // LD C,d8
+    0x0F => unimplemented!(), // RRCA
+    0x10 => unimplemented!(), // STOP
+    _ => panic!("Invalid opcode")
+}
+```
