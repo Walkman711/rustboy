@@ -280,7 +280,7 @@ impl CPU {
             0xC4 => Inst::CALLC(Flags::Z, false, 12),                          // CALL NZ,a16
             0xC5 => Inst::PUSH(Src16::BC, 16),                                 // PUSH BC
             0xC6 => Inst::ADD(Src8::N, 8),                                     // ADD A,d8
-            0xC7 => Inst::RST(0x00, 32),                                       // RST 00H
+            0xC7 => Inst::RST(JumpVector::Zero, 32),                           // RST 00H
             0xC8 => Inst::RETC(Flags::Z, true, 8),                             // RET Z
             0xC9 => Inst::RET(8),                                              // RET
             0xCA => Inst::JPC(Src16::NN, Flags::Z, true, 12),                  // JP Z,a16
@@ -288,44 +288,44 @@ impl CPU {
             0xCC => Inst::CALLC(Flags::Z, true, 12),                           // CALL Z,a16
             0xCD => Inst::CALL(24),                                            // CALL a16
             0xCE => Inst::ADC(Src8::N, 8),                                     // ADC A,d8
-            0xCF => Inst::RST(0x08, 32),                                       // RST 08H
+            0xCF => Inst::RST(JumpVector::Eight, 32),                          // RST 08H
             0xD0 => Inst::RETC(Flags::C, false, 8),                            // RET NC
             0xD1 => Inst::POP(Dst16::DE, 12),                                  // POP DE
             0xD2 => Inst::JPC(Src16::NN, Flags::C, false, 12),                 // JP NC,a16
             0xD4 => Inst::CALLC(Flags::C, false, 12),                          // CALL NC,a16
             0xD5 => Inst::PUSH(Src16::DE, 16),                                 // PUSH DE
             0xD6 => Inst::SUB(Src8::N, 8),                                     // SUB d8
-            0xD7 => Inst::RST(0x10, 32),                                       // RST 10H
+            0xD7 => Inst::RST(JumpVector::Ten, 32),                            // RST 10H
             0xD8 => Inst::RETC(Flags::C, true, 8),                             // RET C
             0xD9 => Inst::RETI(16),                                            // RETI
             0xDA => Inst::JPC(Src16::NN, Flags::C, true, 12),                  // JP C,a16
             0xDC => Inst::CALLC(Flags::C, true, 12),                           // CALL C,a16
             0xDE => Inst::SBC(Src8::N, 8),                                     // SBC A,d8
-            0xDF => Inst::RST(0x18, 32),                                       // RST 18H
+            0xDF => Inst::RST(JumpVector::Eighteen, 32),                       // RST 18H
             0xE0 => Inst::LD8(Dst8::Addr(0xFF00 + self.fetch_byte() as u16), Src8::A, 12), // LDH (a8),A
             0xE1 => Inst::POP(Dst16::HL, 12),                                              // POP HL
             0xE2 => Inst::LD8(Dst8::Addr(0xFF00 + (self.reg.c as u16)), Src8::A, 8), // LD (C),A
             0xE5 => Inst::PUSH(Src16::HL, 16),                                       // PUSH HL
             0xE6 => Inst::AND(Src8::N, 8),                                           // AND d8
-            0xE7 => Inst::RST(0x20, 32),                                             // RST 20H
+            0xE7 => Inst::RST(JumpVector::Twenty, 32),                               // RST 20H
             0xE8 => unimplemented!("{:#04x}", opcode),                               // ADD SP,r8
             0xE9 => Inst::JP(Src16::Imm(self.reg.hl()), 4),                          // JP (HL)
             0xEA => Inst::LD8(Dst8::Addr(self.fetch_word()), Src8::A, 16),           // LD (a16),A
             0xEE => Inst::XOR(Src8::N, 8),                                           // XOR d8
-            0xEF => Inst::RST(0x28, 32),                                             // RST 28H
+            0xEF => Inst::RST(JumpVector::TwentyEight, 32),                          // RST 28H
             0xF0 => Inst::LD8(Dst8::A, Src8::Addr(0xFF00 + self.fetch_byte() as u16), 12), // LDH A,(a8)
             0xF1 => Inst::POP(Dst16::AF, 12),                                              // POP AF
             0xF2 => Inst::LD8(Dst8::A, Src8::Addr(0xFF00 + (self.reg.c as u16)), 8), // LD A,(C)
             0xF3 => Inst::DI(4),                                                     // DI
             0xF5 => Inst::PUSH(Src16::AF, 16),                                       // PUSH AF
             0xF6 => Inst::OR(Src8::N, 8),                                            // OR d8
-            0xF7 => Inst::RST(0x30, 32),                                             // RST 30H
+            0xF7 => Inst::RST(JumpVector::Thirty, 32),                               // RST 30H
             0xF8 => unimplemented!("{:#04x}", opcode),                               // LD HL,SP+r8
             0xF9 => Inst::LD16(Dst16::SP, Src16::HL, 8),                             // LD SP,HL
             0xFA => Inst::LD8(Dst8::A, Src8::Addr(self.fetch_word()), 8),            // LD A,(a16)
             0xFB => Inst::EI(4),                                                     // EI
             0xFE => Inst::CP(Src8::N, 8),                                            // CP d8
-            0xFF => Inst::RST(0x38, 32),                                             // RST 38H
+            0xFF => Inst::RST(JumpVector::ThirtyEight, 32),                          // RST 38H
             0xD3 | 0xDB | 0xDD | 0xE3 | 0xE4 | 0xEB | 0xEC | 0xED | 0xF4 | 0xFC | 0xFD => {
                 panic!("{opcode} is not a valid opcode")
             }
@@ -983,9 +983,9 @@ impl CPU {
         self.reg.flag(Flags::Z, false);
     }
 
-    // TODO: look at how the zero flag is set
     fn rrca(&mut self) {
         self.rrc(Dst8::A);
+        // Disagrees with manual but appears to be correct
         self.reg.flag(Flags::Z, false);
     }
 
@@ -997,7 +997,6 @@ impl CPU {
 
     fn rlc(&mut self, dst: Dst8) {
         let src = self.get_8(dst.to_src());
-        // TODO: look this over again
         self.reg.flag(Flags::C, (src & 0x80) == 0x80);
         self.reg.flag(Flags::H, false);
         self.reg.flag(Flags::N, false);
@@ -1135,12 +1134,7 @@ impl CPU {
 // 3.3.10: Restarts
 impl CPU {
     /// Push present address onto stack. Jump to address 0x0000 + n.
-    fn rst(&mut self, incr: u8) {
-        let valid_incrs = vec![0x00, 0x08, 0x10, 0x18, 0x20, 0x28, 0x30, 0x38];
-        assert!(
-            valid_incrs.contains(&incr),
-            "Tried to restart with a bad value"
-        );
+    fn rst(&mut self, incr: JumpVector) {
         self.push_stack(self.reg.pc);
         self.reg.pc = 0x0000 + (incr as u16);
     }
@@ -1151,7 +1145,6 @@ impl CPU {
     /// Pop two bytes from stack and jump to that address
     fn ret(&mut self) {
         let addr = self.pop_stack();
-        // XXX: comment with why
         self.reg.pc = addr;
     }
 

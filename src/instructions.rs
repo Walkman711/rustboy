@@ -66,7 +66,7 @@ pub enum Inst {
     // FIX: all CALLC ops have different cycles depending on if the call happens
     CALLC(Flags, bool, u32),
     // 3.3.10: Restarts
-    RST(u8, u32),
+    RST(JumpVector, u32),
     // 3.3.11: Returns
     RET(u32),
     // TODO: consolidate with RET
@@ -218,6 +218,33 @@ impl Dst16 {
             Dst16::HL => Src16::HL,
             Dst16::SP => Src16::SP,
             Dst16::Addr(addr) => Src16::Addr(*addr),
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
+pub enum JumpVector {
+    Zero,
+    Eight,
+    Ten,
+    Eighteen,
+    Twenty,
+    TwentyEight,
+    Thirty,
+    ThirtyEight,
+}
+
+impl Into<u16> for JumpVector {
+    fn into(self) -> u16 {
+        match self {
+            JumpVector::Zero => 0x00,
+            JumpVector::Eight => 0x08,
+            JumpVector::Ten => 0x10,
+            JumpVector::Eighteen => 0x18,
+            JumpVector::Twenty => 0x20,
+            JumpVector::TwentyEight => 0x28,
+            JumpVector::Thirty => 0x30,
+            JumpVector::ThirtyEight => 0x38,
         }
     }
 }
