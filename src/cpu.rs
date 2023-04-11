@@ -28,9 +28,10 @@ impl CPU {
         }
     }
 
-    fn debug_step(&self, opcode: u8) {
+    fn debug_step(&self, opcode: u8, inst: Inst) {
         println!("==========STEP==========");
         println!("exec {:#04x}", opcode);
+        println!("{:?}", inst);
         println!("{}", self.reg);
         println!("clock: {}", self.clock);
         println!("\n\n\n\n");
@@ -42,371 +43,13 @@ impl CPU {
         loop {
             // Fetch
             let opcode = self.fetch_byte();
-            self.debug_step(opcode);
             // Decode
             let inst = self.decode(opcode);
-            dbg!(inst);
+            self.debug_step(opcode, inst);
             // Execute
             self.execute(inst);
             self.clock += inst.cycles();
         }
-    }
-
-    pub fn execute(&mut self, inst: Inst) {
-        match inst {
-            Inst::LD8(dst, src, _) => {
-                let s = self.get_8(src);
-                self.set_8(dst, s);
-            }
-            Inst::LDD(_) => todo!(),
-            Inst::LDI(_, _, _) => todo!(),
-            Inst::LD16(dst, src, _) => {
-                let s = self.get_16(src);
-                self.set_16(dst, s);
-            }
-            Inst::PUSH(src, _) => {
-                match src {
-                    Src16::NN | Src16::Addr(_) => {
-                        panic!("Tried to push a non-register onto the stack")
-                    }
-                    _ => {}
-                }
-                let s = self.get_16(src);
-                self.push_stack(s);
-            }
-            Inst::POP(dst, _) => {
-                let popped_value = self.pop_stack();
-                self.set_16(dst, popped_value);
-            }
-            Inst::ADD(src, _) => self.alu_add(src),
-            Inst::ADC(src, _) => self.alu_adc(src),
-            Inst::SUB(src, _) => self.alu_sub(src),
-            Inst::SBC(src, _) => self.alu_sbc(src),
-            Inst::AND(src, _) => self.alu_and(src),
-            Inst::OR(src, _) => self.alu_or(src),
-            Inst::XOR(src, _) => self.alu_xor(src),
-            Inst::CP(src, _) => self.alu_cp(src),
-            Inst::INC(_, _) => todo!(),
-            Inst::DEC(_, _) => todo!(),
-            Inst::ADD16(src, _) => self.alu_add_16(src),
-            Inst::INC16(_, _) => todo!(),
-            Inst::DEC16(_, _) => todo!(),
-            Inst::SWAP(dst, _) => todo!(),
-            Inst::DAA(_) => todo!(),
-            Inst::CPL(_) => {
-                // bitwise-complement operator (equivalent to '~' in C)
-                self.reg.a = !self.reg.a;
-                self.reg.flag(Flags::N, true);
-                self.reg.flag(Flags::H, true);
-            }
-            Inst::CCF(_) => {
-                self.reg.flag(Flags::N, false);
-                self.reg.flag(Flags::H, false);
-                let old_flag = self.reg.check_flag(Flags::C);
-                self.reg.flag(Flags::C, !old_flag);
-            }
-            Inst::SCF(_) => {
-                self.reg.flag(Flags::N, false);
-                self.reg.flag(Flags::H, false);
-                self.reg.flag(Flags::C, true);
-            }
-            Inst::NOP(_) => {}
-            Inst::HALT(_) => self.halted = true,
-            Inst::STOP(_) => {
-                self.halted = true;
-                self.stopped = true;
-            }
-            Inst::DI(_) => todo!(),
-            Inst::EI(_) => todo!(),
-            Inst::RLCA(_) => {
-                // TODO: look this over again
-                self.reg.flag(Flags::C, (self.reg.a & 0b1000) == 0b1000);
-                self.reg.a <<= 1;
-                // Don't think we can be clever and inline this. Don't want to reset Zero flag
-                if self.reg.a == 0 {
-                    self.reg.flag(Flags::Z, true);
-                }
-            }
-            Inst::RLA(_) => todo!(),
-            // TODO: look at how the zero flag is set
-            Inst::RRCA(_) => {
-                self.reg.flag(Flags::C, (self.reg.a & 0b0001) == 0b0001);
-                self.reg.a >>= 1;
-                if self.reg.a == 0 {
-                    self.reg.flag(Flags::Z, true);
-                }
-            }
-            Inst::RRA(_) => {
-                let old_bit_0 = self.reg.a & 0x1;
-                self.reg.a >>= 1;
-                self.reg.flag(Flags::Z, self.reg.a == 0);
-                self.reg.flag(Flags::N, false);
-                self.reg.flag(Flags::H, false);
-                self.reg.flag(Flags::C, old_bit_0 == 1);
-            }
-            Inst::RLC(_, _) => todo!(),
-            Inst::RL(_, _) => todo!(),
-            Inst::RRC(_, _) => todo!(),
-            Inst::RR(_, _) => todo!(),
-            Inst::SLA(_, _) => todo!(),
-            Inst::SRA(_, _) => todo!(),
-            Inst::SRL(_, _) => todo!(),
-            Inst::BIT(b, test, _) => self.cb_bit(test, b),
-            Inst::SETN(_, _) => todo!(),
-            Inst::SET(_, _, _) => todo!(),
-            Inst::RES(b, dst, _) => self.cb_reset(dst, b),
-            Inst::JP(src, _) => self.jp(src),
-            Inst::JPC(src, flag, desired_state, _) => {
-                if self.reg.check_flag(flag) == desired_state {
-                    self.jp(src);
-                }
-            }
-            Inst::CALL(_) => todo!(),
-            Inst::CALLC(_, _, _) => todo!(),
-            Inst::RST(incr, _) => {
-                // TODO: enum?
-                let valid_incrs = vec![0x00, 0x08, 0x10, 0x18, 0x20, 0x28, 0x30, 0x38];
-                assert!(
-                    valid_incrs.contains(&incr),
-                    "Tried to restart with a bad value"
-                );
-                self.push_stack(self.reg.pc);
-                self.reg.pc = 0x0000 + (incr as u16);
-            }
-            // TODO: pull out and consolidate with RETC
-            Inst::RET(_) => {
-                self.ret();
-            }
-            Inst::RETC(flag, desired_state, _) => {
-                if self.reg.check_flag(flag) == desired_state {
-                    self.ret();
-                }
-            }
-            Inst::RETI(_) => todo!(),
-        }
-    }
-}
-
-// Jump ops
-impl CPU {
-    fn push_stack(&mut self, addr: u16) {
-        self.mmu.write_word(self.reg.sp, addr);
-        self.reg.sp -= 2;
-    }
-
-    fn pop_stack(&mut self) -> u16 {
-        let addr = self.mmu.read_word(self.reg.sp);
-        self.reg.sp += 2;
-        addr
-    }
-
-    fn jp(&mut self, src: Src16) {
-        let addr = match src {
-            Src16::NN | Src16::Addr(_) => self.get_16(src),
-            _ => {
-                panic!("Tried to jump without an address as the source.")
-            }
-        };
-        self.reg.pc = addr;
-    }
-
-    /// Pop two bytes from stack and jump to that address
-    fn ret(&mut self) {
-        let addr = self.pop_stack();
-        self.reg.pc = addr;
-    }
-
-    /// Push present address onto stack. Jump to address 0x0000 + n.
-    fn rst(&mut self, n: u8) {
-        self.push_stack(self.reg.pc);
-        self.reg.pc = n.into();
-    }
-
-    /// Push address of next instruction onto stack and then jump to address nn
-    fn call_op(&mut self) {
-        // FIX: Will need to increment pc depending where I do that
-        self.push_stack(self.reg.pc);
-        let addr = self.fetch_word();
-        self.reg.pc = addr;
-    }
-}
-
-// alu ops
-impl CPU {
-    fn alu_add(&mut self, src: Src8) {
-        let val = self.get_8(src);
-        todo!()
-    }
-
-    fn alu_add_16(&mut self, src: Src16) {
-        let val = self.get_16(src);
-        let hl = self.reg.hl();
-        let res = hl.wrapping_add(val);
-        self.reg.flag(Flags::N, false);
-        self.reg.flag(Flags::H, half_carry_16(hl, val));
-        self.reg.flag(Flags::C, carry_16(hl, val));
-        self.reg.set_hl(res);
-    }
-
-    fn alu_adc(&mut self, src: Src8) {
-        let val = self.get_8(src);
-        let addend = val.wrapping_add(1);
-        let res = self.reg.a.wrapping_add(addend);
-        self.reg.flag(Flags::Z, res == 0);
-        self.reg.flag(Flags::N, false);
-        // FIX: this seems sus
-        self.reg.flag(Flags::H, half_carry(res, addend));
-        self.reg.flag(Flags::C, carry(res, addend));
-        self.reg.a = res;
-    }
-
-    fn alu_sub(&mut self, src: Src8) {
-        let val = self.get_8(src);
-        let res = self.reg.a.wrapping_sub(val);
-        self.reg.flag(Flags::Z, res == 0);
-        self.reg.flag(Flags::N, true);
-        // FIX: this is temporary until i figure out how carry works with subtraction
-        self.reg.flag(Flags::H, false);
-        self.reg.flag(Flags::C, false);
-    }
-
-    fn alu_sbc(&mut self, _src: Src8) {
-        todo!("alu sbc")
-    }
-
-    /// AND reg A with `val`
-    fn alu_and(&mut self, src: Src8) {
-        let val = self.get_8(src);
-        let res = self.reg.a & val;
-        self.reg.flag(Flags::Z, res == 0);
-        self.reg.flag(Flags::N, false);
-        self.reg.flag(Flags::H, true);
-        self.reg.flag(Flags::C, false);
-        self.reg.a = res;
-    }
-
-    /// OR reg A with `val`
-    fn alu_or(&mut self, src: Src8) {
-        let val = self.get_8(src);
-        let res = self.reg.a | val;
-        self.reg.flag(Flags::Z, res == 0);
-        self.reg.flag(Flags::N, false);
-        self.reg.flag(Flags::H, false);
-        self.reg.flag(Flags::C, false);
-        self.reg.a = res;
-    }
-
-    /// XOR reg A with `val`
-    fn alu_xor(&mut self, src: Src8) {
-        let val = self.get_8(src);
-        let res = self.reg.a ^ val;
-        self.reg.flag(Flags::Z, res == 0);
-        self.reg.flag(Flags::N, false);
-        self.reg.flag(Flags::H, false);
-        self.reg.flag(Flags::C, false);
-        self.reg.a = res;
-    }
-
-    fn alu_cp(&mut self, src: Src8) {
-        let val = self.get_8(src);
-        self.reg.flag(Flags::Z, self.reg.a == val);
-        self.reg.flag(Flags::N, true);
-        self.reg.flag(Flags::H, half_carry(val, val));
-        self.reg.flag(Flags::C, self.reg.a < val);
-    }
-
-    fn alu_inc(&mut self, val: u8) -> u8 {
-        let res = val.wrapping_add(1);
-        self.reg.flag(Flags::Z, res == 0);
-        self.reg.flag(Flags::N, false);
-        self.reg.flag(Flags::H, half_carry(val, 1));
-        res
-    }
-
-    // NOTE: seems weird that this doesn't modify flags??
-    fn alu_inc_16(&mut self, val: u16) -> u16 {
-        val.wrapping_add(1)
-    }
-
-    fn alu_dec(&mut self, val: u8) -> u8 {
-        let res = val.wrapping_sub(1);
-        self.reg.flag(Flags::Z, res == 0);
-        self.reg.flag(Flags::N, true);
-        // FIX: is this okay?
-        self.reg.flag(Flags::H, half_carry(val, 0xFF));
-        res
-    }
-
-    fn alu_dec_16(&mut self, val: u16) -> u16 {
-        let res = val.wrapping_sub(1);
-        self.reg.flag(Flags::Z, res == 0);
-        self.reg.flag(Flags::N, true);
-        // FIX: is this okay?
-        self.reg.flag(Flags::H, half_carry_16(val, 0xFF));
-        res
-    }
-}
-
-// 3.3.7: Bit Opcodes
-impl CPU {
-    /// Test bit b in register `reg`
-    fn cb_bit(&mut self, src: Src8, bit: u8) {
-        assert!(bit <= 7);
-        let reg = self.get_8(src);
-        let bit_set = reg & (1 << bit);
-        self.reg.flag(Flags::Z, bit_set == 0);
-        self.reg.flag(Flags::N, false);
-        self.reg.flag(Flags::H, true);
-    }
-
-    /// Test bit b in register `reg`
-    fn cb_set(&mut self, src: Src8, bit: u8) {
-        assert!(bit <= 7);
-        let reg = self.get_8(src);
-        let bit_set = reg & (1 << bit);
-        self.reg.flag(Flags::Z, bit_set == 0);
-        self.reg.flag(Flags::N, false);
-        self.reg.flag(Flags::H, true);
-    }
-
-    /// Reset bit b in register `reg`
-    fn cb_reset(&mut self, dst: Dst8, bit: u8) {
-        assert!(bit <= 7);
-        todo!
-    }
-
-    /// Swap upper and lower nibbles of n
-    fn cb_swap(&mut self, n: u8) -> u8 {
-        let high_nibble = n & 0b11110000;
-        let low_nibble = n & 0b00001111;
-        let res = (low_nibble << 4) | (high_nibble >> 4);
-        self.reg.flag(Flags::Z, res == 0);
-        self.reg.flag(Flags::N, false);
-        self.reg.flag(Flags::H, false);
-        self.reg.flag(Flags::C, false);
-        res
-    }
-}
-
-impl CPU {
-    fn fetch_byte(&mut self) -> u8 {
-        let b = self.mmu.read_byte(self.reg.pc);
-        self.reg.pc += 1;
-        b
-    }
-
-    fn fetch_word(&mut self) -> u16 {
-        let lo = self.fetch_byte();
-        let hi = self.fetch_byte();
-        ((hi as u16) << 8) | (lo as u16)
-    }
-
-    fn read_hl_byte(&self) -> u8 {
-        self.mmu.read_byte(self.reg.hl())
-    }
-
-    fn write_hl_byte(&mut self, byte: u8) {
-        self.mmu.write_byte(self.reg.hl(), byte)
     }
 
     fn decode(&mut self, opcode: u8) -> Inst {
@@ -447,7 +90,7 @@ impl CPU {
                 Src16::Addr(self.reg.pc + (self.fetch_byte() as u16)),
                 Flags::Z,
                 false,
-                12,
+                8,
             ), // JR NZ,r8
             0x21 => Inst::LD16(Dst16::HL, Src16::NN, 12),                      // LD HL,d16
             0x22 => unimplemented!("{:#04x}", opcode),                         // LD (HL+),A
@@ -460,7 +103,7 @@ impl CPU {
                 Src16::Addr(self.reg.pc + (self.fetch_byte() as u16)),
                 Flags::Z,
                 true,
-                12,
+                8,
             ), // JR Z,r8
             0x29 => Inst::ADD16(Src16::HL, 8),                                 // ADD HL,HL
             0x2A => unimplemented!("{:#04x}", opcode),                         // LD A,(HL+)
@@ -473,7 +116,7 @@ impl CPU {
                 Src16::Addr(self.reg.pc + (self.fetch_byte() as u16)),
                 Flags::C,
                 false,
-                12,
+                8,
             ), // JR NC,r8
             0x31 => Inst::LD16(Dst16::SP, Src16::NN, 12),                      // LD SP,d16
             0x32 => unimplemented!("{:#04x}", opcode),                         // LD (HL-),A
@@ -486,7 +129,7 @@ impl CPU {
                 Src16::Addr(self.reg.pc + (self.fetch_byte() as u16)),
                 Flags::C,
                 true,
-                12,
+                8,
             ), // JR C,r8
             0x39 => Inst::ADD16(Src16::SP, 8),                                 // ADD HL,SP
             0x3A => unimplemented!("{:#04x}", opcode),                         // LD A,(HL-)
@@ -633,23 +276,23 @@ impl CPU {
             0xC7 => Inst::RST(0x00, 32),                                       // RST 00H
             0xC8 => Inst::RETC(Flags::Z, true, 8),                             // RET Z
             0xC9 => Inst::RET(8),                                              // RET
-            0xCA => Inst::JPC(Src16::NN, Flags::Z, true, 16),                  // JP Z,a16
+            0xCA => Inst::JPC(Src16::NN, Flags::Z, true, 12),                  // JP Z,a16
             0xCB => self.decode_cb(),                                          // CB prefix
-            0xCC => Inst::CALLC(Flags::Z, true, 24),                           // CALL Z,a16
+            0xCC => Inst::CALLC(Flags::Z, true, 12),                           // CALL Z,a16
             0xCD => Inst::CALL(24),                                            // CALL a16
             0xCE => Inst::ADC(Src8::N, 8),                                     // ADC A,d8
             0xCF => Inst::RST(0x08, 32),                                       // RST 08H
-            0xD0 => Inst::RETC(Flags::C, false, 20),                           // RET NC
+            0xD0 => Inst::RETC(Flags::C, false, 8),                            // RET NC
             0xD1 => Inst::POP(Dst16::DE, 12),                                  // POP DE
             0xD2 => Inst::JPC(Src16::NN, Flags::C, false, 12),                 // JP NC,a16
-            0xD4 => Inst::CALLC(Flags::C, false, 24),                          // CALL NC,a16
+            0xD4 => Inst::CALLC(Flags::C, false, 12),                          // CALL NC,a16
             0xD5 => Inst::PUSH(Src16::DE, 16),                                 // PUSH DE
             0xD6 => Inst::SUB(Src8::N, 8),                                     // SUB d8
             0xD7 => Inst::RST(0x10, 32),                                       // RST 10H
             0xD8 => Inst::RETC(Flags::C, true, 8),                             // RET C
             0xD9 => Inst::RETI(16),                                            // RETI
-            0xDA => Inst::JPC(Src16::NN, Flags::C, true, 16),                  // JP C,a16
-            0xDC => Inst::CALLC(Flags::C, true, 24),                           // CALL C,a16
+            0xDA => Inst::JPC(Src16::NN, Flags::C, true, 12),                  // JP C,a16
+            0xDC => Inst::CALLC(Flags::C, true, 12),                           // CALL C,a16
             0xDE => Inst::SBC(Src8::N, 8),                                     // SBC A,d8
             0xDF => Inst::RST(0x18, 32),                                       // RST 18H
             0xE0 => unimplemented!("{:#04x}", opcode),                         // LDH (a8),A
@@ -943,7 +586,373 @@ impl CPU {
             0xFF => Inst::SET(7, Dst8::A, 8),                           // SET 7, A
         }
     }
+
+    pub fn execute(&mut self, inst: Inst) -> u32 {
+        let mut cycles = inst.cycles();
+        match inst {
+            Inst::LD8(dst, src, _) => {
+                let s = self.get_8(src);
+                self.set_8(dst, s);
+            }
+            Inst::LDD(_) => todo!(),
+            Inst::LDI(_, _, _) => todo!(),
+            Inst::LD16(dst, src, _) => {
+                let s = self.get_16(src);
+                self.set_16(dst, s);
+            }
+            Inst::PUSH(src, _) => {
+                match src {
+                    Src16::NN | Src16::Addr(_) => {
+                        panic!("Tried to push a non-register onto the stack")
+                    }
+                    _ => {}
+                }
+                let s = self.get_16(src);
+                self.push_stack(s);
+            }
+            Inst::POP(dst, _) => {
+                let popped_value = self.pop_stack();
+                self.set_16(dst, popped_value);
+            }
+            Inst::ADD(src, _) => self.alu_add(src),
+            Inst::ADC(src, _) => self.alu_adc(src),
+            Inst::SUB(src, _) => self.alu_sub(src),
+            Inst::SBC(src, _) => self.alu_sbc(src),
+            Inst::AND(src, _) => self.alu_and(src),
+            Inst::OR(src, _) => self.alu_or(src),
+            Inst::XOR(src, _) => self.alu_xor(src),
+            Inst::CP(src, _) => self.alu_cp(src),
+            Inst::INC(_, _) => todo!(),
+            Inst::DEC(_, _) => todo!(),
+            Inst::ADD16(src, _) => self.alu_add_16(src),
+            Inst::INC16(_, _) => todo!(),
+            Inst::DEC16(_, _) => todo!(),
+            Inst::SWAP(dst, _) => todo!(),
+            Inst::DAA(_) => todo!(),
+            Inst::CPL(_) => {
+                // bitwise-complement operator (equivalent to '~' in C)
+                self.reg.a = !self.reg.a;
+                self.reg.flag(Flags::N, true);
+                self.reg.flag(Flags::H, true);
+            }
+            Inst::CCF(_) => {
+                self.reg.flag(Flags::N, false);
+                self.reg.flag(Flags::H, false);
+                let old_flag = self.reg.check_flag(Flags::C);
+                self.reg.flag(Flags::C, !old_flag);
+            }
+            Inst::SCF(_) => {
+                self.reg.flag(Flags::N, false);
+                self.reg.flag(Flags::H, false);
+                self.reg.flag(Flags::C, true);
+            }
+            Inst::NOP(_) => {}
+            Inst::HALT(_) => self.halted = true,
+            Inst::STOP(_) => {
+                self.halted = true;
+                self.stopped = true;
+            }
+            Inst::DI(_) => todo!(),
+            Inst::EI(_) => todo!(),
+            Inst::RLCA(_) => {
+                // TODO: look this over again
+                self.reg.flag(Flags::C, (self.reg.a & 0b1000) == 0b1000);
+                self.reg.a <<= 1;
+                // Don't think we can be clever and inline this. Don't want to reset Zero flag
+                if self.reg.a == 0 {
+                    self.reg.flag(Flags::Z, true);
+                }
+            }
+            Inst::RLA(_) => todo!(),
+            // TODO: look at how the zero flag is set
+            Inst::RRCA(_) => {
+                self.reg.flag(Flags::C, (self.reg.a & 0b0001) == 0b0001);
+                self.reg.a >>= 1;
+                if self.reg.a == 0 {
+                    self.reg.flag(Flags::Z, true);
+                }
+            }
+            Inst::RRA(_) => {
+                let old_bit_0 = self.reg.a & 0x1;
+                self.reg.a >>= 1;
+                self.reg.flag(Flags::Z, self.reg.a == 0);
+                self.reg.flag(Flags::N, false);
+                self.reg.flag(Flags::H, false);
+                self.reg.flag(Flags::C, old_bit_0 == 1);
+            }
+            Inst::RLC(_, _) => todo!(),
+            Inst::RL(_, _) => todo!(),
+            Inst::RRC(_, _) => todo!(),
+            Inst::RR(_, _) => todo!(),
+            Inst::SLA(_, _) => todo!(),
+            Inst::SRA(_, _) => todo!(),
+            Inst::SRL(_, _) => todo!(),
+            Inst::BIT(b, test, _) => self.cb_bit(test, b),
+            Inst::SETN(_, _) => todo!(),
+            Inst::SET(_, _, _) => todo!(),
+            Inst::RES(b, dst, _) => self.cb_reset(dst, b),
+            Inst::JP(src, _) => self.jp(src),
+            Inst::JPC(src, flag, desired_state, _) => {
+                if self.reg.check_flag(flag) == desired_state {
+                    self.jp(src);
+                    cycles += 4
+                }
+            }
+            Inst::CALL(_) => self.call(),
+            Inst::CALLC(flag, desired_state, _) => {
+                if self.reg.check_flag(flag) == desired_state {
+                    self.call();
+                    cycles += 12;
+                }
+            }
+            Inst::RST(incr, _) => {
+                // TODO: enum?
+                let valid_incrs = vec![0x00, 0x08, 0x10, 0x18, 0x20, 0x28, 0x30, 0x38];
+                assert!(
+                    valid_incrs.contains(&incr),
+                    "Tried to restart with a bad value"
+                );
+                self.push_stack(self.reg.pc);
+                self.reg.pc = 0x0000 + (incr as u16);
+            }
+            Inst::RET(_) => {
+                self.ret();
+            }
+            Inst::RETC(flag, desired_state, _) => {
+                if self.reg.check_flag(flag) == desired_state {
+                    self.ret();
+                    cycles += 12;
+                }
+            }
+            Inst::RETI(_) => todo!(),
+        }
+        cycles
+    }
 }
+
+// Jump ops
+impl CPU {
+    fn push_stack(&mut self, addr: u16) {
+        self.mmu.write_word(self.reg.sp, addr);
+        self.reg.sp -= 2;
+    }
+
+    fn pop_stack(&mut self) -> u16 {
+        let addr = self.mmu.read_word(self.reg.sp);
+        self.reg.sp += 2;
+        addr
+    }
+
+    fn jp(&mut self, src: Src16) {
+        let addr = match src {
+            Src16::NN | Src16::Addr(_) => self.get_16(src),
+            _ => {
+                panic!("Tried to jump without an address as the source.")
+            }
+        };
+        self.reg.pc = addr;
+    }
+
+    /// Pop two bytes from stack and jump to that address
+    fn ret(&mut self) {
+        let addr = self.pop_stack();
+        self.reg.pc = addr;
+    }
+
+    /// Push present address onto stack. Jump to address 0x0000 + n.
+    fn rst(&mut self, n: u8) {
+        self.push_stack(self.reg.pc);
+        self.reg.pc = n.into();
+    }
+
+    /// Push address of next instruction onto stack and then jump to address nn
+    fn call(&mut self) {
+        // FIX: Will need to increment pc depending where I do that
+        self.push_stack(self.reg.pc);
+        let addr = self.fetch_word();
+        self.reg.pc = addr;
+    }
+}
+
+// alu ops
+impl CPU {
+    fn alu_add(&mut self, src: Src8) {
+        let val = self.get_8(src);
+        todo!()
+    }
+
+    fn alu_add_16(&mut self, src: Src16) {
+        let val = self.get_16(src);
+        let hl = self.reg.hl();
+        let res = hl.wrapping_add(val);
+        self.reg.flag(Flags::N, false);
+        self.reg.flag(Flags::H, half_carry_16(hl, val));
+        self.reg.flag(Flags::C, carry_16(hl, val));
+        self.reg.set_hl(res);
+    }
+
+    fn alu_adc(&mut self, src: Src8) {
+        let val = self.get_8(src);
+        let addend = val.wrapping_add(1);
+        let res = self.reg.a.wrapping_add(addend);
+        self.reg.flag(Flags::Z, res == 0);
+        self.reg.flag(Flags::N, false);
+        // FIX: this seems sus
+        self.reg.flag(Flags::H, half_carry(res, addend));
+        self.reg.flag(Flags::C, carry(res, addend));
+        self.reg.a = res;
+    }
+
+    fn alu_sub(&mut self, src: Src8) {
+        let val = self.get_8(src);
+        let res = self.reg.a.wrapping_sub(val);
+        self.reg.flag(Flags::Z, res == 0);
+        self.reg.flag(Flags::N, true);
+        // FIX: this is temporary until i figure out how carry works with subtraction
+        self.reg.flag(Flags::H, false);
+        self.reg.flag(Flags::C, false);
+    }
+
+    fn alu_sbc(&mut self, _src: Src8) {
+        todo!("alu sbc")
+    }
+
+    /// AND reg A with `val`
+    fn alu_and(&mut self, src: Src8) {
+        let val = self.get_8(src);
+        let res = self.reg.a & val;
+        self.reg.flag(Flags::Z, res == 0);
+        self.reg.flag(Flags::N, false);
+        self.reg.flag(Flags::H, true);
+        self.reg.flag(Flags::C, false);
+        self.reg.a = res;
+    }
+
+    /// OR reg A with `val`
+    fn alu_or(&mut self, src: Src8) {
+        let val = self.get_8(src);
+        let res = self.reg.a | val;
+        self.reg.flag(Flags::Z, res == 0);
+        self.reg.flag(Flags::N, false);
+        self.reg.flag(Flags::H, false);
+        self.reg.flag(Flags::C, false);
+        self.reg.a = res;
+    }
+
+    /// XOR reg A with `val`
+    fn alu_xor(&mut self, src: Src8) {
+        let val = self.get_8(src);
+        let res = self.reg.a ^ val;
+        self.reg.flag(Flags::Z, res == 0);
+        self.reg.flag(Flags::N, false);
+        self.reg.flag(Flags::H, false);
+        self.reg.flag(Flags::C, false);
+        self.reg.a = res;
+    }
+
+    fn alu_cp(&mut self, src: Src8) {
+        let val = self.get_8(src);
+        self.reg.flag(Flags::Z, self.reg.a == val);
+        self.reg.flag(Flags::N, true);
+        self.reg.flag(Flags::H, half_carry(val, val));
+        self.reg.flag(Flags::C, self.reg.a < val);
+    }
+
+    fn alu_inc(&mut self, val: u8) -> u8 {
+        let res = val.wrapping_add(1);
+        self.reg.flag(Flags::Z, res == 0);
+        self.reg.flag(Flags::N, false);
+        self.reg.flag(Flags::H, half_carry(val, 1));
+        res
+    }
+
+    // NOTE: seems weird that this doesn't modify flags??
+    fn alu_inc_16(&mut self, val: u16) -> u16 {
+        val.wrapping_add(1)
+    }
+
+    fn alu_dec(&mut self, val: u8) -> u8 {
+        let res = val.wrapping_sub(1);
+        self.reg.flag(Flags::Z, res == 0);
+        self.reg.flag(Flags::N, true);
+        // FIX: is this okay?
+        self.reg.flag(Flags::H, half_carry(val, 0xFF));
+        res
+    }
+
+    fn alu_dec_16(&mut self, val: u16) -> u16 {
+        let res = val.wrapping_sub(1);
+        self.reg.flag(Flags::Z, res == 0);
+        self.reg.flag(Flags::N, true);
+        // FIX: is this okay?
+        self.reg.flag(Flags::H, half_carry_16(val, 0xFF));
+        res
+    }
+}
+
+// 3.3.7: Bit Opcodes
+impl CPU {
+    /// Test bit b in register `reg`
+    fn cb_bit(&mut self, src: Src8, bit: u8) {
+        assert!(bit <= 7);
+        let reg = self.get_8(src);
+        let bit_set = reg & (1 << bit);
+        self.reg.flag(Flags::Z, bit_set == 0);
+        self.reg.flag(Flags::N, false);
+        self.reg.flag(Flags::H, true);
+    }
+
+    /// Test bit b in register `reg`
+    fn cb_set(&mut self, src: Src8, bit: u8) {
+        assert!(bit <= 7);
+        let reg = self.get_8(src);
+        let bit_set = reg & (1 << bit);
+        self.reg.flag(Flags::Z, bit_set == 0);
+        self.reg.flag(Flags::N, false);
+        self.reg.flag(Flags::H, true);
+    }
+
+    /// Reset bit b in register `reg`
+    fn cb_reset(&mut self, _dst: Dst8, bit: u8) {
+        assert!(bit <= 7);
+        todo!()
+    }
+
+    /// Swap upper and lower nibbles of n
+    fn cb_swap(&mut self, n: u8) -> u8 {
+        let high_nibble = n & 0b11110000;
+        let low_nibble = n & 0b00001111;
+        let res = (low_nibble << 4) | (high_nibble >> 4);
+        self.reg.flag(Flags::Z, res == 0);
+        self.reg.flag(Flags::N, false);
+        self.reg.flag(Flags::H, false);
+        self.reg.flag(Flags::C, false);
+        res
+    }
+}
+
+impl CPU {
+    fn fetch_byte(&mut self) -> u8 {
+        let b = self.mmu.read_byte(self.reg.pc);
+        self.reg.pc += 1;
+        b
+    }
+
+    fn fetch_word(&mut self) -> u16 {
+        let lo = self.fetch_byte();
+        let hi = self.fetch_byte();
+        ((hi as u16) << 8) | (lo as u16)
+    }
+
+    fn read_hl_byte(&self) -> u8 {
+        self.mmu.read_byte(self.reg.hl())
+    }
+
+    fn write_hl_byte(&mut self, byte: u8) {
+        self.mmu.write_byte(self.reg.hl(), byte)
+    }
+}
+
 impl CPU {
     fn get_8(&mut self, src: Src8) -> u8 {
         match src {
