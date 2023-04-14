@@ -9,22 +9,24 @@ pub struct CPU {
     mmu: MMU,
     halted: bool,
     stopped: bool,
-    interrupts_enabled: bool,
     disable_interrupts_in: u16,
     enable_interrupts_in: u16,
+    ime: bool,
+    debug: bool,
 }
 
 impl CPU {
-    pub fn new(rom: &str) -> Self {
+    pub fn new(rom: &str, debug: bool) -> Self {
         Self {
             reg: Registers::default(),
             clock: 0,
             mmu: MMU::new(rom),
             halted: false,
             stopped: false,
-            interrupts_enabled: true,
-            disable_interrupts_in: 99,
-            enable_interrupts_in: 99,
+            disable_interrupts_in: 0,
+            enable_interrupts_in: 0,
+            ime: false,
+            debug,
         }
     }
 
@@ -73,8 +75,14 @@ impl CPU {
             // Execute
             self.clock += self.execute(inst);
 
+            // Update IME flag
+            self.check_ime();
+
             // Logging and debugging
-            // self.debug_step(opcode, inst);
+            if self.debug {
+                self.debug_step(opcode, inst);
+            }
+
             self.log_cpu_state();
         }
     }
@@ -308,7 +316,7 @@ impl CPU {
             0xE5 => Inst::PUSH(Src16::HL, 16),                                        // PUSH HL
             0xE6 => Inst::AND(Src8::N, 8),                                            // AND d8
             0xE7 => Inst::RST(JumpVector::Twenty, 32),                                // RST 20H
-            0xE8 => unimplemented!("{:#04x}", opcode),                                // ADD SP,r8
+            0xE8 => Inst::ADD16IMM(16),                                               // ADD SP,r8
             0xE9 => Inst::JP(Src16::Imm(self.reg.hl()), 4),                           // JP (HL)
             0xEA => Inst::LD8(Dst8::Addr(self.fetch_word()), Src8::A, 16),            // LD (a16),A
             0xEE => Inst::XOR(Src8::N, 8),                                            // XOR d8
@@ -320,7 +328,7 @@ impl CPU {
             0xF5 => Inst::PUSH(Src16::AF, 16),                                        // PUSH AF
             0xF6 => Inst::OR(Src8::N, 8),                                             // OR d8
             0xF7 => Inst::RST(JumpVector::Thirty, 32),                                // RST 30H
-            0xF8 => unimplemented!("{:#04x}", opcode),                                // LD HL,SP+r8
+            0xF8 => Inst::LDSP(12),                                                   // LD HL,SP+r8
             0xF9 => Inst::LD16(Dst16::SP, Src16::HL, 8),                              // LD SP,HL
             0xFA => Inst::LD8(Dst8::A, Src8::Addr(self.fetch_word()), 8),             // LD A,(a16)
             0xFB => Inst::EI(4),                                                      // EI
@@ -601,6 +609,7 @@ impl CPU {
             Inst::LDD(dst, src, _) => self.ldd(dst, src),
             Inst::LDI(dst, src, _) => self.ldi(dst, src),
             Inst::LD16(dst, src, _) => self.ld16(dst, src),
+            Inst::LDSP(_) => self.ldsp(),
             Inst::PUSH(src, _) => self.push(src),
             Inst::POP(dst, _) => self.pop(dst),
             Inst::ADD(src, _) => self.alu_add(src),
@@ -614,6 +623,7 @@ impl CPU {
             Inst::INC(dst, _) => self.alu_inc(dst),
             Inst::DEC(dst, _) => self.alu_dec(dst),
             Inst::ADD16(src, _) => self.alu_add_16(src),
+            Inst::ADD16IMM(_) => self.alu_add_16_imm(),
             Inst::INC16(dst, _) => self.alu_inc_16(dst),
             Inst::DEC16(dst, _) => self.alu_dec_16(dst),
             Inst::SWAP(dst, _) => self.swap(dst),
@@ -715,6 +725,17 @@ impl CPU {
     fn ld16(&mut self, dst: Dst16, src: Src16) {
         let s = self.get_16(src);
         self.set_16(dst, s);
+    }
+
+    // XXX: also need docs for this
+    fn ldsp(&mut self) {
+        let e = self.fetch() as i8 as i16 as u16;
+        let sp = self.reg.sp;
+        self.reg.flag(Flags::Z, false);
+        self.reg.flag(Flags::N, false);
+        self.reg.flag(Flags::H, half_carry(sp as u8, e as u8));
+        self.reg.flag(Flags::C, carry(sp as u8, e as u8));
+        self.set_16(Dst16::HL, sp.wrapping_add(e));
     }
 
     fn push(&mut self, src: Src16) {
@@ -868,6 +889,19 @@ impl CPU {
         self.reg.set_hl(res);
     }
 
+    fn alu_add_16_imm(&mut self) {
+        // XXX: find some accurate docs for this
+        let val = self.fetch() as i8 as i16 as u16;
+        let sp = self.reg.sp;
+        let res = sp.wrapping_add(val as u16);
+        self.reg.flag(Flags::Z, false);
+        self.reg.flag(Flags::N, false);
+        // truncate lower byte of SP
+        self.reg.flag(Flags::H, half_carry(sp as u8, val as u8));
+        self.reg.flag(Flags::C, carry(sp as u8, val as u8));
+        self.reg.sp = res;
+    }
+
     // NOTE: seems weird that this doesn't modify flags??
     fn alu_inc_16(&mut self, dst: Dst16) {
         let val = self.get_16(dst.to_src());
@@ -961,11 +995,13 @@ impl CPU {
     }
 
     fn di(&mut self) {
-        // unimplemented!("DI")
+        self.disable_interrupts_in = 2;
     }
 
     fn ei(&mut self) {
-        unimplemented!("EI")
+        // IME status is evaluated after the instruction, so we set it to 2 to take into account
+        // this one
+        self.enable_interrupts_in = 2;
     }
 }
 
@@ -1194,6 +1230,29 @@ impl CPU {
         let addr = self.mmu.read_word(self.reg.sp);
         self.reg.sp += 2;
         addr
+    }
+}
+
+// Interrupts
+impl CPU {
+    fn check_ime(&mut self) {
+        match self.disable_interrupts_in {
+            2 => self.disable_interrupts_in = 1,
+            1 => {
+                self.disable_interrupts_in = 0;
+                self.ime = false;
+            }
+            _ => self.disable_interrupts_in = 0,
+        }
+
+        match self.enable_interrupts_in {
+            2 => self.enable_interrupts_in = 1,
+            1 => {
+                self.enable_interrupts_in = 0;
+                self.ime = true;
+            }
+            _ => self.enable_interrupts_in = 0,
+        }
     }
 }
 

@@ -2,8 +2,27 @@ use crate::mem_constants::{IO_END, IO_START};
 
 const IO_SIZE: usize = (IO_END - IO_START + 1) as usize;
 
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum AccessControl {
+    Read,
+    Write,
+    ReadWrite,
+    Mixed,
+}
+
+// TODO: express all registers like this
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub struct IORegister {
+    pub addr: u16,
+    pub access: AccessControl,
+}
+
 /// Register for reading joypad info and determining system type (R/W)
 pub const P1: u16 = 0xFF00;
+pub const P1_S: IORegister = IORegister {
+    addr: 0xFF00,
+    access: AccessControl::ReadWrite,
+};
 /// Serial transfer data (R/W)
 pub const SB: u16 = 0xFF01;
 /// SIO control (R/W)

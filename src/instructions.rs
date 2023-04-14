@@ -8,6 +8,7 @@ pub enum Inst {
     LDI(Dst8, Src8, u32),
     // 3.3.2: 16-bit loads
     LD16(Dst16, Src16, u32),
+    LDSP(u32),
     PUSH(Src16, u32),
     POP(Dst16, u32),
     // 3.3.3: 8-bit ALU ops
@@ -22,8 +23,8 @@ pub enum Inst {
     INC(Dst8, u32),
     DEC(Dst8, u32),
     // 3.3.4: 16-bit ALU ops
-    // All 16-bit adds use HL as the DST
     ADD16(Src16, u32),
+    ADD16IMM(u32),
     INC16(Dst16, u32),
     DEC16(Dst16, u32),
     // 3.3.5: Misc
@@ -82,6 +83,7 @@ impl Inst {
             | Inst::LDD(_, _, cycles)
             | Inst::LDI(_, _, cycles)
             | Inst::LD16(_, _, cycles)
+            | Inst::LDSP(cycles)
             | Inst::PUSH(_, cycles)
             | Inst::POP(_, cycles)
             | Inst::ADD(_, cycles)
@@ -95,6 +97,7 @@ impl Inst {
             | Inst::INC(_, cycles)
             | Inst::DEC(_, cycles)
             | Inst::ADD16(_, cycles)
+            | Inst::ADD16IMM(cycles)
             | Inst::INC16(_, cycles)
             | Inst::DEC16(_, cycles)
             | Inst::SWAP(_, cycles)
