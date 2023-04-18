@@ -7,4 +7,5 @@ pub mod joypad;
 pub mod mem_constants;
 pub mod mmu;
 pub mod registers;
+pub mod timer;
 pub mod utils;

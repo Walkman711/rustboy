@@ -1,5 +1,8 @@
 #![allow(dead_code)]
-use crate::{instructions::*, mmu::*, registers::*, utils::*};
+use crate::{instructions::*, io_registers, mmu::*, registers::*, utils::*};
+
+pub const CPU_HZ: u32 = 4_194_304;
+pub const VBLANK_FREQ: u32 = ((CPU_HZ as f64) / 59.7) as u32;
 
 #[derive(Debug)]
 pub struct CPU {
@@ -66,6 +69,10 @@ impl CPU {
     pub fn run(&mut self) {
         self.log_cpu_state();
         loop {
+            // if self.halted {
+            //     continue;
+            // }
+
             // Fetch
             let opcode = self.fetch();
 
@@ -73,7 +80,7 @@ impl CPU {
             let inst = self.decode(opcode);
 
             // Execute
-            self.clock += self.execute(inst);
+            self.clock = self.clock.wrapping_add(self.execute(inst));
 
             // Update IME flag
             self.check_ime();
@@ -992,6 +999,7 @@ impl CPU {
     fn stop(&mut self) {
         self.halt();
         self.stopped = true;
+        self.mmu.write_byte(io_registers::DIV, 0x00);
     }
 
     fn di(&mut self) {
