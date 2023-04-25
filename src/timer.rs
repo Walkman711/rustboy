@@ -1,9 +1,10 @@
 #![allow(dead_code)]
-use crate::{cpu::CPU_HZ, io_registers};
+use crate::io_registers::{self, Interrupts};
 
 // TODO: need to use 16779Hz for SGB
-const DIV_HZ: u16 = 16_384;
-const DIV_CYCLES_PER_TICK: u16 = (CPU_HZ / (DIV_HZ as u32)) as u16;
+const DIV_HZ: u32 = 16_384;
+// const DIV_CYCLES_PER_TICK: u16 = (CPU_HZ / (DIV_HZ as u32)) as u16;
+const DIV_CYCLES_PER_TICK: u32 = 256;
 
 #[derive(Debug)]
 pub struct Timer {
@@ -12,10 +13,9 @@ pub struct Timer {
     tima: u8,
     tma: u8,
     tac: u8,
-    timer_cycles: u16,
-    cycles: u32,
-    ticks_till_next_div: u16,
-    ticks_till_next_timer: u16,
+    internal_div: u32,
+    internal_timer: u32,
+    timer_enabled: bool,
 }
 
 impl Default for Timer {
@@ -25,37 +25,43 @@ impl Default for Timer {
             tima: 0,
             tma: 0,
             tac: 0,
-            timer_cycles: 0,
-            cycles: 0,
-            ticks_till_next_div: DIV_CYCLES_PER_TICK,
-            ticks_till_next_timer: 0,
+            internal_div: 0,
+            internal_timer: 0,
+            timer_enabled: true,
         }
     }
 }
 
 impl Timer {
-    fn tick(&mut self, cy: u8) -> bool {
-        self.cycles = self.cycles.wrapping_add(cy as u32);
+    // TODO: should probably change the return type to the Interrupts enum
+    pub fn tick(&mut self, cy: u32) -> bool {
+        let mut timer_overflowed = false;
+        self.internal_div += cy;
 
-        // XXX: this can definitely be neater with some kind of clever wrapping
-        // trigger div
-        if self.ticks_till_next_div < (cy as u16) {
+        if self.internal_div > DIV_CYCLES_PER_TICK {
+            self.internal_div -= DIV_CYCLES_PER_TICK;
             self.div = self.div.wrapping_add(1);
-            // Ex. there are 2 cycles till next div, but instruction took 4 cycles.
-            // Next div should trigger in 16384 - (cycles - ticks_left) => 16384 - (4 - 2) => 16382
-            self.ticks_till_next_div = DIV_CYCLES_PER_TICK - (cy as u16 - self.ticks_till_next_div);
-        } else {
-            self.ticks_till_next_div -= cy as u16
+            if self.div > 0xFF {
+                self.div = self.tma.into();
+            }
         }
 
-        if self.div > 0xFF {
-            self.div = self.tma.into();
+        if self.timer_enabled {
+            self.internal_timer += cy;
+            if self.internal_timer > self.tac() as u32 {
+                if self.tima == 0xFF {
+                    self.tima = self.tma.into();
+                    timer_overflowed = true;
+                } else {
+                    self.tima = self.tima.wrapping_add(1);
+                }
+            }
         }
 
-        true
+        timer_overflowed
     }
 
-    fn read(&self, addr: u16) -> u8 {
+    pub fn read(&self, addr: u16) -> u8 {
         match addr {
             io_registers::DIV => (self.div >> 8) as u8,
             io_registers::TIMA => self.tima,
@@ -65,13 +71,18 @@ impl Timer {
         }
     }
 
-    fn write(&mut self, addr: u16, val: u8) {
+    pub fn write(&mut self, addr: u16, val: u8) {
         match addr {
             // Any write resets the DIV register
             io_registers::DIV => self.div = 0x00,
             io_registers::TIMA => self.tima = val,
             io_registers::TMA => self.tma = val,
-            io_registers::TAC => self.tac = val,
+            io_registers::TAC => {
+                self.tac = val;
+                // Timer enabled is set by bit 2 (0-indexed) of the value in TAC
+                self.timer_enabled = (self.tac & (1 << 2)) == (1 << 2)
+            }
+
             _ => panic! {"tried to access a non-timer register in timer.rs: {addr}"},
         }
     }

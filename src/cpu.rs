@@ -1,5 +1,12 @@
 #![allow(dead_code)]
-use crate::{instructions::*, io_registers, mmu::*, registers::*, utils::*};
+use crate::{
+    instructions::*,
+    io_registers::{self, Interrupts},
+    mmu::*,
+    registers::*,
+    timer::Timer,
+    utils::*,
+};
 
 pub const CPU_HZ: u32 = 4_194_304;
 pub const VBLANK_FREQ: u32 = ((CPU_HZ as f64) / 59.7) as u32;
@@ -16,6 +23,7 @@ pub struct CPU {
     enable_interrupts_in: u16,
     ime: bool,
     debug: bool,
+    timer: Timer,
 }
 
 impl CPU {
@@ -30,6 +38,7 @@ impl CPU {
             enable_interrupts_in: 0,
             ime: false,
             debug,
+            timer: Timer::default(),
         }
     }
 
@@ -80,10 +89,22 @@ impl CPU {
             let inst = self.decode(opcode);
 
             // Execute
-            self.clock = self.clock.wrapping_add(self.execute(inst));
+            let cycles_elapsed = self.execute(inst);
+            let timer_overflowed = self.timer.tick(cycles_elapsed);
+            if timer_overflowed {
+                if self.ime {
+                    // TODO: really should set up something for setting interrupt flag bits
+                    let old_IF = self.mmu.read_byte(io_registers::IF);
+                    let new_IF = old_IF | (Interrupts::TimerOverflow as u8);
+                    self.mmu.write_byte(io_registers::IF, new_IF)
+                }
+            }
+            self.clock = self.clock.wrapping_add(cycles_elapsed);
 
             // Update IME flag
             self.check_ime();
+
+            self.handle_interrupts();
 
             // Logging and debugging
             if self.debug {
@@ -1260,6 +1281,35 @@ impl CPU {
                 self.ime = true;
             }
             _ => self.enable_interrupts_in = 0,
+        }
+    }
+
+    fn handle_interrupts(&mut self) {
+        if !self.ime {
+            return;
+        }
+
+        let if_reg = self.mmu.read_byte(io_registers::IF);
+        // TODO: this should be folded into io_Reg potentially? or at least should be hidden
+        let ie_reg = self.mmu.read_byte(0xFFFF);
+
+        let interrupts_to_service = if_reg & ie_reg;
+
+        // There can be multiple interrupts enabled at once, so we need to service them in priority
+        // order
+        if (interrupts_to_service & Interrupts::VBlank as u8) == Interrupts::VBlank as u8 {
+            todo!("Vblank")
+        } else if (interrupts_to_service & Interrupts::LCDCStatus as u8) == Interrupts::VBlank as u8
+        {
+            todo!("LCDCStatus")
+        } else if (interrupts_to_service & Interrupts::TimerOverflow as u8)
+            == Interrupts::TimerOverflow as u8
+        {
+            todo!("TimerOverflow")
+        } else if (interrupts_to_service & Interrupts::SerialTransferCompletion as u8)
+            == Interrupts::SerialTransferCompletion as u8
+        {
+            todo!("SerialTransferCompletion")
         }
     }
 }
