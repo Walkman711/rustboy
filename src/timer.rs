@@ -1,10 +1,11 @@
 #![allow(dead_code)]
 use crate::{cpu::CPU_HZ, io_registers};
 
+// TODO: need to use 16779Hz for SGB
 const DIV_HZ: u16 = 16_384;
 const DIV_CYCLES_PER_TICK: u16 = (CPU_HZ / (DIV_HZ as u32)) as u16;
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Timer {
     // internally represented as a u16, but only the high byte is exposed for R/W
     div: u16,
@@ -13,11 +14,39 @@ pub struct Timer {
     tac: u8,
     timer_cycles: u16,
     cycles: u32,
+    ticks_till_next_div: u16,
+    ticks_till_next_timer: u16,
+}
+
+impl Default for Timer {
+    fn default() -> Self {
+        Self {
+            div: 0,
+            tima: 0,
+            tma: 0,
+            tac: 0,
+            timer_cycles: 0,
+            cycles: 0,
+            ticks_till_next_div: DIV_CYCLES_PER_TICK,
+            ticks_till_next_timer: 0,
+        }
+    }
 }
 
 impl Timer {
     fn tick(&mut self, cy: u8) -> bool {
         self.cycles = self.cycles.wrapping_add(cy as u32);
+
+        // XXX: this can definitely be neater with some kind of clever wrapping
+        // trigger div
+        if self.ticks_till_next_div < (cy as u16) {
+            self.div = self.div.wrapping_add(1);
+            // Ex. there are 2 cycles till next div, but instruction took 4 cycles.
+            // Next div should trigger in 16384 - (cycles - ticks_left) => 16384 - (4 - 2) => 16382
+            self.ticks_till_next_div = DIV_CYCLES_PER_TICK - (cy as u16 - self.ticks_till_next_div);
+        } else {
+            self.ticks_till_next_div -= cy as u16
+        }
 
         if self.div > 0xFF {
             self.div = self.tma.into();
