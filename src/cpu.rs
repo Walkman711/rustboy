@@ -7,6 +7,7 @@ use crate::{
     timer::Timer,
     utils::*,
 };
+use strum::IntoEnumIterator;
 
 pub const CPU_HZ: u32 = 4_194_304;
 pub const VBLANK_FREQ: u32 = ((CPU_HZ as f64) / 59.7) as u32;
@@ -104,7 +105,7 @@ impl CPU {
             // Update IME flag
             self.check_ime();
 
-            // self.handle_interrupts();
+            self.handle_interrupts();
 
             // Logging and debugging
             if self.debug {
@@ -1194,6 +1195,19 @@ impl CPU {
         let addr = self.fetch_word();
         self.reg.pc = addr;
     }
+
+    fn call_interrupt(&mut self, interrupt: Interrupts) {
+        // FIX: do you increment pc for an interrupt? i dont think so
+        self.push_stack(self.reg.pc);
+        let addr = match interrupt {
+            Interrupts::VBlank => 0x40,
+            Interrupts::LCDCStatus => 0x48,
+            Interrupts::TimerOverflow => 0x50,
+            Interrupts::SerialTransferCompletion => 0x58,
+            Interrupts::HighToLowP10P13 => 0x60,
+        };
+        self.reg.pc = addr;
+    }
 }
 
 // 3.3.10: Restarts
@@ -1285,49 +1299,45 @@ impl CPU {
     }
 
     fn handle_interrupts(&mut self) {
-        if !self.ime {
-            return;
-        }
-
-        let if_reg = self.mmu.read_byte(io_registers::IF);
-        // TODO: this should be folded into io_Reg potentially? or at least should be hidden
-        let ie_reg = self.mmu.read_byte(0xFFFF);
-
-        let interrupts_to_service = if_reg & ie_reg;
-
-        // There can be multiple interrupts enabled at once, so we need to service them in priority
-        // order
-        if (interrupts_to_service & Interrupts::VBlank as u8) == Interrupts::VBlank as u8 {
-            todo!("Vblank")
-        } else if (interrupts_to_service & Interrupts::LCDCStatus as u8) == Interrupts::VBlank as u8
-        {
-            todo!("LCDCStatus")
-        } else if (interrupts_to_service & Interrupts::TimerOverflow as u8)
-            == Interrupts::TimerOverflow as u8
-        {
-            todo!("TimerOverflow")
-        } else if (interrupts_to_service & Interrupts::SerialTransferCompletion as u8)
-            == Interrupts::SerialTransferCompletion as u8
-        {
-            todo!("SerialTransferCompletion")
+        if self.ime {
+            let interrupt_vec = self.interrupts_to_service();
+            // FIX: pretty sure the clock stuff here is bad
+            for interrupt in interrupt_vec {
+                // panic!("{:?}", interrupt);
+                self.nop();
+                self.clock = self.clock.wrapping_add(4);
+                self.timer.tick(4);
+                self.nop();
+                self.clock = self.clock.wrapping_add(4);
+                self.timer.tick(4);
+                self.call_interrupt(interrupt);
+                self.clock = self.clock.wrapping_add(12);
+                self.timer.tick(12);
+            }
         }
     }
 
-    // fn interrupts_to_service(&self) -> Vec<Interrupts> {
-    //     // let interrupt_num = interrupt as u8;
-    //     // let if_reg = self.mmu.read_byte(io_registers::IF);
-    //     // (if_reg & interrupt_num) == interrupt_num
-    //     let mut interrupts = vec![];
+    fn interrupts_to_service(&self) -> Vec<Interrupts> {
+        let mut interrupts = vec![];
 
-    //     let if_reg = self.mmu.read_byte(io_registers::IF);
+        let if_reg = self.mmu.read_byte(io_registers::IF);
 
-    //     // TODO: this should be folded into io_Reg potentially? or at least should be hidden
-    //     let ie_reg = self.mmu.read_byte(0xFFFF);
+        // TODO: this should be folded into io_Reg potentially? or at least should be hidden
+        let ie_reg = self.mmu.read_byte(0xFFFF);
 
-    //     let interrupts = if_reg & ie_reg;
-    //     if
-    //     interrupts
-    // }
+        // There can be multiple interrupts enabled at once, so we need to service them in priority
+        // order
+        // TODO: check that Interrupts::iter() goes from VBlank (the highest priority interrupt)
+        // down to lower priority ones
+        for interrupt in Interrupts::iter() {
+            // TODO: name if_reg & ie_reg
+            if (if_reg & ie_reg & interrupt as u8) == interrupt as u8 {
+                interrupts.push(interrupt)
+            }
+        }
+
+        interrupts
+    }
 }
 
 // Translate Src/Dst enums to the correct value or destination

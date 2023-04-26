@@ -1,3 +1,5 @@
+use strum_macros::EnumIter;
+
 use crate::mem_constants::{IO_END, IO_START};
 
 const IO_SIZE: usize = (IO_END - IO_START + 1) as usize;
@@ -83,13 +85,13 @@ pub const WY: u16 = 0xFF4A;
 /// Window X Position (R/W)
 pub const WX: u16 = 0xFF4B;
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, EnumIter)]
 pub enum Interrupts {
-    VBlank = 0x00,
-    LCDCStatus = 0x01,
-    TimerOverflow = 0x04,
-    SerialTransferCompletion = 0x08,
-    HighToLowP10P13 = 0x10,
+    VBlank = 0b0000_0001,
+    LCDCStatus = 0b0000_0010,
+    TimerOverflow = 0b0000_0100,
+    SerialTransferCompletion = 0b0000_1000,
+    HighToLowP10P13 = 0b0001_0000,
 }
 
 #[derive(Clone, Debug)]
