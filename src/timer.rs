@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use crate::io_registers::{self, Interrupts};
+use crate::io_registers;
 
 // TODO: need to use 16779Hz for SGB
 const DIV_HZ: u32 = 16_384;

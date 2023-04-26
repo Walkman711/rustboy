@@ -94,9 +94,9 @@ impl CPU {
             if timer_overflowed {
                 if self.ime {
                     // TODO: really should set up something for setting interrupt flag bits
-                    let old_IF = self.mmu.read_byte(io_registers::IF);
-                    let new_IF = old_IF | (Interrupts::TimerOverflow as u8);
-                    self.mmu.write_byte(io_registers::IF, new_IF)
+                    let old_if_reg = self.mmu.read_byte(io_registers::IF);
+                    let new_if_reg = old_if_reg | (Interrupts::TimerOverflow as u8);
+                    self.mmu.write_byte(io_registers::IF, new_if_reg)
                 }
             }
             self.clock = self.clock.wrapping_add(cycles_elapsed);
@@ -104,7 +104,7 @@ impl CPU {
             // Update IME flag
             self.check_ime();
 
-            self.handle_interrupts();
+            // self.handle_interrupts();
 
             // Logging and debugging
             if self.debug {
@@ -1312,6 +1312,22 @@ impl CPU {
             todo!("SerialTransferCompletion")
         }
     }
+
+    // fn interrupts_to_service(&self) -> Vec<Interrupts> {
+    //     // let interrupt_num = interrupt as u8;
+    //     // let if_reg = self.mmu.read_byte(io_registers::IF);
+    //     // (if_reg & interrupt_num) == interrupt_num
+    //     let mut interrupts = vec![];
+
+    //     let if_reg = self.mmu.read_byte(io_registers::IF);
+
+    //     // TODO: this should be folded into io_Reg potentially? or at least should be hidden
+    //     let ie_reg = self.mmu.read_byte(0xFFFF);
+
+    //     let interrupts = if_reg & ie_reg;
+    //     if
+    //     interrupts
+    // }
 }
 
 // Translate Src/Dst enums to the correct value or destination
