@@ -1,3 +1,4 @@
+pub mod boot_roms;
 pub mod cart_enums;
 pub mod cpu;
 pub mod gb_models;
@@ -9,3 +10,4 @@ pub mod mmu;
 pub mod registers;
 pub mod timer;
 pub mod utils;
+pub mod vram;

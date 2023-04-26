@@ -1,12 +1,14 @@
 #![allow(non_snake_case)]
 
-use crate::{io_registers::IORegisters, mem_constants::*};
+use crate::{boot_roms::DMG_BOOT_ROM, io_registers::IORegisters, mem_constants::*};
 
 const BANK_0_SIZE: usize = (ROM_BANK_0_END - ROM_BANK_0_START + 1) as usize;
 const SWITCHABLE_ROM_SIZE: usize = (SWITCHABLE_ROM_END - SWITCHABLE_ROM_START + 1) as usize;
 
 #[derive(Debug)]
 pub struct MMU {
+    boot_rom_active: bool,
+    boot_rom: [u8; 256],
     // ROM 0
     rom_bank_0: [u8; BANK_0_SIZE],
     // SWITCHABLE ROM
@@ -33,17 +35,24 @@ pub struct MMU {
 impl MMU {
     pub fn new(rom: &str) -> Self {
         let mut rom_bank_0 = [0; BANK_0_SIZE];
-        let bytes = std::fs::read(rom).expect("Reading from ROM failed in MMU::new()");
         // TODO: this is messy
-        for i in 0..BANK_0_SIZE {
+        let bytes = std::fs::read(rom).expect("Reading from ROM failed in MMU::new()");
+        for i in 0x00..BANK_0_SIZE {
             rom_bank_0[i as usize] = bytes[i as usize];
         }
+
+        // FIX: !!!! need to map back to rom from boot rom after it's done by modifying the BANK
+        // register (0xFF50) - This is completely broken
+        let boot_rom = DMG_BOOT_ROM.to_owned();
+
         let mut switchable_rom = [0; SWITCHABLE_ROM_SIZE];
         // TODO: this is messy
         for i in 0..SWITCHABLE_ROM_SIZE {
             switchable_rom[i as usize] = bytes[BANK_0_SIZE + (i as usize)];
         }
         Self {
+            boot_rom_active: true,
+            boot_rom,
             rom_bank_0,
             switchable_rom,
             ext_ram: [0; (EXT_RAM_END - EXT_RAM_START + 1) as usize],
@@ -67,7 +76,11 @@ impl MMU {
         match addr {
             // FIX: assuming a 32 kb cart
             ROM_BANK_0_START..=ROM_BANK_0_END => {
-                self.rom_bank_0[(addr - ROM_BANK_0_START) as usize]
+                if addr < 0x100 && self.boot_rom_active {
+                    self.boot_rom[addr as usize]
+                } else {
+                    self.rom_bank_0[(addr - ROM_BANK_0_START) as usize]
+                }
             }
             SWITCHABLE_ROM_START..=SWITCHABLE_ROM_END => {
                 self.switchable_rom[(addr - SWITCHABLE_ROM_START) as usize]
@@ -105,7 +118,14 @@ impl MMU {
             FORBIDDEN_START..=FORBIDDEN_END => {
                 panic!("Nintendo forbids writing to {FORBIDDEN_START}-{FORBIDDEN_END}")
             }
-            IO_START..=IO_END => self.io.set_byte(addr, val),
+            IO_START..=IO_END => {
+                // XXX: how to handle weird cases where "writing" to a register is just a signal
+                // that some state has changed?
+                if addr == 0xFF50 {
+                    self.boot_rom_active = false;
+                }
+                self.io.set_byte(addr, val);
+            }
             HRAM_START..=HRAM_END => self.hram[(addr - HRAM_START) as usize] = val,
             INTERRUPT_START..=INTERRUPT_END => self.ie = val,
         }

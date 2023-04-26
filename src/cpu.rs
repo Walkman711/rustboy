@@ -79,9 +79,17 @@ impl CPU {
     pub fn run(&mut self) {
         self.log_cpu_state();
         loop {
-            // if self.halted {
-            //     continue;
-            // }
+            // Update IME flag
+            self.check_ime();
+
+            let interrupt_cycles = self.handle_interrupts();
+            if interrupt_cycles > 0 {
+                continue;
+            }
+
+            if self.halted {
+                continue;
+            }
 
             // Fetch
             let opcode = self.fetch();
@@ -97,15 +105,10 @@ impl CPU {
                     // TODO: really should set up something for setting interrupt flag bits
                     let old_if_reg = self.mmu.read_byte(io_registers::IF);
                     let new_if_reg = old_if_reg | (Interrupts::TimerOverflow as u8);
-                    self.mmu.write_byte(io_registers::IF, new_if_reg)
+                    self.mmu.write_byte(io_registers::IF, new_if_reg);
                 }
             }
             self.clock = self.clock.wrapping_add(cycles_elapsed);
-
-            // Update IME flag
-            self.check_ime();
-
-            self.handle_interrupts();
 
             // Logging and debugging
             if self.debug {
@@ -1207,6 +1210,15 @@ impl CPU {
             Interrupts::HighToLowP10P13 => 0x60,
         };
         self.reg.pc = addr;
+        // for i in 0..256 {
+        //     if i % 16 == 0 {
+        //         print!("\n");
+        //     }
+        //     print!("{:#02X}, ", self.mmu.read_byte(i));
+        // }
+        // println!("\n");
+        // self.log_cpu_state();
+        // panic!("boot rom");
     }
 }
 
@@ -1298,23 +1310,28 @@ impl CPU {
         }
     }
 
-    fn handle_interrupts(&mut self) {
+    fn handle_interrupts(&mut self) -> u32 {
+        let mut cycles_elapsed = 0;
         if self.ime {
             let interrupt_vec = self.interrupts_to_service();
             // FIX: pretty sure the clock stuff here is bad
             for interrupt in interrupt_vec {
+                // Acknowledge interrupt
+                self.clear_interrupt(interrupt);
+
+                // Disable further interrupts until they're re-enabled (RETI)
+                self.ime = false;
+
                 // panic!("{:?}", interrupt);
                 self.nop();
-                self.clock = self.clock.wrapping_add(4);
-                self.timer.tick(4);
+                cycles_elapsed += 4;
                 self.nop();
-                self.clock = self.clock.wrapping_add(4);
-                self.timer.tick(4);
+                cycles_elapsed += 4;
                 self.call_interrupt(interrupt);
-                self.clock = self.clock.wrapping_add(12);
-                self.timer.tick(12);
+                cycles_elapsed += 12;
             }
         }
+        cycles_elapsed
     }
 
     fn interrupts_to_service(&self) -> Vec<Interrupts> {
@@ -1337,6 +1354,12 @@ impl CPU {
         }
 
         interrupts
+    }
+
+    fn clear_interrupt(&mut self, interrupt: Interrupts) {
+        let if_reg = self.mmu.read_byte(io_registers::IF);
+        self.mmu
+            .write_byte(io_registers::IF, if_reg & !(interrupt as u8));
     }
 }
 
