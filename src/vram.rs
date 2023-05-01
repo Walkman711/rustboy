@@ -1,57 +1,4 @@
 #![allow(dead_code)]
-/// # VRAM Sprite Attribute Table (OAM)
-///
-/// The Game Boy PPU can display up to 40 sprites either in 8x8 or
-/// in 8x16 pixels. Because of a limitation of hardware, only ten sprites
-/// can be displayed per scan line. Sprite tiles have the same format as
-/// BG tiles, but they are taken from the Sprite Tiles Table located at
-/// $8000-8FFF and have unsigned numbering.
-///
-/// Sprite attributes reside in the Sprite Attribute Table (OAM: Object
-/// Attribute Memory) at \$FE00-FE9F. Each of the 40 entries consists of
-/// four bytes with the following meanings:
-/// ## Byte 0 — Y Position
-///
-/// Y = Sprite's vertical position on the screen + 16. So for example,
-/// Y=0 hides a sprite,
-/// Y=2 hides an 8×8 sprite but displays the last two rows of an 8×16 sprite,
-/// Y=16 displays a sprite at the top of the screen,
-/// Y=144 displays an 8×16 sprite aligned with the bottom of the screen,
-/// Y=152 displays an 8×8 sprite aligned with the bottom of the screen,
-/// Y=154 displays the first six rows of a sprite at the bottom of the screen,
-/// Y=160 hides a sprite.
-///
-/// ## Byte 1 — X Position
-///
-/// X = Sprite's horizontal position on the screen + 8. This works similarly
-/// to the examples above, except that the width of a sprite is always 8. An
-/// off-screen value (X=0 or X\>=168) hides the sprite, but the sprite still
-/// affects the priority ordering, thus other sprites with lower priority may be
-/// left out due to the ten sprites limit per scan-line.
-/// A better way to hide a sprite is to set its Y-coordinate off-screen.
-///
-/// ## Byte 2 — Tile Index
-///
-/// In 8x8 mode (LCDC bit 2 = 0), this byte specifies the sprite's only tile index ($00-$FF).
-/// This unsigned value selects a tile from the memory area at $8000-$8FFF.
-/// In CGB Mode this could be either in
-/// VRAM bank 0 or 1, depending on bit 3 of the following byte.
-/// In 8x16 mode (LCDC bit 2 = 1), the memory area at $8000-$8FFF is still interpreted
-/// as a series of 8x8 tiles, where every 2 tiles form a sprite. In this mode, this byte
-/// specifies the index of the first (top) tile of the sprite. This is enforced by the
-/// hardware: the least significant bit of the tile index is ignored; that is, the top 8x8
-/// tile is "NN & $FE", and the bottom 8x8 tile is "NN | $01".
-///
-/// ## Byte 3 — Attributes/Flags
-///
-/// ```
-///  Bit7   BG and Window over OBJ (0=No, 1=BG and Window colors 1-3 over the OBJ)
-///  Bit6   Y flip          (0=Normal, 1=Vertically mirrored)
-///  Bit5   X flip          (0=Normal, 1=Horizontally mirrored)
-///  Bit4   Palette number  **Non CGB Mode Only** (0=OBP0, 1=OBP1)
-///  Bit3   Tile VRAM-Bank  **CGB Mode Only**     (0=Bank 0, 1=Bank 1)
-///  Bit2-0 Palette number  **CGB Mode Only**     (OBP0-7)
-/// ```
 pub struct OAM {
     entries: [OAMEntry; 40],
 }
@@ -133,6 +80,21 @@ pub enum MonochromeColors {
     Black = 3,
 }
 
+// FIX: make fallible
+// XXX: maybe two bools?
+impl From<u8> for MonochromeColors {
+    fn from(value: u8) -> Self {
+        assert!(value < 4);
+        match value {
+            0 => MonochromeColors::White,
+            1 => MonochromeColors::LightGray,
+            2 => MonochromeColors::DarkGray,
+            3 => MonochromeColors::Black,
+            _ => unreachable!("Checked by assert! statement above"),
+        }
+    }
+}
+
 pub struct LCDMonochromePalettes {
     /// ### FF47 — BGP (Non-CGB Mode only): BG palette data
     ///
@@ -160,4 +122,24 @@ pub struct LCDMonochromePalettes {
     /// They work exactly like BGP, except that the lower two bits are ignored because color index 0 is transparent for OBJs.
     obp0: u8,
     obp1: u8,
+}
+
+pub struct Tile {
+    data: u16,
+}
+
+impl Tile {
+    pub fn row(&self) -> Vec<MonochromeColors> {
+        let mut colors = vec![];
+        let hi: u8 = ((self.data & 0xFF00) >> 16) as u8;
+        let lo: u8 = (self.data & 0x00FF) as u8;
+        for i in 0..=7 {
+            let mask: u8 = 1 << i;
+            let hi_bit = (hi & mask) >> i;
+            let lo_bit = (lo & mask) >> i;
+            let color = (hi_bit << 1) + lo_bit;
+            colors.push(MonochromeColors::from(color));
+        }
+        colors
+    }
 }

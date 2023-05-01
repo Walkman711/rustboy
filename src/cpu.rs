@@ -7,12 +7,15 @@ use crate::{
     timer::Timer,
     utils::*,
 };
+use sdl2::{pixels, render::Canvas, video::Window};
 use strum::IntoEnumIterator;
 
 pub const CPU_HZ: u32 = 4_194_304;
 pub const VBLANK_FREQ: u32 = ((CPU_HZ as f64) / 59.7) as u32;
+pub const ROWS: u32 = 144;
+pub const COLS: u32 = 160;
 
-#[derive(Debug)]
+// #[derive(Debug)]
 pub struct CPU {
     reg: Registers,
     // TODO: is this 32 bit? also does it matter?
@@ -25,10 +28,33 @@ pub struct CPU {
     ime: bool,
     debug: bool,
     timer: Timer,
+    canvas: Canvas<Window>,
 }
 
 impl CPU {
     pub fn new(rom: &str, debug: bool) -> Self {
+        let sdl_context = sdl2::init().expect("Failed to init SDL context.");
+        let video_subsys = sdl_context
+            .video()
+            .expect("Failed to init SDL Video subsystem.");
+        let window = video_subsys
+            // XXX: scaling factor on cmdline
+            .window(
+                &format!("Rustboy - {rom}"),
+                (COLS * 10) as u32,
+                (ROWS * 10) as u32,
+            )
+            .position_centered()
+            .opengl()
+            .build()
+            .expect("Failed to create SDL window.");
+        let mut canvas = window
+            .into_canvas()
+            .build()
+            .expect("Failed to create canvas.");
+        canvas.set_draw_color(pixels::Color::RGB(0, 100, 100));
+        canvas.clear();
+        canvas.present();
         Self {
             reg: Registers::default(),
             clock: 0,
@@ -40,6 +66,7 @@ impl CPU {
             ime: false,
             debug,
             timer: Timer::default(),
+            canvas,
         }
     }
 
