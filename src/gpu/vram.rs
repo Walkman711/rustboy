@@ -73,6 +73,7 @@ pub struct LCDScrolling {
     wx: u8,
 }
 
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum MonochromeColors {
     White = 0,
     LightGray = 1,
@@ -101,12 +102,12 @@ pub struct LCDMonochromePalettes {
     /// This register assigns gray shades to the color indexes of the BG and
     /// Window tiles.
     ///
-    /// ```
+    ///
     /// Bit 7-6 - Color for index 3
     /// Bit 5-4 - Color for index 2
     /// Bit 3-2 - Color for index 1
     /// Bit 1-0 - Color for index 0
-    /// ```
+    ///
     ///
     /// Value | Color
     /// ------|-------
@@ -122,24 +123,4 @@ pub struct LCDMonochromePalettes {
     /// They work exactly like BGP, except that the lower two bits are ignored because color index 0 is transparent for OBJs.
     obp0: u8,
     obp1: u8,
-}
-
-pub struct Tile {
-    data: u16,
-}
-
-impl Tile {
-    pub fn row(&self) -> Vec<MonochromeColors> {
-        let mut colors = vec![];
-        let hi: u8 = ((self.data & 0xFF00) >> 16) as u8;
-        let lo: u8 = (self.data & 0x00FF) as u8;
-        for i in 0..=7 {
-            let mask: u8 = 1 << i;
-            let hi_bit = (hi & mask) >> i;
-            let lo_bit = (lo & mask) >> i;
-            let color = (hi_bit << 1) + lo_bit;
-            colors.push(MonochromeColors::from(color));
-        }
-        colors
-    }
 }
