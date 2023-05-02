@@ -39,7 +39,7 @@ pub struct PPU {
     /// LY indicates the current horizontal line, which might be about to be drawn,
     /// being drawn, or just been drawn. LY can hold any value from 0 to 153, with
     /// values from 144 to 153 indicating the VBlank period.
-    ly: u8,
+    pub ly: u8,
 
     /// FF45 — LYC: LY compare
     /// The Game Boy constantly compares the value of the LYC and LY registers.
@@ -118,12 +118,19 @@ impl PPU {
         let vblank_status = if self.internal_scanline_timer > CYCLES_PER_SCANLINE {
             self.internal_scanline_timer -= CYCLES_PER_SCANLINE;
             self.ly += 1;
-            if self.ly == SCANLINES {
+            if self.ly < SCANLINES {
+                VBlankStatus::Drawing
+            } else if self.ly == SCANLINES {
                 VBlankStatus::VBlankRequested
             } else if self.ly > SCANLINES && self.ly < SCANLINES + VBLANK_PERIOD {
                 VBlankStatus::VBlank
             } else {
-                assert!(self.ly >= (SCANLINES + VBLANK_PERIOD));
+                assert!(
+                    self.ly >= (SCANLINES + VBLANK_PERIOD),
+                    "LY: {} | Timer: {}",
+                    self.ly,
+                    self.internal_scanline_timer
+                );
                 self.ly = 0;
                 VBlankStatus::VBlankEnding
             }

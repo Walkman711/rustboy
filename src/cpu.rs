@@ -14,10 +14,11 @@ use strum::IntoEnumIterator;
 pub const CPU_HZ: u32 = 4_194_304;
 // FIX: just put in const
 pub const VBLANK_FREQ: u32 = ((CPU_HZ as f64) / 59.7) as u32;
-// pub const ROWS: u32 = 144;
-// pub const COLS: u32 = 160;
-pub const ROWS: u32 = 256;
-pub const COLS: u32 = 256;
+pub const ROWS: u32 = 144;
+pub const COLS: u32 = 160;
+pub const BG_ROWS: u32 = 256;
+pub const BG_COLS: u32 = 256;
+pub const PIXEL_SIZE: u32 = 5;
 
 // #[derive(Debug)]
 pub struct CPU {
@@ -32,6 +33,7 @@ pub struct CPU {
     ime: bool,
     debug: bool,
     canvas: Canvas<Window>,
+    scanline: u8,
 }
 
 impl CPU {
@@ -44,8 +46,8 @@ impl CPU {
             // XXX: scaling factor on cmdline
             .window(
                 &format!("Rustboy - {rom}"),
-                (COLS * 5) as u32,
-                (ROWS * 5) as u32,
+                (BG_COLS * PIXEL_SIZE) as u32,
+                (BG_ROWS * PIXEL_SIZE) as u32,
             )
             .position_centered()
             .opengl()
@@ -69,6 +71,7 @@ impl CPU {
             ime: false,
             debug,
             canvas,
+            scanline: 0,
         }
     }
 
@@ -146,7 +149,12 @@ impl CPU {
                 self.debug_step(opcode, inst);
             }
 
-            self.log_cpu_state();
+            // self.log_cpu_state();
+
+            self.draw_scanline();
+            // if self.reg.pc > 0x200 {
+            //     panic!("pc");
+            // }
         }
     }
 
@@ -1445,6 +1453,28 @@ impl CPU {
 }
 
 impl CPU {
+    fn draw_scanline(&mut self) {
+        // XXX: tmp for debugging
+        if self.scanline == self.mmu.ppu.ly {
+            return;
+        }
+        self.scanline = self.mmu.ppu.ly;
+        println!("scanline {}", self.mmu.ppu.ly);
+        let black = pixels::Color::RGB(0x0, 0x0, 0x0);
+        let white = pixels::Color::RGB(0xFF, 0xFF, 0xFF);
+        self.canvas.set_draw_color(black);
+        self.canvas.clear();
+        self.canvas.set_draw_color(white);
+        let rect = sdl2::rect::Rect::new(
+            0,
+            (self.mmu.ppu.ly as u32 * PIXEL_SIZE) as i32,
+            PIXEL_SIZE * COLS,
+            PIXEL_SIZE,
+        );
+        self.canvas.fill_rect(rect).expect("rect failed to draw");
+        self.canvas.present();
+    }
+
     fn dump_tiles(&mut self) {
         for tile_idx in 0..128 {
             let mut tile_data = [0; 16];
@@ -1473,13 +1503,12 @@ impl CPU {
             {
                 panic!("tile data");
             }
-            let cell_size = 10;
             for (i, row) in draw.iter().enumerate() {
                 for (j, color_id) in row.iter().enumerate() {
-                    let x: i32 = (j * cell_size)
+                    let x: i32 = (j * PIXEL_SIZE as usize)
                         .try_into()
                         .expect("should never be drawing out of i32 bounds");
-                    let y: i32 = (i * cell_size)
+                    let y: i32 = (i * PIXEL_SIZE as usize)
                         .try_into()
                         .expect("should never be drawing out of i32 bounds");
 
@@ -1494,8 +1523,8 @@ impl CPU {
                     let rect = sdl2::rect::Rect::new(
                         x + x_offset,
                         y + y_offset,
-                        cell_size as u32,
-                        cell_size as u32,
+                        PIXEL_SIZE as u32,
+                        PIXEL_SIZE as u32,
                     );
                     self.canvas.fill_rect(rect).expect("rect failed to draw");
                 }

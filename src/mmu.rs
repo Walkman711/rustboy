@@ -1,7 +1,11 @@
 #![allow(non_snake_case)]
 
 use crate::{
-    boot_roms::DMG_BOOT_ROM, mem_constants::*, ppu::ppu::PPU, timer::Timer, traits::ReadWriteByte,
+    boot_roms::DMG_BOOT_ROM,
+    mem_constants::*,
+    ppu::ppu::{VBlankStatus, PPU},
+    timer::Timer,
+    traits::ReadWriteByte,
 };
 
 const BANK_0_SIZE: usize = (ROM_BANK_0_END - ROM_BANK_0_START + 1) as usize;
@@ -25,7 +29,7 @@ pub struct MMU {
     // WRAM II
     // TODO: can switch banks 1-7 in CGB mode
     wramII: [u8; (WRAM_II_END - WRAM_II_START + 1) as usize],
-    ppu: PPU,
+    pub ppu: PPU,
     timer: Timer,
     // HRAM
     hram: [u8; (HRAM_END - HRAM_START + 1) as usize],
@@ -74,7 +78,15 @@ impl MMU {
     // FIX: there will be a variety of states updated by an MMU tick. This should not be a
     // bool. Instead, return interrupt vector
     pub fn tick(&mut self, cy: u32) -> bool {
-        self.timer.tick(cy)
+        let timer_overflowed = self.timer.tick(cy);
+        let vblank_status = self.ppu.tick(cy);
+        // match vblank_status {
+        //     VBlankStatus::VBlank => todo!(),
+        //     VBlankStatus::VBlankRequested => todo!(),
+        //     VBlankStatus::VBlankEnding => todo!(),
+        //     VBlankStatus::Drawing => todo!(),
+        // }
+        timer_overflowed
     }
 }
 
@@ -163,7 +175,7 @@ impl MMU {
             0xFF46 => self.dma_transfer(val),
             0xFF50 => {
                 self.boot_rom_active = false;
-                // panic!("boot rom done");
+                panic!("boot rom done");
                 return;
             }
             _ => {}
