@@ -1,11 +1,7 @@
 #![allow(non_snake_case)]
 
 use crate::{
-    boot_roms::DMG_BOOT_ROM,
-    mem_constants::*,
-    ppu::ppu::{VBlankStatus, PPU},
-    timer::Timer,
-    traits::ReadWriteByte,
+    boot_roms::DMG_BOOT_ROM, mem_constants::*, ppu::ppu::PPU, timer::Timer, traits::ReadWriteByte,
 };
 
 const BANK_0_SIZE: usize = (ROM_BANK_0_END - ROM_BANK_0_START + 1) as usize;
@@ -44,17 +40,13 @@ impl MMU {
         let mut rom_bank_0 = [0; BANK_0_SIZE];
         // TODO: this is messy
         let bytes = std::fs::read(rom).expect("Reading from ROM failed in MMU::new()");
-        for i in 0x00..BANK_0_SIZE {
-            rom_bank_0[i as usize] = bytes[i as usize];
-        }
+        rom_bank_0[0..BANK_0_SIZE].copy_from_slice(&bytes[0..BANK_0_SIZE]);
 
         let boot_rom = DMG_BOOT_ROM.to_owned();
 
         let mut switchable_rom = [0; SWITCHABLE_ROM_SIZE];
-        // TODO: this is messy
-        for i in 0..SWITCHABLE_ROM_SIZE {
-            switchable_rom[i as usize] = bytes[BANK_0_SIZE + (i as usize)];
-        }
+        switchable_rom[0..SWITCHABLE_ROM_SIZE]
+            .copy_from_slice(&bytes[BANK_0_SIZE..BANK_0_SIZE + SWITCHABLE_ROM_SIZE]);
 
         Self {
             boot_rom_active: true,
@@ -79,7 +71,7 @@ impl MMU {
     // bool. Instead, return interrupt vector
     pub fn tick(&mut self, cy: u32) -> bool {
         let timer_overflowed = self.timer.tick(cy);
-        let vblank_status = self.ppu.tick(cy);
+        let _vblank_status = self.ppu.tick(cy);
         // match vblank_status {
         //     VBlankStatus::VBlank => todo!(),
         //     VBlankStatus::VBlankRequested => todo!(),

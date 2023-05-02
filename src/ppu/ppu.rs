@@ -116,7 +116,7 @@ pub enum StatMode {
 impl PPU {
     pub fn tick(&mut self, cy: u32) -> VBlankStatus {
         self.internal_scanline_timer += cy;
-        let vblank_status = if self.internal_scanline_timer > CYCLES_PER_SCANLINE {
+        if self.internal_scanline_timer > CYCLES_PER_SCANLINE {
             self.internal_scanline_timer -= CYCLES_PER_SCANLINE;
             self.ly += 1;
             if self.ly < SCANLINES {
@@ -137,9 +137,7 @@ impl PPU {
             }
         } else {
             VBlankStatus::Drawing
-        };
-
-        vblank_status
+        }
     }
 }
 

@@ -50,7 +50,7 @@ impl Timer {
             self.internal_timer += cy;
             if self.internal_timer > self.tac() as u32 {
                 if self.tima == 0xFF {
-                    self.tima = self.tma.into();
+                    self.tima = self.tma;
                     timer_overflowed = true;
                 } else {
                     self.tima = self.tima.wrapping_add(1);

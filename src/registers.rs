@@ -14,9 +14,9 @@ pub enum Flags {
     C,
 }
 
-impl Into<u8> for Flags {
-    fn into(self) -> u8 {
-        match self {
+impl From<Flags> for u8 {
+    fn from(value: Flags) -> Self {
+        match value {
             Flags::Z => 0b1000_0000,
             Flags::N => 0b0100_0000,
             Flags::H => 0b0010_0000,
@@ -60,22 +60,22 @@ impl From<u8> for FlagRegister {
 
 #[allow(non_snake_case)]
 // TODO: this is definitely messier than it should be
-impl Into<u8> for FlagRegister {
-    fn into(self) -> u8 {
+impl From<FlagRegister> for u8 {
+    fn from(val: FlagRegister) -> u8 {
         let mut res = 0;
-        if self.Z {
+        if val.Z {
             let z: u8 = Flags::Z.into();
             res |= z;
         }
-        if self.N {
+        if val.N {
             let n: u8 = Flags::N.into();
             res |= n;
         }
-        if self.H {
+        if val.H {
             let h: u8 = Flags::H.into();
             res |= h;
         }
-        if self.C {
+        if val.C {
             let c: u8 = Flags::C.into();
             res |= c;
         }

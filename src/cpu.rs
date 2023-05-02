@@ -50,8 +50,8 @@ impl CPU {
             // XXX: scaling factor on cmdline
             .window(
                 &format!("Rustboy - {rom}"),
-                (BG_COLS * PIXEL_SIZE) as u32,
-                (BG_ROWS * PIXEL_SIZE) as u32,
+                BG_COLS * PIXEL_SIZE,
+                BG_ROWS * PIXEL_SIZE,
             )
             .position_centered()
             .opengl()
@@ -138,13 +138,11 @@ impl CPU {
             // Execute
             let cycles_elapsed = self.execute(inst);
             let timer_overflowed = self.mmu.tick(cycles_elapsed);
-            if timer_overflowed {
-                if self.ime {
-                    // TODO: really should set up something for setting interrupt flag bits
-                    let old_if_reg = self.mmu.read(io_registers::IF);
-                    let new_if_reg = old_if_reg | (Interrupts::TimerOverflow as u8);
-                    self.mmu.write(io_registers::IF, new_if_reg);
-                }
+            if timer_overflowed && self.ime {
+                // TODO: really should set up something for setting interrupt flag bits
+                let old_if_reg = self.mmu.read(io_registers::IF);
+                let new_if_reg = old_if_reg | (Interrupts::TimerOverflow as u8);
+                self.mmu.write(io_registers::IF, new_if_reg);
             }
             self.clock = self.clock.wrapping_add(cycles_elapsed);
 
@@ -968,7 +966,7 @@ impl CPU {
         // XXX: find some accurate docs for this
         let val = self.fetch() as i8 as i16 as u16;
         let sp = self.reg.sp;
-        let res = sp.wrapping_add(val as u16);
+        let res = sp.wrapping_add(val);
         self.reg.flag(Flags::Z, false);
         self.reg.flag(Flags::N, false);
         // truncate lower byte of SP
@@ -1261,7 +1259,7 @@ impl CPU {
     /// Push present address onto stack. Jump to address 0x0000 + n.
     fn rst(&mut self, jv: u16) {
         self.push_stack(self.reg.pc);
-        self.reg.pc = jv as u16;
+        self.reg.pc = jv;
     }
 }
 
@@ -1474,8 +1472,8 @@ impl CPU {
         let scy = self.mmu.read(io_registers::SCY);
         let scx = self.mmu.read(io_registers::SCX);
         let ly = self.mmu.read(io_registers::LY);
-        let lyc = self.mmu.read(io_registers::LYC);
-        let bgp = self.mmu.read(io_registers::BGP);
+        let _lyc = self.mmu.read(io_registers::LYC);
+        let _bgp = self.mmu.read(io_registers::BGP);
         let wy = self.mmu.read(io_registers::WY);
         // let wx = self.mmu.read(io_registers::WX) - 7;
         // XXX: what happens if wx is < 7?
@@ -1490,7 +1488,7 @@ impl CPU {
         };
 
         // TODO: this is going to be tricky with signed stuff...
-        let tile_data_area = lcdc.bg_and_window_tile_data_area();
+        let _tile_data_area = lcdc.bg_and_window_tile_data_area();
 
         if !lcdc.bg_and_window_enable() {
             self.canvas.clear();
@@ -1508,7 +1506,7 @@ impl CPU {
         let tile_row_to_draw = (y_pos as u32) % TILE_PIXELS;
         // for each..
         for pixel in 0..COLS {
-            let x_pos = if window_enabled && (pixel as u8) >= wx {
+            let _x_pos = if window_enabled && (pixel as u8) >= wx {
                 (pixel as u8) - wx
             } else {
                 (pixel as u8) + scx
@@ -1528,7 +1526,7 @@ impl CPU {
 
             let tile = Tile { data: tile_data };
             let rendered_tile = tile.render();
-            let row_to_draw = &rendered_tile[tile_row_to_draw as usize];
+            let _row_to_draw = &rendered_tile[tile_row_to_draw as usize];
         }
     }
 
@@ -1539,7 +1537,6 @@ impl CPU {
             // 0x8800 tiles are signed, but we can cheat and add an offset that takes us to the
             // actual "zero" point which is 0x9000
             const OFFSET: u16 = (0x9000 - 0x8800) / TILE_BYTES;
-            assert!(OFFSET == 128);
             tile_map_addr + ((tile_idx + OFFSET) * TILE_BYTES)
         }
     }
@@ -1627,12 +1624,8 @@ impl CPU {
                         _ => panic!("bad color id"),
                     };
                     self.canvas.set_draw_color(color);
-                    let rect = sdl2::rect::Rect::new(
-                        x + x_offset,
-                        y + y_offset,
-                        PIXEL_SIZE as u32,
-                        PIXEL_SIZE as u32,
-                    );
+                    let rect =
+                        sdl2::rect::Rect::new(x + x_offset, y + y_offset, PIXEL_SIZE, PIXEL_SIZE);
                     self.canvas.fill_rect(rect).expect("rect failed to draw");
                 }
             }

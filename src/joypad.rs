@@ -3,9 +3,9 @@ pub enum Input {
     ActionButton(Action),
 }
 
-impl Into<u8> for Input {
-    fn into(self) -> u8 {
-        match self {
+impl From<Input> for u8 {
+    fn from(value: Input) -> Self {
+        match value {
             Input::DirectionButton(d) => d.into(),
             Input::ActionButton(a) => a.into(),
         }
@@ -20,9 +20,9 @@ pub enum Direction {
     Right,
 }
 
-impl Into<u8> for Direction {
-    fn into(self) -> u8 {
-        match self {
+impl From<Direction> for u8 {
+    fn from(value: Direction) -> Self {
+        match value {
             Direction::Down => 0b0000_1000,
             Direction::Up => 0b0000_0100,
             Direction::Left => 0b0000_0010,
@@ -39,9 +39,9 @@ pub enum Action {
     A,
 }
 
-impl Into<u8> for Action {
-    fn into(self) -> u8 {
-        match self {
+impl From<Action> for u8 {
+    fn from(value: Action) -> Self {
+        match value {
             Action::Start => 0b0000_1000,
             Action::Select => 0b0000_0100,
             Action::B => 0b0000_0010,
