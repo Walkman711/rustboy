@@ -60,7 +60,7 @@ impl Timer {
         timer_overflowed
     }
 
-    // FIX: weird
+    // FIX: not sure why I'm getting bad TAC register values in the interrupt test
     fn tac(&self) -> u16 {
         match self.tac {
             0x00 => 1024,

@@ -1,9 +1,4 @@
-#![allow(dead_code)]
-
 use std::fmt::Display;
-
-const HIGH_MASK: u16 = 0xFF00;
-const LOW_MASK: u16 = 0x00FF;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 #[allow(non_snake_case)]
@@ -34,7 +29,7 @@ pub struct FlagRegister {
     C: bool,
 }
 
-// FIX: is this right?
+// CGB: this will have to change based on GB mode
 impl Default for FlagRegister {
     fn default() -> Self {
         Self {
@@ -131,8 +126,7 @@ impl Default for Registers {
             // Using DMG0
             // CGB: this depends on if it's a GB/GBP/GBC
             a: 0x01,
-            // FIX: incorrect for startup
-            f: FlagRegister::from(0xB0),
+            f: FlagRegister::default(),
             b: 0x00,
             c: 0x13,
             d: 0x00,

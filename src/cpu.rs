@@ -14,8 +14,8 @@ use sdl2::{pixels, render::Canvas, video::Window};
 use strum::IntoEnumIterator;
 
 pub const CPU_HZ: u32 = 4_194_304;
-// FIX: just put in const
-pub const VBLANK_FREQ: u32 = ((CPU_HZ as f64) / 59.7) as u32;
+// using 59.7 framerate
+pub const CYCLES_PER_VBLANK: u32 = 70_256;
 pub const ROWS: u32 = 144;
 pub const COLS: u32 = 160;
 pub const BG_ROWS: u32 = 256;
@@ -1234,7 +1234,6 @@ impl CPU {
 impl CPU {
     /// Push address of next instruction onto stack and then jump to address nn
     fn call(&mut self) {
-        // FIX: Will need to increment pc depending where I do that
         self.push_stack(self.reg.pc + 2);
         let addr = self.fetch_word();
         self.reg.pc = addr;

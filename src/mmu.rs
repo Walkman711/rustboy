@@ -4,8 +4,8 @@ use crate::{
     boot_roms::DMG_BOOT_ROM, mem_constants::*, ppu::ppu::PPU, timer::Timer, traits::ReadWriteByte,
 };
 
-const BANK_0_SIZE: usize = (ROM_BANK_0_END - ROM_BANK_0_START + 1) as usize;
-const SWITCHABLE_ROM_SIZE: usize = (SWITCHABLE_ROM_END - SWITCHABLE_ROM_START + 1) as usize;
+const BANK_0_SIZE: usize = ROM_BANK_0_END - ROM_BANK_0_START + 1;
+const SWITCHABLE_ROM_SIZE: usize = SWITCHABLE_ROM_END - SWITCHABLE_ROM_START + 1;
 
 #[derive(Debug)]
 pub struct MMU {
@@ -91,7 +91,7 @@ impl ReadWriteByte for MMU {
         // }
 
         match addr {
-            // FIX: assuming a 32 kb cart
+            // FEATURE: assuming a 32 kb cart - need to implement other MBC types
             ROM_BANK_0_START..=ROM_BANK_0_END => {
                 if addr < 0x100 && self.boot_rom_active {
                     self.boot_rom[addr]
@@ -121,7 +121,6 @@ impl ReadWriteByte for MMU {
     fn write(&mut self, addr: u16, val: u8) {
         let addr = addr as usize;
         match addr {
-            // FIX: assuming a 32 kb cart
             ROM_BANK_0_START..=ROM_BANK_0_END => self.rom_bank_0[(addr - ROM_BANK_0_START)] = val,
             SWITCHABLE_ROM_START..=SWITCHABLE_ROM_END => {
                 self.switchable_rom[(addr - SWITCHABLE_ROM_START)] = val
@@ -161,10 +160,8 @@ impl MMU {
     }
 
     fn io_write(&mut self, addr: u16, val: u8) {
-        // XXX: how to handle weird cases where "writing" to a register is just a signal
-        // that some state has changed?
         match addr {
-            // XXX: does this need to do anything with the 160 cycles?
+            // TODO: the mmu needs to inform the cpu when we spend cycles on transfers
             0xFF46 => self.dma_transfer(val),
             0xFF50 => {
                 self.boot_rom_active = false;

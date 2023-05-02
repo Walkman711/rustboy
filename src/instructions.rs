@@ -57,19 +57,16 @@ pub enum Inst {
     RES(u8, Dst8, u32),
     // 3.3.8: Jumps
     JP(Src16, u32),
-    // FIX: all JPC ops have different cycles depending on if the jump happens
     JPC(Src16, Flags, bool, u32),
     JR(u32),
     JRC(Flags, bool, u32),
     // 3.3.9: Calls
     CALL(u32),
-    // FIX: all CALLC ops have different cycles depending on if the call happens
     CALLC(Flags, bool, u32),
     // 3.3.10: Restarts
     RST(u16, u32),
     // 3.3.11: Returns
     RET(u32),
-    // FIX: all RETC ops have different cycles depending on if the ret happens
     RETC(Flags, bool, u32),
     RETI(u32),
 }
