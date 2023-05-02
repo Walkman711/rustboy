@@ -5,7 +5,6 @@ use crate::{
     mmu::*,
     ppu::tile::Tile,
     registers::*,
-    timer::Timer,
     traits::ReadWriteByte,
     utils::*,
 };
@@ -13,6 +12,7 @@ use sdl2::{pixels, render::Canvas, video::Window};
 use strum::IntoEnumIterator;
 
 pub const CPU_HZ: u32 = 4_194_304;
+// FIX: just put in const
 pub const VBLANK_FREQ: u32 = ((CPU_HZ as f64) / 59.7) as u32;
 // pub const ROWS: u32 = 144;
 // pub const COLS: u32 = 160;
@@ -31,7 +31,6 @@ pub struct CPU {
     enable_interrupts_in: u16,
     ime: bool,
     debug: bool,
-    timer: Timer,
     canvas: Canvas<Window>,
 }
 
@@ -69,7 +68,6 @@ impl CPU {
             enable_interrupts_in: 0,
             ime: false,
             debug,
-            timer: Timer::default(),
             canvas,
         }
     }
@@ -132,7 +130,7 @@ impl CPU {
 
             // Execute
             let cycles_elapsed = self.execute(inst);
-            let timer_overflowed = self.timer.tick(cycles_elapsed);
+            let timer_overflowed = self.mmu.tick(cycles_elapsed);
             if timer_overflowed {
                 if self.ime {
                     // TODO: really should set up something for setting interrupt flag bits

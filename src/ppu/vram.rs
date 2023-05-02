@@ -14,6 +14,7 @@ pub struct CGBRegisters {
     ocpd: u8,
 }
 
+#[derive(Clone, Copy, Debug)]
 pub struct LCDC {
     pub data: u8,
 }
@@ -68,10 +69,12 @@ impl LCDC {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct OAM {
     entries: [OAMEntry; 40],
 }
 
+#[derive(Clone, Copy, Debug)]
 pub struct OAMEntry {
     y: u8,
     x: u8,

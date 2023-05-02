@@ -1,13 +1,16 @@
+use crate::{io_registers::*, traits::ReadWriteByte};
+
 use super::vram::{LCDC, OAM};
 
 const CYCLES_PER_SCANLINE: u32 = 456;
 const SCANLINES: u8 = 144;
 const VBLANK_PERIOD: u8 = 10;
+
+#[derive(Clone, Debug)]
 pub struct PPU {
     internal_scanline_timer: u32,
 
-    oam: OAM,
-
+    // oam: OAM,
     /// FF40 — LCDC: LCD control
     /// **LCDC** is the main **LCD C**ontrol register. Its bits toggle what
     /// elements are displayed on the screen, and how.
@@ -44,6 +47,8 @@ pub struct PPU {
     /// is set, and (if enabled) a STAT interrupt is requested.
     lyc: u8,
 
+    dma: u8,
+
     /// FF47 — BGP (Non-CGB Mode only): BG palette data
     ///
     /// This register assigns gray shades to the color indexes of the BG and
@@ -72,17 +77,18 @@ impl Default for PPU {
         Self {
             internal_scanline_timer: 0,
             ly: 0,
-            oam: todo!(),
-            lcdc: todo!(),
-            stat: todo!(),
-            scy: todo!(),
-            scx: todo!(),
-            lyc: todo!(),
-            bgp: todo!(),
-            obp0: todo!(),
-            obp1: todo!(),
-            wy: todo!(),
-            wx: todo!(),
+            // oam: todo!(),
+            lcdc: LCDC { data: 0x91 },
+            stat: 0,
+            scy: 0,
+            scx: 0,
+            lyc: 0,
+            dma: 0,
+            bgp: 0xFC,
+            obp0: 0xFF,
+            obp1: 0xFF,
+            wy: 0,
+            wx: 0,
         }
     }
 }
@@ -127,8 +133,42 @@ impl PPU {
 
         vblank_status
     }
+}
 
-    pub fn read_byte(&self, addr: u16) -> u8 {
-        0
+impl ReadWriteByte for PPU {
+    fn read(&self, addr: u16) -> u8 {
+        match addr {
+            LCDC => self.lcdc.data,
+            STAT => self.stat,
+            SCY => self.scy,
+            SCX => self.scx,
+            LY => self.ly,
+            LYC => self.lyc,
+            DMA => self.dma,
+            BGP => self.bgp,
+            OBP0 => self.obp0,
+            OBP1 => self.obp1,
+            WY => self.wy,
+            WX => self.wx,
+            _ => todo!("handle {addr:#04X}"),
+        }
+    }
+
+    fn write(&mut self, addr: u16, val: u8) {
+        match addr {
+            LCDC => self.lcdc.data = val,
+            STAT => self.stat = val,
+            SCY => self.scy = val,
+            SCX => self.scx = val,
+            LY => self.ly = val,
+            LYC => self.lyc = val,
+            DMA => self.dma = val,
+            BGP => self.bgp = val,
+            OBP0 => self.obp0 = val,
+            OBP1 => self.obp1 = val,
+            WY => self.wy = val,
+            WX => self.wx = val,
+            _ => todo!("handle {addr:#04X}"),
+        }
     }
 }

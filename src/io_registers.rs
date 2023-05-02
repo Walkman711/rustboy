@@ -109,9 +109,9 @@ impl Default for IORegisters {
             io_registers: [0; IO_SIZE],
         };
 
-        io.write(TIMA, 0x00);
-        io.write(TMA, 0x00);
-        io.write(TAC, 0x00);
+        // io.write(TIMA, 0x00);
+        // io.write(TMA, 0x00);
+        // io.write(TAC, 0x00);
         io.write(NR10, 0x80);
         io.write(NR11, 0xBF);
         io.write(NR12, 0xF3);
@@ -133,15 +133,15 @@ impl Default for IORegisters {
         // 0xF1: gameboy
         // 0xF0 for super gameboy
         io.write(NR52, 0xF1);
-        io.write(LCDC, 0x91);
-        io.write(SCY, 0x00);
-        io.write(SCX, 0x00);
-        io.write(LYC, 0x00);
-        io.write(BGP, 0xFC);
-        io.write(OBP0, 0xFF);
-        io.write(OBP1, 0xFF);
-        io.write(WY, 0x00);
-        io.write(WX, 0x00);
+        // io.write(LCDC, 0x91);
+        // io.write(SCY, 0x00);
+        // io.write(SCX, 0x00);
+        // io.write(LYC, 0x00);
+        // io.write(BGP, 0xFC);
+        // io.write(OBP0, 0xFF);
+        // io.write(OBP1, 0xFF);
+        // io.write(WY, 0x00);
+        // io.write(WX, 0x00);
 
         io
     }

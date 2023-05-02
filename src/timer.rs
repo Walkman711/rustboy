@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use crate::io_registers;
+use crate::{io_registers, traits::ReadWriteByte};
 
 // TODO: need to use 16779Hz for SGB
 const DIV_HZ: u32 = 16_384;
@@ -61,7 +61,23 @@ impl Timer {
         timer_overflowed
     }
 
-    pub fn read(&self, addr: u16) -> u8 {
+    // FIX: weird
+    fn tac(&self) -> u16 {
+        match self.tac {
+            0x00 => 1024,
+            0x01 => 16,
+            0x10 => 64,
+            0x11 => 256,
+            _val => {
+                // eprintln!("bad value in TAC register: {val}");
+                1024
+            }
+        }
+    }
+}
+
+impl ReadWriteByte for Timer {
+    fn read(&self, addr: u16) -> u8 {
         match addr {
             io_registers::DIV => (self.div >> 8) as u8,
             io_registers::TIMA => self.tima,
@@ -71,7 +87,7 @@ impl Timer {
         }
     }
 
-    pub fn write(&mut self, addr: u16, val: u8) {
+    fn write(&mut self, addr: u16, val: u8) {
         match addr {
             // Any write resets the DIV register
             io_registers::DIV => self.div = 0x00,
@@ -84,16 +100,6 @@ impl Timer {
             }
 
             _ => panic! {"tried to access a non-timer register in timer.rs: {addr}"},
-        }
-    }
-
-    fn tac(&self) -> u16 {
-        match self.tac {
-            0x00 => 1024,
-            0x01 => 16,
-            0x10 => 64,
-            0x11 => 256,
-            _ => panic!("bad value in TAC register"),
         }
     }
 }
