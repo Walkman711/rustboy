@@ -1,11 +1,12 @@
 #![allow(dead_code)]
 use crate::{
-    gpu::tile::Tile,
     instructions::*,
     io_registers::{self, Interrupts},
     mmu::*,
+    ppu::tile::Tile,
     registers::*,
     timer::Timer,
+    traits::ReadWriteByte,
     utils::*,
 };
 use sdl2::{pixels, render::Canvas, video::Window};
@@ -98,10 +99,10 @@ impl CPU {
         print!(" L:{:02X}", self.reg.l);
         print!(" SP:{:04X}", self.reg.sp);
         print!(" PC:{:04X}", self.reg.pc);
-        print!(" PCMEM:{:02X},", self.mmu.read_byte(self.reg.pc));
-        print!("{:02X},", self.mmu.read_byte(self.reg.pc + 1));
-        print!("{:02X},", self.mmu.read_byte(self.reg.pc + 2));
-        print!("{:02X}\n", self.mmu.read_byte(self.reg.pc + 3));
+        print!(" PCMEM:{:02X},", self.mmu.read(self.reg.pc));
+        print!("{:02X},", self.mmu.read(self.reg.pc + 1));
+        print!("{:02X},", self.mmu.read(self.reg.pc + 2));
+        print!("{:02X}\n", self.mmu.read(self.reg.pc + 3));
     }
 }
 
@@ -135,9 +136,9 @@ impl CPU {
             if timer_overflowed {
                 if self.ime {
                     // TODO: really should set up something for setting interrupt flag bits
-                    let old_if_reg = self.mmu.read_byte(io_registers::IF);
+                    let old_if_reg = self.mmu.read(io_registers::IF);
                     let new_if_reg = old_if_reg | (Interrupts::TimerOverflow as u8);
-                    self.mmu.write_byte(io_registers::IF, new_if_reg);
+                    self.mmu.write(io_registers::IF, new_if_reg);
                 }
             }
             self.clock = self.clock.wrapping_add(cycles_elapsed);
@@ -1056,7 +1057,7 @@ impl CPU {
     fn stop(&mut self) {
         self.halt();
         self.stopped = true;
-        self.mmu.write_byte(io_registers::DIV, 0x00);
+        self.mmu.write(io_registers::DIV, 0x00);
     }
 
     fn di(&mut self) {
@@ -1278,7 +1279,7 @@ impl CPU {
     }
 
     fn peek(&self) -> u8 {
-        self.mmu.read_byte(self.reg.pc)
+        self.mmu.read(self.reg.pc)
     }
 
     fn fetch_word(&mut self) -> u16 {
@@ -1292,11 +1293,11 @@ impl CPU {
     }
 
     fn read_hl_byte(&self) -> u8 {
-        self.mmu.read_byte(self.reg.hl())
+        self.mmu.read(self.reg.hl())
     }
 
     fn write_hl_byte(&mut self, byte: u8) {
-        self.mmu.write_byte(self.reg.hl(), byte)
+        self.mmu.write(self.reg.hl(), byte)
     }
 
     fn push_stack(&mut self, addr: u16) {
@@ -1360,10 +1361,10 @@ impl CPU {
     fn interrupts_to_service(&self) -> Vec<Interrupts> {
         let mut interrupts = vec![];
 
-        let if_reg = self.mmu.read_byte(io_registers::IF);
+        let if_reg = self.mmu.read(io_registers::IF);
 
         // TODO: this should be folded into io_Reg potentially? or at least should be hidden
-        let ie_reg = self.mmu.read_byte(0xFFFF);
+        let ie_reg = self.mmu.read(0xFFFF);
 
         // There can be multiple interrupts enabled at once, so we need to service them in priority
         // order
@@ -1380,9 +1381,9 @@ impl CPU {
     }
 
     fn clear_interrupt(&mut self, interrupt: Interrupts) {
-        let if_reg = self.mmu.read_byte(io_registers::IF);
+        let if_reg = self.mmu.read(io_registers::IF);
         self.mmu
-            .write_byte(io_registers::IF, if_reg & !(interrupt as u8));
+            .write(io_registers::IF, if_reg & !(interrupt as u8));
     }
 }
 
@@ -1400,7 +1401,7 @@ impl CPU {
             Src8::L => self.reg.l,
             Src8::N => self.fetch(),
             Src8::HLContents => self.read_hl_byte(),
-            Src8::Addr(addr) => self.mmu.read_byte(addr),
+            Src8::Addr(addr) => self.mmu.read(addr),
         }
     }
 
@@ -1415,7 +1416,7 @@ impl CPU {
             Dst8::H => self.reg.h = val,
             Dst8::L => self.reg.l = val,
             Dst8::HLContents => self.write_hl_byte(val),
-            Dst8::Addr(addr) => self.mmu.write_byte(addr, val),
+            Dst8::Addr(addr) => self.mmu.write(addr, val),
         }
     }
 
@@ -1456,7 +1457,7 @@ impl CPU {
             for i in 0..16 {
                 tile_data[i] = self
                     .mmu
-                    .read_byte(0x8000 + ((tile_idx as u16) * 16) + (i as u16));
+                    .read(0x8000 + ((tile_idx as u16) * 16) + (i as u16));
             }
             let tile = Tile { data: tile_data };
             let draw = tile.render();

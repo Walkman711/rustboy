@@ -10,4 +10,5 @@ pub mod mmu;
 pub mod ppu;
 pub mod registers;
 pub mod timer;
+pub mod traits;
 pub mod utils;

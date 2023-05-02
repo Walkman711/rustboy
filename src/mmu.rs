@@ -1,6 +1,8 @@
 #![allow(non_snake_case)]
 
-use crate::{boot_roms::DMG_BOOT_ROM, io_registers::IORegisters, mem_constants::*};
+use crate::{
+    boot_roms::DMG_BOOT_ROM, io_registers::IORegisters, mem_constants::*, traits::ReadWriteByte,
+};
 
 const BANK_0_SIZE: usize = (ROM_BANK_0_END - ROM_BANK_0_START + 1) as usize;
 const SWITCHABLE_ROM_SIZE: usize = (SWITCHABLE_ROM_END - SWITCHABLE_ROM_START + 1) as usize;
@@ -41,8 +43,6 @@ impl MMU {
             rom_bank_0[i as usize] = bytes[i as usize];
         }
 
-        // FIX: !!!! need to map back to rom from boot rom after it's done by modifying the BANK
-        // register (0xFF50) - This is completely broken
         let boot_rom = DMG_BOOT_ROM.to_owned();
 
         let mut switchable_rom = [0; SWITCHABLE_ROM_SIZE];
@@ -66,8 +66,8 @@ impl MMU {
     }
 }
 
-impl MMU {
-    pub fn read_byte(&self, addr: u16) -> u8 {
+impl ReadWriteByte for MMU {
+    fn read(&self, addr: u16) -> u8 {
         // Gameboy doctor
         if addr == 0xFF44 {
             return 0x90;
@@ -94,13 +94,13 @@ impl MMU {
             FORBIDDEN_START..=FORBIDDEN_END => {
                 panic!("Nintendo forbids reading from {FORBIDDEN_START}-{FORBIDDEN_END}")
             }
-            IO_START..=IO_END => self.io.read_byte(addr),
+            IO_START..=IO_END => self.io.read(addr),
             HRAM_START..=HRAM_END => self.hram[(addr - HRAM_START) as usize],
             INTERRUPT_START..=INTERRUPT_END => self.ie,
         }
     }
 
-    pub fn write_byte(&mut self, addr: u16, val: u8) {
+    fn write(&mut self, addr: u16, val: u8) {
         match addr {
             // FIX: assuming a 32 kb cart
             ROM_BANK_0_START..=ROM_BANK_0_END => {
@@ -134,23 +134,26 @@ impl MMU {
                     _ => {}
                 }
 
-                self.io.set_byte(addr, val);
+                self.io.write(addr, val);
             }
             HRAM_START..=HRAM_END => self.hram[(addr - HRAM_START) as usize] = val,
             INTERRUPT_START..=INTERRUPT_END => self.ie = val,
         }
     }
+}
+
+impl MMU {
     pub fn read_word(&self, addr: u16) -> u16 {
-        let lo: u16 = self.read_byte(addr).into();
-        let hi: u16 = self.read_byte(addr + 1).into();
+        let lo: u16 = self.read(addr).into();
+        let hi: u16 = self.read(addr + 1).into();
         (hi << 8) | lo
     }
 
     pub fn write_word(&mut self, addr: u16, val: u16) {
         let lo = (val & 0x00FF) as u8;
         let hi = ((val & 0xFF00) >> 8) as u8;
-        self.write_byte(addr, lo);
-        self.write_byte(addr + 1, hi);
+        self.write(addr, lo);
+        self.write(addr + 1, hi);
     }
 
     fn dma_transfer(&mut self, val: u8) {
@@ -158,8 +161,8 @@ impl MMU {
         let src: u16 = (val as u16) << 8;
         const OAM_START: u16 = 0xFE00;
         for i in 0..=0xDF {
-            let ram_byte = self.read_byte(src + i);
-            self.write_byte(OAM_START, ram_byte);
+            let ram_byte = self.read(src + i);
+            self.write(OAM_START, ram_byte);
         }
     }
 }
