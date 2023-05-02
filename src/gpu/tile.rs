@@ -1,5 +1,5 @@
 pub struct Tile {
-    data: [u8; 16],
+    pub data: [u8; 16],
 }
 
 impl Tile {
