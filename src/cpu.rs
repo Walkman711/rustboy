@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use crate::{
     instructions::*,
     io_registers::{self, Interrupt},
@@ -32,13 +30,14 @@ pub struct CPU {
     enable_interrupts_in: u16,
     ime: bool,
     debug: bool,
+    gb_doctor: bool,
     canvas: Canvas<Window>,
     scanline: u8,
     pixel_size: u32,
 }
 
 impl CPU {
-    pub fn new(rom: &str, debug: bool, pixel_size: u32) -> Self {
+    pub fn new(rom: &str, debug: bool, gb_doctor: bool, pixel_size: u32) -> Self {
         let sdl_context = sdl2::init().expect("Failed to init SDL context.");
         let video_subsys = sdl_context
             .video()
@@ -59,16 +58,17 @@ impl CPU {
             .expect("Failed to create canvas.");
         canvas.set_draw_color(pixels::Color::RGB(0, 0, 0));
         canvas.clear();
-        canvas.present();
+        // canvas.present();
         Self {
             reg: Registers::default(),
-            mmu: MMU::new(rom),
+            mmu: MMU::new(rom, gb_doctor),
             halted: false,
             stopped: false,
             disable_interrupts_in: 0,
             enable_interrupts_in: 0,
             ime: false,
             debug,
+            gb_doctor,
             canvas,
             scanline: 0,
             pixel_size,
@@ -88,6 +88,9 @@ impl CPU {
 
     // Logging for gameboy doctor
     fn log_cpu_state(&self) {
+        if !self.gb_doctor {
+            return;
+        }
         print!("A:{:02X}", self.reg.a);
         let f: u8 = self.reg.f.into();
         print!(" F:{:02X}", f);
@@ -113,26 +116,39 @@ impl CPU {
             // Update IME flag
             self.check_ime();
 
+            // TODO: actually use the interrupt cycles
             let interrupt_cycles = self.handle_interrupts();
             if interrupt_cycles > 0 {
+                self.mmu.tick(interrupt_cycles);
                 continue;
             }
 
-            if self.halted {
-                continue;
-            }
+            let cycles_elapsed = if self.halted {
+                4
+            } else {
+                // Fetch
+                let opcode = self.fetch();
 
-            // Fetch
-            let opcode = self.fetch();
+                // Decode
+                let inst = self.decode(opcode);
 
-            // Decode
-            let inst = self.decode(opcode);
+                // dbg!(inst);
 
-            // dbg!(inst);
+                // Execute
+                let cy = self.execute(inst);
 
-            // Execute
-            let cycles_elapsed = self.execute(inst);
+                // Logging and debugging
+                if self.debug {
+                    self.debug_step(opcode, inst);
+                }
+
+                cy
+            };
+
+            // Set bits for requested interrupts. tick() returns a vector because you could have
+            // multiple interrupts trigger at once (e.g. VBlank and Timer overflow)
             let interrupts = self.mmu.tick(cycles_elapsed);
+
             if self.ime {
                 for interrupt in interrupts {
                     // TODO: really should set up something for setting interrupt flag bits
@@ -140,11 +156,6 @@ impl CPU {
                     let new_if_reg = old_if_reg | (interrupt as u8);
                     self.mmu.write(io_registers::IF, new_if_reg);
                 }
-            }
-
-            // Logging and debugging
-            if self.debug {
-                self.debug_step(opcode, inst);
             }
 
             self.log_cpu_state();
@@ -1233,7 +1244,7 @@ impl CPU {
 impl CPU {
     fn jp(&mut self, src: Src16) {
         match src {
-            Src16::NN | Src16::Addr(_) => {}
+            Src16::NN | Src16::Addr(_) | Src16::Imm(_) => {}
             _ => panic!(
                 "JP instructions should only take NN or addresses as SRC: {:?}",
                 src
@@ -1357,6 +1368,7 @@ impl CPU {
 
     fn handle_interrupts(&mut self) -> u32 {
         let mut cycles_elapsed = 0;
+        self.halted = false;
         if self.ime {
             let interrupt_vec = self.interrupts_to_service();
             // FIX: pretty sure the clock stuff here is bad
@@ -1367,13 +1379,8 @@ impl CPU {
                 // Disable further interrupts until they're re-enabled (RETI)
                 self.ime = false;
 
-                // panic!("{:?}", interrupt);
-                self.nop();
-                cycles_elapsed += 4;
-                self.nop();
-                cycles_elapsed += 4;
                 self.call_interrupt(interrupt);
-                cycles_elapsed += 12;
+                cycles_elapsed += 16;
             }
         }
         cycles_elapsed
@@ -1560,7 +1567,7 @@ impl CPU {
             return;
         }
         self.scanline = self.mmu.ppu.ly;
-        println!("scanline {}", self.mmu.ppu.ly);
+        // println!("scanline {}", self.mmu.ppu.ly);
         let black = pixels::Color::RGB(0x0, 0x0, 0x0);
         let white = pixels::Color::RGB(0xFF, 0xFF, 0xFF);
         self.canvas.set_draw_color(white);
@@ -1573,7 +1580,7 @@ impl CPU {
             self.pixel_size,
         );
         self.canvas.fill_rect(rect).expect("rect failed to draw");
-        self.canvas.present();
+        // self.canvas.present();
         if self.scanline == 0 {
             self.dump_tiles();
         }
@@ -1590,7 +1597,7 @@ impl CPU {
                 (tile_idx % TILES_PER_ROW) as i32 * self.pixel_size as i32 * TILE_PIXELS as i32;
             let y_offset: i32 =
                 (tile_idx / TILES_PER_ROW) as i32 * self.pixel_size as i32 * TILE_PIXELS as i32;
-            println!("{tile_idx} {x_offset},{y_offset}");
+            // println!("{tile_idx} {x_offset},{y_offset}");
             for i in 0..16 {
                 tile_data[i] = self
                     .mmu
@@ -1649,8 +1656,8 @@ impl CPU {
         }
 
         if drew_something {
-            self.canvas.present();
-            std::thread::sleep(Duration::from_secs(5));
+            // self.canvas.present();
+            // std::thread::sleep(std::time::Duration::from_secs(5));
         }
     }
 }

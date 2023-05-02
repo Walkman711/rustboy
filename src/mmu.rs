@@ -32,10 +32,11 @@ pub struct MMU {
     // Interrupt Enable Register (IE)
     ie: u8,
     vblank_status: VBlankStatus,
+    gb_doctor: bool,
 }
 
 impl MMU {
-    pub fn new(rom: &str) -> Self {
+    pub fn new(rom: &str, gb_doctor: bool) -> Self {
         let bytes = std::fs::read(rom).expect("Reading from ROM failed in MMU::new()");
         let mut rom_bank_0 = [0; BANK_0_SIZE];
         rom_bank_0[0..BANK_0_SIZE].copy_from_slice(&bytes[0..BANK_0_SIZE]);
@@ -61,6 +62,7 @@ impl MMU {
             if_reg: 0,
             ie: 0,
             vblank_status: VBlankStatus::Drawing,
+            gb_doctor,
         }
     }
 }
@@ -86,9 +88,10 @@ impl ReadWriteByte for MMU {
         let addr = addr as usize;
 
         // Gameboy doctor
-        // if addr == 0xFF44 {
-        //     return 0x90;
-        // }
+        // TODO: make this a cmdline arg
+        if self.gb_doctor && addr == 0xFF44 {
+            return 0x90;
+        }
 
         match addr {
             // FEATURE: assuming a 32 kb cart - need to implement other MBC types
@@ -165,7 +168,8 @@ impl MMU {
             0xFF46 => self.dma_transfer(val),
             0xFF50 => {
                 self.boot_rom_active = false;
-                panic!("boot rom done");
+                return;
+                // panic!("boot rom done");
             }
             _ => {}
         }

@@ -1,5 +1,5 @@
-#![allow(dead_code)]
 // CGB
+#[allow(dead_code)]
 pub struct CGBRegisters {
     /// FF68: background color palette specification/background palette index
     bcps: u8,
@@ -76,11 +76,13 @@ impl LCDC {
 }
 
 #[derive(Clone, Debug)]
+#[allow(dead_code)]
 pub struct OAM {
     entries: [OAMEntry; 40],
 }
 
 #[derive(Clone, Copy, Debug)]
+#[allow(dead_code)]
 pub struct OAMEntry {
     y: u8,
     x: u8,

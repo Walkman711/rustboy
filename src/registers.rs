@@ -35,8 +35,8 @@ impl Default for FlagRegister {
         Self {
             Z: true,
             N: false,
-            H: false,
-            C: false,
+            H: true,
+            C: true,
         }
     }
 }
@@ -135,8 +135,7 @@ impl Default for Registers {
             l: 0x4D,
             sp: 0xFFFE,
             // 3.2.3
-            // pc: 0x0100,
-            pc: 0,
+            pc: 0x0100,
         }
     }
 }
