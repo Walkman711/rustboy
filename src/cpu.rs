@@ -107,7 +107,7 @@ impl CPU {
         print!(" PCMEM:{:02X},", self.mmu.read(self.reg.pc));
         print!("{:02X},", self.mmu.read(self.reg.pc + 1));
         print!("{:02X},", self.mmu.read(self.reg.pc + 2));
-        print!("{:02X}\n", self.mmu.read(self.reg.pc + 3));
+        println!("{:02X}", self.mmu.read(self.reg.pc + 3));
     }
 }
 
@@ -776,18 +776,30 @@ impl CPU {
         self.set_8(dst, s);
     }
 
-    // TODO: add assert that dst and src are A and HLcontents
     fn ldd(&mut self, dst: Dst8, src: Src8) {
+        match src {
+            Src8::A | Src8::HLContents => {}
+            _ => panic!(
+                "LDD instructions should only take A or HLContents as SRC: {:?}",
+                src
+            ),
+        }
         self.ld(dst, src);
-        // self.alu_dec_16(Dst16::HL);
-        // XXX: this is sloppy, but you don't want to reset the flags by calling alu_dec_16
+        // We don't want to reset the flags by calling alu_dec_16, so we have to
+        // get and set HL
         let val = self.get_16(Src16::HL);
         let res = val.wrapping_sub(1);
         self.set_16(Dst16::HL, res);
     }
 
-    // TODO: add assert that dst and src are A and HLcontents
     fn ldi(&mut self, dst: Dst8, src: Src8) {
+        match src {
+            Src8::A | Src8::HLContents => {}
+            _ => panic!(
+                "LDI instructions should only take A or HLContents as SRC: {:?}",
+                src
+            ),
+        }
         self.ld(dst, src);
         self.alu_inc_16(Dst16::HL);
     }
@@ -1224,7 +1236,13 @@ impl CPU {
 // 3.3.8: Jumps
 impl CPU {
     fn jp(&mut self, src: Src16) {
-        // TODO: assert that src has to be an NN immediate or addr
+        match src {
+            Src16::NN | Src16::Addr(_) => {}
+            _ => panic!(
+                "JP instructions should only take NN or addresses as SRC: {:?}",
+                src
+            ),
+        }
         let addr = self.get_16(src);
         self.reg.pc = addr;
     }
