@@ -20,7 +20,6 @@ pub const ROWS: u32 = 144;
 pub const COLS: u32 = 160;
 pub const BG_ROWS: u32 = 256;
 pub const BG_COLS: u32 = 256;
-pub const PIXEL_SIZE: u32 = 5;
 pub const TILE_PIXELS: u32 = 8;
 pub const TILE_BYTES: u16 = 16;
 
@@ -38,20 +37,20 @@ pub struct CPU {
     debug: bool,
     canvas: Canvas<Window>,
     scanline: u8,
+    pixel_size: u32,
 }
 
 impl CPU {
-    pub fn new(rom: &str, debug: bool) -> Self {
+    pub fn new(rom: &str, debug: bool, pixel_size: u32) -> Self {
         let sdl_context = sdl2::init().expect("Failed to init SDL context.");
         let video_subsys = sdl_context
             .video()
             .expect("Failed to init SDL Video subsystem.");
         let window = video_subsys
-            // XXX: scaling factor on cmdline
             .window(
                 &format!("Rustboy - {rom}"),
-                BG_COLS * PIXEL_SIZE,
-                BG_ROWS * PIXEL_SIZE,
+                BG_COLS * pixel_size,
+                BG_ROWS * pixel_size,
             )
             .position_centered()
             .opengl()
@@ -76,6 +75,7 @@ impl CPU {
             debug,
             canvas,
             scanline: 0,
+            pixel_size,
         }
     }
 
@@ -1554,9 +1554,9 @@ impl CPU {
         self.canvas.set_draw_color(black);
         let rect = sdl2::rect::Rect::new(
             0,
-            (self.mmu.ppu.ly as u32 * PIXEL_SIZE) as i32,
-            PIXEL_SIZE * COLS,
-            PIXEL_SIZE,
+            (self.mmu.ppu.ly as u32 * self.pixel_size) as i32,
+            self.pixel_size * COLS,
+            self.pixel_size,
         );
         self.canvas.fill_rect(rect).expect("rect failed to draw");
         self.canvas.present();
@@ -1573,9 +1573,9 @@ impl CPU {
             const TILE_PIXELS: usize = 8;
             // XXX: This is hideous
             let x_offset: i32 =
-                (tile_idx % TILES_PER_ROW) as i32 * PIXEL_SIZE as i32 * TILE_PIXELS as i32;
+                (tile_idx % TILES_PER_ROW) as i32 * self.pixel_size as i32 * TILE_PIXELS as i32;
             let y_offset: i32 =
-                (tile_idx / TILES_PER_ROW) as i32 * PIXEL_SIZE as i32 * TILE_PIXELS as i32;
+                (tile_idx / TILES_PER_ROW) as i32 * self.pixel_size as i32 * TILE_PIXELS as i32;
             println!("{tile_idx} {x_offset},{y_offset}");
             for i in 0..16 {
                 tile_data[i] = self
@@ -1606,10 +1606,10 @@ impl CPU {
 
             for (i, row) in draw.iter().enumerate() {
                 for (j, color_id) in row.iter().enumerate() {
-                    let x: i32 = (j * PIXEL_SIZE as usize)
+                    let x: i32 = (j * self.pixel_size as usize)
                         .try_into()
                         .expect("should never be drawing out of i32 bounds");
-                    let y: i32 = (i * PIXEL_SIZE as usize)
+                    let y: i32 = (i * self.pixel_size as usize)
                         .try_into()
                         .expect("should never be drawing out of i32 bounds");
 
@@ -1623,8 +1623,12 @@ impl CPU {
                         _ => panic!("bad color id"),
                     };
                     self.canvas.set_draw_color(color);
-                    let rect =
-                        sdl2::rect::Rect::new(x + x_offset, y + y_offset, PIXEL_SIZE, PIXEL_SIZE);
+                    let rect = sdl2::rect::Rect::new(
+                        x + x_offset,
+                        y + y_offset,
+                        self.pixel_size,
+                        self.pixel_size,
+                    );
                     self.canvas.fill_rect(rect).expect("rect failed to draw");
                 }
             }

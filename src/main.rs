@@ -8,10 +8,13 @@ struct Args {
 
     #[arg(short, long)]
     debug: bool,
+
+    #[arg(short, long, default_value_t = 5)]
+    pixel_size: u32,
 }
 
 fn main() {
     let args = Args::parse();
-    let mut cpu = CPU::new(&args.rom, args.debug);
+    let mut cpu = CPU::new(&args.rom, args.debug, args.pixel_size);
     cpu.run();
 }
