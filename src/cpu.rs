@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 use crate::{
+    gpu::tile::Tile,
     instructions::*,
     io_registers::{self, Interrupts},
     mmu::*,
@@ -12,8 +13,10 @@ use strum::IntoEnumIterator;
 
 pub const CPU_HZ: u32 = 4_194_304;
 pub const VBLANK_FREQ: u32 = ((CPU_HZ as f64) / 59.7) as u32;
-pub const ROWS: u32 = 144;
-pub const COLS: u32 = 160;
+// pub const ROWS: u32 = 144;
+// pub const COLS: u32 = 160;
+pub const ROWS: u32 = 256;
+pub const COLS: u32 = 256;
 
 // #[derive(Debug)]
 pub struct CPU {
@@ -41,8 +44,8 @@ impl CPU {
             // XXX: scaling factor on cmdline
             .window(
                 &format!("Rustboy - {rom}"),
-                (COLS * 10) as u32,
-                (ROWS * 10) as u32,
+                (COLS * 5) as u32,
+                (ROWS * 5) as u32,
             )
             .position_centered()
             .opengl()
@@ -52,7 +55,7 @@ impl CPU {
             .into_canvas()
             .build()
             .expect("Failed to create canvas.");
-        canvas.set_draw_color(pixels::Color::RGB(0, 100, 100));
+        canvas.set_draw_color(pixels::Color::RGB(0, 0, 0));
         canvas.clear();
         canvas.present();
         Self {
@@ -123,6 +126,8 @@ impl CPU {
 
             // Decode
             let inst = self.decode(opcode);
+
+            dbg!(inst);
 
             // Execute
             let cycles_elapsed = self.execute(inst);
@@ -1436,6 +1441,66 @@ impl CPU {
             Dst16::HL => self.reg.set_hl(val),
             Dst16::SP => self.reg.sp = val,
             Dst16::Addr(addr) => self.mmu.write_word(addr, val),
+        }
+    }
+}
+
+impl CPU {
+    fn dump_tiles(&mut self) {
+        for tile_idx in 0..128 {
+            let mut tile_data = [0; 16];
+            const TILES_PER_ROW: usize = 32;
+            const TILE_SIZE: usize = 8;
+            let x_offset: i32 = ((tile_idx % TILES_PER_ROW) * TILE_SIZE).try_into().unwrap();
+            let y_offset: i32 = ((tile_idx / TILES_PER_ROW) * TILE_SIZE).try_into().unwrap();
+            for i in 0..16 {
+                tile_data[i] = self
+                    .mmu
+                    .read_byte(0x8000 + ((tile_idx as u16) * 16) + (i as u16));
+            }
+            let tile = Tile { data: tile_data };
+            let draw = tile.render();
+            if draw
+                != vec![
+                    vec![0; 8],
+                    vec![0; 8],
+                    vec![0; 8],
+                    vec![0; 8],
+                    vec![0; 8],
+                    vec![0; 8],
+                    vec![0; 8],
+                    vec![0; 8],
+                ]
+            {
+                panic!("tile data");
+            }
+            let cell_size = 10;
+            for (i, row) in draw.iter().enumerate() {
+                for (j, color_id) in row.iter().enumerate() {
+                    let x: i32 = (j * cell_size)
+                        .try_into()
+                        .expect("should never be drawing out of i32 bounds");
+                    let y: i32 = (i * cell_size)
+                        .try_into()
+                        .expect("should never be drawing out of i32 bounds");
+
+                    let color = match color_id {
+                        0 => pixels::Color::RGB(0xFF, 0xFF, 0xFF),
+                        1 => pixels::Color::RGB(0xA0, 0xA0, 0xA0),
+                        2 => pixels::Color::RGB(0x50, 0x50, 0x50),
+                        3 => pixels::Color::RGB(0x0, 0x0, 0x0),
+                        _ => panic!("bad color id"),
+                    };
+                    self.canvas.set_draw_color(color);
+                    let rect = sdl2::rect::Rect::new(
+                        x + x_offset,
+                        y + y_offset,
+                        cell_size as u32,
+                        cell_size as u32,
+                    );
+                    self.canvas.fill_rect(rect).expect("rect failed to draw");
+                }
+            }
         }
     }
 }

@@ -109,7 +109,10 @@ impl MMU {
             SWITCHABLE_ROM_START..=SWITCHABLE_ROM_END => {
                 self.switchable_rom[(addr - SWITCHABLE_ROM_START) as usize] = val
             }
-            VRAM_START..=VRAM_END => self.vram[(addr - VRAM_START) as usize] = val,
+            VRAM_START..=VRAM_END => {
+                println!("wrote to vram: {addr:#02X}, {val}");
+                self.vram[(addr - VRAM_START) as usize] = val;
+            }
             EXT_RAM_START..=EXT_RAM_END => self.ext_ram[(addr - EXT_RAM_START) as usize] = val,
             WRAM_I_START..=WRAM_I_END => self.wramI[(addr - WRAM_I_START) as usize] = val,
             WRAM_II_START..=WRAM_II_END => self.wramII[(addr - WRAM_II_START) as usize] = val,
@@ -121,16 +124,22 @@ impl MMU {
             IO_START..=IO_END => {
                 // XXX: how to handle weird cases where "writing" to a register is just a signal
                 // that some state has changed?
-                if addr == 0xFF50 {
-                    self.boot_rom_active = false;
+                match addr {
+                    // XXX: does this need to do anything with the 160 cycles?
+                    0xFF46 => self.dma_transfer(val),
+                    0xFF50 => {
+                        self.boot_rom_active = false;
+                        panic!("boot rom done");
+                    }
+                    _ => {}
                 }
+
                 self.io.set_byte(addr, val);
             }
             HRAM_START..=HRAM_END => self.hram[(addr - HRAM_START) as usize] = val,
             INTERRUPT_START..=INTERRUPT_END => self.ie = val,
         }
     }
-
     pub fn read_word(&self, addr: u16) -> u16 {
         let lo: u16 = self.read_byte(addr).into();
         let hi: u16 = self.read_byte(addr + 1).into();
@@ -142,5 +151,15 @@ impl MMU {
         let hi = ((val & 0xFF00) >> 8) as u8;
         self.write_byte(addr, lo);
         self.write_byte(addr + 1, hi);
+    }
+
+    fn dma_transfer(&mut self, val: u8) {
+        // Same as multiplying by 0x100 (256)
+        let src: u16 = (val as u16) << 8;
+        const OAM_START: u16 = 0xFE00;
+        for i in 0..=0xDF {
+            let ram_byte = self.read_byte(src + i);
+            self.write_byte(OAM_START, ram_byte);
+        }
     }
 }
