@@ -97,6 +97,7 @@ pub enum Interrupts {
     HighToLowP10P13 = 0b0001_0000,
 }
 
+/*
 #[derive(Clone, Debug)]
 pub struct IORegisters {
     io_registers: [u8; IO_SIZE],
@@ -156,3 +157,4 @@ impl ReadWriteByte for IORegisters {
         self.io_registers[(addr - IO_START) as usize] = val;
     }
 }
+*/
