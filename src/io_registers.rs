@@ -62,7 +62,7 @@ pub const WY: u16 = 0xFF4A;
 pub const WX: u16 = 0xFF4B;
 
 #[derive(Copy, Clone, Debug, EnumIter)]
-pub enum Interrupts {
+pub enum Interrupt {
     VBlank = 0b0000_0001,
     LCDCStatus = 0b0000_0010,
     TimerOverflow = 0b0000_0100,

@@ -1,7 +1,12 @@
 #![allow(non_snake_case)]
 
 use crate::{
-    boot_roms::DMG_BOOT_ROM, mem_constants::*, ppu::ppu::PPU, timer::Timer, traits::ReadWriteByte,
+    boot_roms::DMG_BOOT_ROM,
+    io_registers::Interrupt,
+    mem_constants::*,
+    ppu::ppu::{VBlankStatus, PPU},
+    timer::Timer,
+    traits::ReadWriteByte,
 };
 
 const BANK_0_SIZE: usize = ROM_BANK_0_END - ROM_BANK_0_START + 1;
@@ -26,6 +31,7 @@ pub struct MMU {
     if_reg: u8,
     // Interrupt Enable Register (IE)
     ie: u8,
+    vblank_status: VBlankStatus,
 }
 
 impl MMU {
@@ -54,23 +60,24 @@ impl MMU {
             hram: [0; HRAM_END - HRAM_START + 1],
             if_reg: 0,
             ie: 0,
+            vblank_status: VBlankStatus::Drawing,
         }
     }
 }
 
 impl MMU {
-    // FIX: there will be a variety of states updated by an MMU tick. This should not be a
-    // bool. Instead, return interrupt vector
-    pub fn tick(&mut self, cy: u32) -> bool {
-        let timer_overflowed = self.timer.tick(cy);
-        let _vblank_status = self.ppu.tick(cy);
-        // match vblank_status {
-        //     VBlankStatus::VBlank => todo!(),
-        //     VBlankStatus::VBlankRequested => todo!(),
-        //     VBlankStatus::VBlankEnding => todo!(),
-        //     VBlankStatus::Drawing => todo!(),
-        // }
-        timer_overflowed
+    pub fn tick(&mut self, cy: u32) -> Vec<Interrupt> {
+        let mut interrupts = vec![];
+        if self.timer.tick(cy) {
+            interrupts.push(Interrupt::TimerOverflow);
+        }
+
+        self.vblank_status = self.ppu.tick(cy);
+        if let VBlankStatus::VBlankRequested = self.vblank_status {
+            interrupts.push(Interrupt::VBlank);
+        }
+
+        interrupts
     }
 }
 
@@ -159,7 +166,6 @@ impl MMU {
             0xFF50 => {
                 self.boot_rom_active = false;
                 panic!("boot rom done");
-                return;
             }
             _ => {}
         }

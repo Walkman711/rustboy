@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use crate::{
     instructions::*,
-    io_registers::{self, Interrupts},
+    io_registers::{self, Interrupt},
     mmu::*,
     ppu::{tile::Tile, vram::LCDC},
     registers::*,
@@ -132,12 +132,14 @@ impl CPU {
 
             // Execute
             let cycles_elapsed = self.execute(inst);
-            let timer_overflowed = self.mmu.tick(cycles_elapsed);
-            if timer_overflowed && self.ime {
-                // TODO: really should set up something for setting interrupt flag bits
-                let old_if_reg = self.mmu.read(io_registers::IF);
-                let new_if_reg = old_if_reg | (Interrupts::TimerOverflow as u8);
-                self.mmu.write(io_registers::IF, new_if_reg);
+            let interrupts = self.mmu.tick(cycles_elapsed);
+            if self.ime {
+                for interrupt in interrupts {
+                    // TODO: really should set up something for setting interrupt flag bits
+                    let old_if_reg = self.mmu.read(io_registers::IF);
+                    let new_if_reg = old_if_reg | (interrupt as u8);
+                    self.mmu.write(io_registers::IF, new_if_reg);
+                }
             }
 
             // Logging and debugging
@@ -1251,15 +1253,15 @@ impl CPU {
         self.reg.pc = addr;
     }
 
-    fn call_interrupt(&mut self, interrupt: Interrupts) {
+    fn call_interrupt(&mut self, interrupt: Interrupt) {
         // FIX: do you increment pc for an interrupt? i dont think so
         self.push_stack(self.reg.pc);
         let addr = match interrupt {
-            Interrupts::VBlank => 0x40,
-            Interrupts::LCDCStatus => 0x48,
-            Interrupts::TimerOverflow => 0x50,
-            Interrupts::SerialTransferCompletion => 0x58,
-            Interrupts::HighToLowP10P13 => 0x60,
+            Interrupt::VBlank => 0x40,
+            Interrupt::LCDCStatus => 0x48,
+            Interrupt::TimerOverflow => 0x50,
+            Interrupt::SerialTransferCompletion => 0x58,
+            Interrupt::HighToLowP10P13 => 0x60,
         };
         self.reg.pc = addr;
     }
@@ -1331,7 +1333,7 @@ impl CPU {
     }
 }
 
-// Interrupts
+// Interrupt
 impl CPU {
     fn check_ime(&mut self) {
         match self.disable_interrupts_in {
@@ -1377,7 +1379,7 @@ impl CPU {
         cycles_elapsed
     }
 
-    fn interrupts_to_service(&self) -> Vec<Interrupts> {
+    fn interrupts_to_service(&self) -> Vec<Interrupt> {
         let mut interrupts = vec![];
 
         let if_reg = self.mmu.read(io_registers::IF);
@@ -1387,9 +1389,9 @@ impl CPU {
 
         // There can be multiple interrupts enabled at once, so we need to service them in priority
         // order
-        // TODO: check that Interrupts::iter() goes from VBlank (the highest priority interrupt)
+        // TODO: check that Interrupt::iter() goes from VBlank (the highest priority interrupt)
         // down to lower priority ones
-        for interrupt in Interrupts::iter() {
+        for interrupt in Interrupt::iter() {
             // TODO: name if_reg & ie_reg
             if (if_reg & ie_reg & interrupt as u8) == interrupt as u8 {
                 interrupts.push(interrupt)
@@ -1399,7 +1401,7 @@ impl CPU {
         interrupts
     }
 
-    fn clear_interrupt(&mut self, interrupt: Interrupts) {
+    fn clear_interrupt(&mut self, interrupt: Interrupt) {
         let if_reg = self.mmu.read(io_registers::IF);
         self.mmu
             .write(io_registers::IF, if_reg & !(interrupt as u8));
