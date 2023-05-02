@@ -25,7 +25,6 @@ impl From<Flags> for u8 {
     }
 }
 
-// TODO:
 #[derive(Copy, Clone, Debug)]
 #[allow(non_snake_case)]
 pub struct FlagRegister {
@@ -50,16 +49,15 @@ impl Default for FlagRegister {
 #[allow(non_snake_case)]
 impl From<u8> for FlagRegister {
     fn from(value: u8) -> Self {
-        let Z: bool = (value & 0b10000000) != 0;
-        let N: bool = (value & 0b01000000) != 0;
-        let H: bool = (value & 0b00100000) != 0;
-        let C: bool = (value & 0b00010000) != 0;
+        let Z: bool = (value & 0b1000_0000) != 0;
+        let N: bool = (value & 0b0100_0000) != 0;
+        let H: bool = (value & 0b0010_0000) != 0;
+        let C: bool = (value & 0b0001_0000) != 0;
         Self { Z, N, H, C }
     }
 }
 
 #[allow(non_snake_case)]
-// TODO: this is definitely messier than it should be
 impl From<FlagRegister> for u8 {
     fn from(val: FlagRegister) -> u8 {
         let mut res = 0;
@@ -131,7 +129,7 @@ impl Default for Registers {
     fn default() -> Self {
         Self {
             // Using DMG0
-            // TODO: this depends on if it's a GB/GBP/GBC
+            // CGB: this depends on if it's a GB/GBP/GBC
             a: 0x01,
             // FIX: incorrect for startup
             f: FlagRegister::from(0xB0),

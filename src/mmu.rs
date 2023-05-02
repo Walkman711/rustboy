@@ -16,14 +16,14 @@ pub struct MMU {
     // SWITCHABLE ROM
     switchable_rom: [u8; SWITCHABLE_ROM_SIZE],
     // VRAM
-    // TODO: can switch banks 0/1 in CGB mode
+    // CGB: can switch banks 0/1 in CGB mode
     vram: [u8; (VRAM_END - VRAM_START + 1) as usize],
     // EXT RAM
     ext_ram: [u8; (EXT_RAM_END - EXT_RAM_START + 1) as usize],
     // WRAM I
     wramI: [u8; (WRAM_I_END - WRAM_I_START + 1) as usize],
     // WRAM II
-    // TODO: can switch banks 1-7 in CGB mode
+    // CGB: can switch banks 1-7 in CGB mode
     wramII: [u8; (WRAM_II_END - WRAM_II_START + 1) as usize],
     pub ppu: PPU,
     timer: Timer,
@@ -37,9 +37,8 @@ pub struct MMU {
 
 impl MMU {
     pub fn new(rom: &str) -> Self {
-        let mut rom_bank_0 = [0; BANK_0_SIZE];
-        // TODO: this is messy
         let bytes = std::fs::read(rom).expect("Reading from ROM failed in MMU::new()");
+        let mut rom_bank_0 = [0; BANK_0_SIZE];
         rom_bank_0[0..BANK_0_SIZE].copy_from_slice(&bytes[0..BANK_0_SIZE]);
 
         let boot_rom = DMG_BOOT_ROM.to_owned();

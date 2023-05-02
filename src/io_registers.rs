@@ -1,33 +1,7 @@
 use strum_macros::EnumIter;
 
-use crate::{
-    mem_constants::{IO_END, IO_START},
-    traits::ReadWriteByte,
-};
-
-const IO_SIZE: usize = (IO_END - IO_START + 1) as usize;
-
-#[derive(Copy, Clone, Debug, PartialEq)]
-pub enum AccessControl {
-    Read,
-    Write,
-    ReadWrite,
-    Mixed,
-}
-
-// TODO: express all registers like this
-#[derive(Copy, Clone, Debug, PartialEq)]
-pub struct IORegister {
-    pub addr: u16,
-    pub access: AccessControl,
-}
-
 /// Register for reading joypad info and determining system type (R/W)
 pub const P1: u16 = 0xFF00;
-pub const P1_S: IORegister = IORegister {
-    addr: 0xFF00,
-    access: AccessControl::ReadWrite,
-};
 /// Serial transfer data (R/W)
 pub const SB: u16 = 0xFF01;
 /// SIO control (R/W)
@@ -62,7 +36,6 @@ pub const NR30_2: u16 = 0xFF23;
 pub const NR50: u16 = 0xFF24;
 pub const NR51: u16 = 0xFF25;
 pub const NR52: u16 = 0xFF26;
-// TODO: should wave ram be here or in MMU (0xFF30 - 0xFF3F)?
 /// LCD Control (R/W)
 pub const LCDC: u16 = 0xFF40;
 /// LCD Status (R/W)
@@ -96,65 +69,3 @@ pub enum Interrupts {
     SerialTransferCompletion = 0b0000_1000,
     HighToLowP10P13 = 0b0001_0000,
 }
-
-/*
-#[derive(Clone, Debug)]
-pub struct IORegisters {
-    io_registers: [u8; IO_SIZE],
-}
-
-// Default IO register values are taken from 2.7.1 of the Gameboy CPU Manual
-impl Default for IORegisters {
-    fn default() -> Self {
-        let mut io = Self {
-            io_registers: [0; IO_SIZE],
-        };
-
-        // io.write(TIMA, 0x00);
-        // io.write(TMA, 0x00);
-        // io.write(TAC, 0x00);
-        io.write(NR10, 0x80);
-        io.write(NR11, 0xBF);
-        io.write(NR12, 0xF3);
-        io.write(NR14, 0xBF);
-        io.write(NR21, 0x3F);
-        io.write(NR22, 0x00);
-        io.write(NR24, 0xBF);
-        io.write(NR30, 0x7F);
-        io.write(NR31, 0xFF);
-        io.write(NR32, 0x9F);
-        io.write(NR33, 0xBF);
-        io.write(NR41, 0xFF);
-        io.write(NR42, 0x00);
-        io.write(NR43, 0x00);
-        io.write(NR30_2, 0xBF);
-        io.write(NR50, 0x77);
-        io.write(NR51, 0xF3);
-        // FIX: depends on GB model
-        // 0xF1: gameboy
-        // 0xF0 for super gameboy
-        io.write(NR52, 0xF1);
-        // io.write(LCDC, 0x91);
-        // io.write(SCY, 0x00);
-        // io.write(SCX, 0x00);
-        // io.write(LYC, 0x00);
-        // io.write(BGP, 0xFC);
-        // io.write(OBP0, 0xFF);
-        // io.write(OBP1, 0xFF);
-        // io.write(WY, 0x00);
-        // io.write(WX, 0x00);
-
-        io
-    }
-}
-
-impl ReadWriteByte for IORegisters {
-    fn read(&self, addr: u16) -> u8 {
-        self.io_registers[(addr - IO_START) as usize]
-    }
-
-    fn write(&mut self, addr: u16, val: u8) {
-        self.io_registers[(addr - IO_START) as usize] = val;
-    }
-}
-*/

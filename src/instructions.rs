@@ -63,14 +63,12 @@ pub enum Inst {
     JRC(Flags, bool, u32),
     // 3.3.9: Calls
     CALL(u32),
-    // TODO: consolidate with CALL
     // FIX: all CALLC ops have different cycles depending on if the call happens
     CALLC(Flags, bool, u32),
     // 3.3.10: Restarts
     RST(u16, u32),
     // 3.3.11: Returns
     RET(u32),
-    // TODO: consolidate with RET
     // FIX: all RETC ops have different cycles depending on if the ret happens
     RETC(Flags, bool, u32),
     RETI(u32),

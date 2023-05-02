@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-// TODO: when we do CGB
+// CGB
 pub struct CGBRegisters {
     /// FF68: background color palette specification/background palette index
     bcps: u8,

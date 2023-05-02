@@ -1,9 +1,8 @@
 #![allow(dead_code)]
 use crate::{io_registers, traits::ReadWriteByte};
 
-// TODO: need to use 16779Hz for SGB
 const DIV_HZ: u32 = 16_384;
-// const DIV_CYCLES_PER_TICK: u16 = (CPU_HZ / (DIV_HZ as u32)) as u16;
+const SGB_DIV_HZ: u32 = 16_779;
 const DIV_CYCLES_PER_TICK: u32 = 256;
 
 #[derive(Debug)]
