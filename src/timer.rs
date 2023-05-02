@@ -1,8 +1,6 @@
-#![allow(dead_code)]
 use crate::{io_registers, traits::ReadWriteByte};
 
-const DIV_HZ: u32 = 16_384;
-const SGB_DIV_HZ: u32 = 16_779;
+// CGB: change for CGB and SGB
 const DIV_CYCLES_PER_TICK: u32 = 256;
 
 #[derive(Debug)]

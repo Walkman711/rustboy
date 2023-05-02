@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use std::time::Duration;
 
 use crate::{
@@ -26,8 +25,6 @@ pub const TILE_BYTES: u16 = 16;
 // #[derive(Debug)]
 pub struct CPU {
     reg: Registers,
-    // TODO: is this 32 bit? also does it matter?
-    clock: u32,
     mmu: MMU,
     halted: bool,
     stopped: bool,
@@ -65,7 +62,6 @@ impl CPU {
         canvas.present();
         Self {
             reg: Registers::default(),
-            clock: 0,
             mmu: MMU::new(rom),
             halted: false,
             stopped: false,
@@ -87,7 +83,6 @@ impl CPU {
         eprintln!("==========OTHER==========");
         eprintln!("N: {:#04x}", self.peek());
         eprintln!("NN: {:#04x}", self.peek_word());
-        eprintln!("clock: {}", self.clock);
         eprintln!("\n\n\n\n");
     }
 
@@ -144,7 +139,6 @@ impl CPU {
                 let new_if_reg = old_if_reg | (Interrupts::TimerOverflow as u8);
                 self.mmu.write(io_registers::IF, new_if_reg);
             }
-            self.clock = self.clock.wrapping_add(cycles_elapsed);
 
             // Logging and debugging
             if self.debug {
@@ -1586,7 +1580,7 @@ impl CPU {
     fn dump_tiles(&mut self) {
         let mut drew_something = false;
         for tile_idx in 0..128 {
-            let mut tile_data = [0; 16];
+            let mut tile_data = [0; TILE_BYTES as usize];
             const TILES_PER_ROW: usize = 32;
             const TILE_PIXELS: usize = 8;
             // XXX: This is hideous
@@ -1598,7 +1592,7 @@ impl CPU {
             for i in 0..16 {
                 tile_data[i] = self
                     .mmu
-                    .read(0x8000 + ((tile_idx as u16) * 16) + (i as u16));
+                    .read(0x8000 + ((tile_idx as u16) * TILE_BYTES) + (i as u16));
             }
             let tile = Tile { data: tile_data };
             let draw = tile.render();
