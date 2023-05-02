@@ -11,25 +11,18 @@ const SWITCHABLE_ROM_SIZE: usize = SWITCHABLE_ROM_END - SWITCHABLE_ROM_START + 1
 pub struct MMU {
     boot_rom_active: bool,
     boot_rom: [u8; 256],
-    // ROM 0
     rom_bank_0: [u8; BANK_0_SIZE],
-    // SWITCHABLE ROM
     switchable_rom: [u8; SWITCHABLE_ROM_SIZE],
-    // VRAM
     // CGB: can switch banks 0/1 in CGB mode
-    vram: [u8; (VRAM_END - VRAM_START + 1) as usize],
-    // EXT RAM
-    ext_ram: [u8; (EXT_RAM_END - EXT_RAM_START + 1) as usize],
-    // WRAM I
-    wramI: [u8; (WRAM_I_END - WRAM_I_START + 1) as usize],
-    // WRAM II
+    vram: [u8; VRAM_END - VRAM_START + 1],
+    ext_ram: [u8; EXT_RAM_END - EXT_RAM_START + 1],
+    wramI: [u8; WRAM_I_END - WRAM_I_START + 1],
     // CGB: can switch banks 1-7 in CGB mode
-    wramII: [u8; (WRAM_II_END - WRAM_II_START + 1) as usize],
+    wramII: [u8; WRAM_II_END - WRAM_II_START + 1],
     pub ppu: PPU,
     timer: Timer,
-    // HRAM
-    hram: [u8; (HRAM_END - HRAM_START + 1) as usize],
-    // Interrupt Flag (R/W)
+    hram: [u8; HRAM_END - HRAM_START + 1],
+    // Interrupt Flag (IF)
     if_reg: u8,
     // Interrupt Enable Register (IE)
     ie: u8,
@@ -52,13 +45,13 @@ impl MMU {
             boot_rom,
             rom_bank_0,
             switchable_rom,
-            ext_ram: [0; (EXT_RAM_END - EXT_RAM_START + 1) as usize],
-            vram: [0; (VRAM_END - VRAM_START + 1) as usize],
+            ext_ram: [0; EXT_RAM_END - EXT_RAM_START + 1],
+            vram: [0; VRAM_END - VRAM_START + 1],
             ppu: PPU::default(),
             timer: Timer::default(),
-            wramI: [0; (WRAM_I_END - WRAM_I_START + 1) as usize],
-            wramII: [0; (WRAM_II_END - WRAM_II_START + 1) as usize],
-            hram: [0; (HRAM_END - HRAM_START + 1) as usize],
+            wramI: [0; WRAM_I_END - WRAM_I_START + 1],
+            wramII: [0; WRAM_II_END - WRAM_II_START + 1],
+            hram: [0; HRAM_END - HRAM_START + 1],
             if_reg: 0,
             ie: 0,
         }
