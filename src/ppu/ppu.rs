@@ -1,6 +1,6 @@
 use crate::{io_registers::*, traits::ReadWriteByte};
 
-use super::vram::{LCDC, OAM};
+use super::vram::LCDC;
 
 const CYCLES_PER_SCANLINE: u32 = 456;
 const SCANLINES: u8 = 144;
@@ -39,6 +39,7 @@ pub struct PPU {
     /// LY indicates the current horizontal line, which might be about to be drawn,
     /// being drawn, or just been drawn. LY can hold any value from 0 to 153, with
     /// values from 144 to 153 indicating the VBlank period.
+    // XXX: make private and read from mmu
     pub ly: u8,
 
     /// FF45 — LYC: LY compare

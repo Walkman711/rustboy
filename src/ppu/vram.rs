@@ -19,12 +19,18 @@ pub struct LCDC {
     pub data: u8,
 }
 
+impl From<u8> for LCDC {
+    fn from(value: u8) -> Self {
+        Self { data: value }
+    }
+}
+
 impl LCDC {
     pub fn lcd_enabled(&self) -> bool {
         self.data & (1 << 7) == (1 << 7)
     }
 
-    pub fn tile_map_area(&self) -> u16 {
+    pub fn window_tile_map_area(&self) -> u16 {
         if self.data & (1 << 6) == (1 << 6) {
             0x9C00
         } else {

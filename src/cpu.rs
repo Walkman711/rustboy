@@ -1,9 +1,11 @@
 #![allow(dead_code)]
+use std::time::Duration;
+
 use crate::{
     instructions::*,
     io_registers::{self, Interrupts},
     mmu::*,
-    ppu::tile::Tile,
+    ppu::{tile::Tile, vram::LCDC},
     registers::*,
     traits::ReadWriteByte,
     utils::*,
@@ -19,6 +21,8 @@ pub const COLS: u32 = 160;
 pub const BG_ROWS: u32 = 256;
 pub const BG_COLS: u32 = 256;
 pub const PIXEL_SIZE: u32 = 5;
+pub const TILE_PIXELS: u32 = 8;
+pub const TILE_BYTES: u16 = 16;
 
 // #[derive(Debug)]
 pub struct CPU {
@@ -149,9 +153,9 @@ impl CPU {
                 self.debug_step(opcode, inst);
             }
 
-            // self.log_cpu_state();
+            self.log_cpu_state();
 
-            self.draw_scanline();
+            self.draw_scanline_dbg();
             // if self.reg.pc > 0x200 {
             //     panic!("pc");
             // }
@@ -1454,6 +1458,93 @@ impl CPU {
 
 impl CPU {
     fn draw_scanline(&mut self) {
+        // TODO: add back From for LCDC
+        let lcdc = LCDC::from(self.mmu.read(io_registers::LCDC));
+
+        if lcdc.bg_and_window_enable() {
+            self.draw_tiles(lcdc);
+        }
+
+        if lcdc.obj_enabled() {
+            todo!("draw sprites")
+        }
+    }
+
+    fn draw_tiles(&mut self, lcdc: LCDC) {
+        let scy = self.mmu.read(io_registers::SCY);
+        let scx = self.mmu.read(io_registers::SCX);
+        let ly = self.mmu.read(io_registers::LY);
+        let lyc = self.mmu.read(io_registers::LYC);
+        let bgp = self.mmu.read(io_registers::BGP);
+        let wy = self.mmu.read(io_registers::WY);
+        // let wx = self.mmu.read(io_registers::WX) - 7;
+        // XXX: what happens if wx is < 7?
+        let wx = self.mmu.read(io_registers::WX);
+
+        let window_enabled = lcdc.window_enabled() && wy <= ly;
+
+        let tile_map_area = if window_enabled {
+            lcdc.window_tile_map_area()
+        } else {
+            lcdc.bg_tile_map_area()
+        };
+
+        // TODO: this is going to be tricky with signed stuff...
+        let tile_data_area = lcdc.bg_and_window_tile_data_area();
+
+        if !lcdc.bg_and_window_enable() {
+            self.canvas.clear();
+            return;
+        }
+
+        let y_pos = if window_enabled {
+            // render window
+            ly - wy
+        } else {
+            scy + ly
+        };
+
+        // XXX: why y_pos?
+        let tile_row_to_draw = (y_pos as u32) % TILE_PIXELS;
+        // for each..
+        for pixel in 0..COLS {
+            let x_pos = if window_enabled && (pixel as u8) >= wx {
+                (pixel as u8) - wx
+            } else {
+                (pixel as u8) + scx
+            };
+
+            let tile_idx = 4;
+            // address of the start of the tile
+            let tile_addr = self.get_tile_address(tile_map_area, tile_idx);
+            // let tile_byte_1 = self.mmu.read(tile_addr + tile_offset);
+            // let tile_byte_2 = self.mmu.read(tile_addr + tile_offset + 1);
+
+            // PERF: only get the 2 bytes we need instead of rendering the whole tile
+            let mut tile_data = [0; 16];
+            for i in 0..16 {
+                tile_data[i] = self.mmu.read(tile_addr + i as u16);
+            }
+
+            let tile = Tile { data: tile_data };
+            let rendered_tile = tile.render();
+            let row_to_draw = &rendered_tile[tile_row_to_draw as usize];
+        }
+    }
+
+    fn get_tile_address(&self, tile_map_addr: u16, tile_idx: u16) -> u16 {
+        if tile_map_addr == 0x8000 {
+            tile_map_addr + (tile_idx * TILE_BYTES)
+        } else {
+            // 0x8800 tiles are signed, but we can cheat and add an offset that takes us to the
+            // actual "zero" point which is 0x9000
+            const OFFSET: u16 = (0x9000 - 0x8800) / TILE_BYTES;
+            assert!(OFFSET == 128);
+            tile_map_addr + ((tile_idx + OFFSET) * TILE_BYTES)
+        }
+    }
+
+    fn draw_scanline_dbg(&mut self) {
         // XXX: tmp for debugging
         if self.scanline == self.mmu.ppu.ly {
             return;
@@ -1462,9 +1553,9 @@ impl CPU {
         println!("scanline {}", self.mmu.ppu.ly);
         let black = pixels::Color::RGB(0x0, 0x0, 0x0);
         let white = pixels::Color::RGB(0xFF, 0xFF, 0xFF);
-        self.canvas.set_draw_color(black);
-        self.canvas.clear();
         self.canvas.set_draw_color(white);
+        self.canvas.clear();
+        self.canvas.set_draw_color(black);
         let rect = sdl2::rect::Rect::new(
             0,
             (self.mmu.ppu.ly as u32 * PIXEL_SIZE) as i32,
@@ -1473,15 +1564,23 @@ impl CPU {
         );
         self.canvas.fill_rect(rect).expect("rect failed to draw");
         self.canvas.present();
+        if self.scanline == 0 {
+            self.dump_tiles();
+        }
     }
 
     fn dump_tiles(&mut self) {
+        let mut drew_something = false;
         for tile_idx in 0..128 {
             let mut tile_data = [0; 16];
             const TILES_PER_ROW: usize = 32;
-            const TILE_SIZE: usize = 8;
-            let x_offset: i32 = ((tile_idx % TILES_PER_ROW) * TILE_SIZE).try_into().unwrap();
-            let y_offset: i32 = ((tile_idx / TILES_PER_ROW) * TILE_SIZE).try_into().unwrap();
+            const TILE_PIXELS: usize = 8;
+            // XXX: This is hideous
+            let x_offset: i32 =
+                (tile_idx % TILES_PER_ROW) as i32 * PIXEL_SIZE as i32 * TILE_PIXELS as i32;
+            let y_offset: i32 =
+                (tile_idx / TILES_PER_ROW) as i32 * PIXEL_SIZE as i32 * TILE_PIXELS as i32;
+            println!("{tile_idx} {x_offset},{y_offset}");
             for i in 0..16 {
                 tile_data[i] = self
                     .mmu
@@ -1501,8 +1600,14 @@ impl CPU {
                     vec![0; 8],
                 ]
             {
-                panic!("tile data");
+                // println!("tile data");
+                // for row in &draw {
+                //     println!("{:?}", row);
+                // }
+                // println!("\n\n\n\n");
+                drew_something = true;
             }
+
             for (i, row) in draw.iter().enumerate() {
                 for (j, color_id) in row.iter().enumerate() {
                     let x: i32 = (j * PIXEL_SIZE as usize)
@@ -1511,6 +1616,8 @@ impl CPU {
                     let y: i32 = (i * PIXEL_SIZE as usize)
                         .try_into()
                         .expect("should never be drawing out of i32 bounds");
+
+                    // println!("{x},{y}");
 
                     let color = match color_id {
                         0 => pixels::Color::RGB(0xFF, 0xFF, 0xFF),
@@ -1529,6 +1636,11 @@ impl CPU {
                     self.canvas.fill_rect(rect).expect("rect failed to draw");
                 }
             }
+        }
+
+        if drew_something {
+            self.canvas.present();
+            std::thread::sleep(Duration::from_secs(5));
         }
     }
 }
