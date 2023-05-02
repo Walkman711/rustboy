@@ -127,7 +127,7 @@ impl CPU {
             // Decode
             let inst = self.decode(opcode);
 
-            dbg!(inst);
+            // dbg!(inst);
 
             // Execute
             let cycles_elapsed = self.execute(inst);

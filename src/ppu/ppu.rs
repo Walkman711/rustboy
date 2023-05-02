@@ -1,5 +1,11 @@
-#![allow(dead_code)]
-pub struct VRAM {
+use super::vram::{LCDC, OAM};
+
+const CYCLES_PER_SCANLINE: u32 = 456;
+const SCANLINES: u8 = 144;
+const VBLANK_PERIOD: u8 = 10;
+pub struct PPU {
+    internal_scanline_timer: u32,
+
     oam: OAM,
 
     /// FF40 — LCDC: LCD control
@@ -61,82 +67,68 @@ pub struct VRAM {
     wx: u8,
 }
 
-// TODO: when we do CGB
-pub struct CGBRegisters {
-    /// FF68: background color palette specification/background palette index
-    bcps: u8,
-
-    /// FF69: background color palette data
-    bcpd: u8,
-
-    /// FF6A: OBJ color palette specification/OBJ palette index
-    ocps: u8,
-
-    /// FF69: OBJ color palette data
-    ocpd: u8,
-}
-
-pub struct LCDC {
-    pub data: u8,
-}
-
-impl LCDC {
-    pub fn lcd_enabled(&self) -> bool {
-        self.data & (1 << 7) == (1 << 7)
-    }
-
-    pub fn tile_map_area(&self) -> u16 {
-        if self.data & (1 << 6) == (1 << 6) {
-            0x9C00
-        } else {
-            0x9800
+impl Default for PPU {
+    fn default() -> Self {
+        Self {
+            internal_scanline_timer: 0,
+            ly: 0,
+            oam: todo!(),
+            lcdc: todo!(),
+            stat: todo!(),
+            scy: todo!(),
+            scx: todo!(),
+            lyc: todo!(),
+            bgp: todo!(),
+            obp0: todo!(),
+            obp1: todo!(),
+            wy: todo!(),
+            wx: todo!(),
         }
-    }
-
-    pub fn window_enabled(&self) -> bool {
-        self.data & (1 << 5) == (1 << 5)
-    }
-
-    pub fn bg_and_window_tile_data_area(&self) -> u16 {
-        if self.data & (1 << 4) == (1 << 4) {
-            0x8000
-        } else {
-            0x8800
-        }
-    }
-
-    pub fn bg_tile_map_area(&self) -> u16 {
-        if self.data & (1 << 3) == (1 << 3) {
-            0x9C00
-        } else {
-            0x9800
-        }
-    }
-
-    pub fn obj_size(&self) -> u8 {
-        if self.data & (1 << 2) == (1 << 2) {
-            8 * 16
-        } else {
-            8 * 8
-        }
-    }
-
-    pub fn obj_enabled(&self) -> bool {
-        self.data & (1 << 1) == (1 << 1)
-    }
-
-    pub fn bg_and_window_enable(&self) -> bool {
-        self.data & 1 == 1
     }
 }
 
-pub struct OAM {
-    entries: [OAMEntry; 40],
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum VBlankStatus {
+    VBlank,
+    VBlankRequested,
+    VBlankEnding,
+    Drawing,
 }
 
-pub struct OAMEntry {
-    y: u8,
-    x: u8,
-    tile_index: u8,
-    flags: u8,
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+// TODO: cycle through modes.
+// TODO: prohibit CPU memory access in the relevant modes
+// NOTE: this implies that the ppu should probably be held by the mmu
+pub enum StatMode {
+    HBlank,
+    VBlank,
+    SearchingOAM,
+    DataTransfer,
+}
+
+impl PPU {
+    pub fn tick(&mut self, cy: u32) -> VBlankStatus {
+        self.internal_scanline_timer += cy;
+        let vblank_status = if self.internal_scanline_timer > CYCLES_PER_SCANLINE {
+            self.internal_scanline_timer -= CYCLES_PER_SCANLINE;
+            self.ly += 1;
+            if self.ly == SCANLINES {
+                VBlankStatus::VBlankRequested
+            } else if self.ly > SCANLINES && self.ly < SCANLINES + VBLANK_PERIOD {
+                VBlankStatus::VBlank
+            } else {
+                assert!(self.ly >= (SCANLINES + VBLANK_PERIOD));
+                self.ly = 0;
+                VBlankStatus::VBlankEnding
+            }
+        } else {
+            VBlankStatus::Drawing
+        };
+
+        vblank_status
+    }
+
+    pub fn read_byte(&self, addr: u16) -> u8 {
+        0
+    }
 }
