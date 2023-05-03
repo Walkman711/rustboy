@@ -1,5 +1,6 @@
 pub mod boot_roms;
 pub mod cart_enums;
+pub mod colors;
 pub mod cpu;
 pub mod gb_models;
 pub mod instructions;

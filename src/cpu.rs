@@ -1,4 +1,5 @@
 use crate::{
+    colors::*,
     instructions::*,
     io_registers::{self, Interrupt},
     mmu::*,
@@ -7,7 +8,7 @@ use crate::{
     traits::ReadWriteByte,
     utils::*,
 };
-use sdl2::{pixels, render::Canvas, video::Window};
+use sdl2::{render::Canvas, video::Window};
 use strum::IntoEnumIterator;
 
 pub const CPU_HZ: u32 = 4_194_304;
@@ -57,7 +58,7 @@ impl CPU {
             .into_canvas()
             .build()
             .expect("Failed to create canvas.");
-        canvas.set_draw_color(pixels::Color::RGB(0, 0, 0));
+        canvas.set_draw_color(BLACK);
         canvas.clear();
         canvas.present();
         Self {
@@ -74,17 +75,6 @@ impl CPU {
             scanline: 0,
             pixel_size,
         }
-    }
-
-    fn debug_step(&self, opcode: u8, inst: Inst) {
-        eprintln!("==========STEP==========");
-        eprintln!("exec {:#04x}", opcode);
-        eprintln!("{:?}", inst);
-        eprintln!("{}", self.reg);
-        eprintln!("==========OTHER==========");
-        eprintln!("N: {:#04x}", self.peek());
-        eprintln!("NN: {:#04x}", self.peek_word());
-        eprintln!("\n\n\n\n");
     }
 
     // Logging for gameboy doctor
@@ -147,9 +137,6 @@ impl CPU {
             self.log_cpu_state();
 
             self.draw_scanline_dbg();
-            // if self.reg.pc > 0x200 {
-            //     panic!("pc");
-            // }
         }
     }
 
@@ -160,14 +147,12 @@ impl CPU {
         // Decode
         let inst = self.decode(opcode);
 
-        // dbg!(inst);
-
         // Execute
         let cy = self.execute(inst);
 
         // Logging and debugging
         if self.debug {
-            self.debug_step(opcode, inst);
+            dbg!(inst);
         }
 
         cy
@@ -1482,7 +1467,6 @@ impl CPU {
 
 impl CPU {
     fn draw_scanline(&mut self) {
-        // TODO: add back From for LCDC
         let lcdc = LCDC::from(self.mmu.read(io_registers::LCDC));
 
         if lcdc.bg_and_window_enable() {
@@ -1569,21 +1553,15 @@ impl CPU {
 
     fn draw_scanline_dbg(&mut self) {
         // XXX: tmp for debugging
-        if self.scanline == self.mmu.ppu.ly {
+        let ly = self.mmu.read(io_registers::LY);
+        if self.scanline == ly {
             return;
         }
-        self.scanline = self.mmu.ppu.ly;
-        // println!("scanline {}", self.mmu.ppu.ly);
-        let black = pixels::Color::RGB(0x0, 0x0, 0x0);
+        self.scanline = ly;
         self.clear_window();
-        self.canvas.set_draw_color(black);
-        let rect = sdl2::rect::Rect::new(
-            self.pixel_size as i32,
-            ((1 + self.mmu.ppu.ly as u32) * self.pixel_size) as i32,
-            self.pixel_size * COLS,
-            self.pixel_size,
-        );
-        self.canvas.fill_rect(rect).expect("rect failed to draw");
+        self.canvas.set_draw_color(BLACK);
+        let line = self.rect(1, 1 + ly as u32, COLS, 1);
+        self.canvas.fill_rect(line).expect("rect failed to draw");
         self.canvas.present();
         if self.scanline == 0 {
             self.dump_tiles();
@@ -1591,13 +1569,15 @@ impl CPU {
     }
 
     fn dump_tiles(&mut self) {
-        let mut drew_something = false;
         for tile_idx in 0..128 {
             let mut tile_data = [0; TILE_BYTES as usize];
             let tile_start: i32 = ((BG_ROWS + 2) * self.pixel_size) as i32;
             const TILES_PER_ROW: usize = 32;
-            const TILE_PIXELS: usize = 8;
+            const TILE_PIXELS: u32 = 8;
             // XXX: This is hideous
+            // let x_offset: u32 = (tile_idx % TILES_PER_ROW) as u32 * TILE_PIXELS;
+            // let y_offset: u32 =
+            //     (tile_start + (tile_idx / TILES_PER_ROW) as u32 * TILE_PIXELS) as u32;
             let x_offset: i32 =
                 (tile_idx % TILES_PER_ROW) as i32 * self.pixel_size as i32 * TILE_PIXELS as i32;
             let y_offset: i32 = tile_start
@@ -1610,61 +1590,42 @@ impl CPU {
             }
             let tile = Tile { data: tile_data };
             let draw = tile.render();
-            if draw
-                != vec![
-                    vec![0; 8],
-                    vec![0; 8],
-                    vec![0; 8],
-                    vec![0; 8],
-                    vec![0; 8],
-                    vec![0; 8],
-                    vec![0; 8],
-                    vec![0; 8],
-                ]
-            {
-                // println!("tile data");
-                // for row in &draw {
-                //     println!("{:?}", row);
-                // }
-                // println!("\n\n\n\n");
-                drew_something = true;
-            }
-
             for (i, row) in draw.iter().enumerate() {
                 for (j, color_id) in row.iter().enumerate() {
-                    let x: i32 = (j * self.pixel_size as usize)
+                    let x: u32 = (j * self.pixel_size as usize)
                         .try_into()
                         .expect("should never be drawing out of i32 bounds");
-                    let y: i32 = (i * self.pixel_size as usize)
+                    let y: u32 = (i * self.pixel_size as usize)
                         .try_into()
                         .expect("should never be drawing out of i32 bounds");
 
                     // println!("{x},{y}");
 
                     let color = match color_id {
-                        0 => pixels::Color::RGB(0xFF, 0xFF, 0xFF),
-                        1 => pixels::Color::RGB(0xA0, 0xA0, 0xA0),
-                        2 => pixels::Color::RGB(0x50, 0x50, 0x50),
-                        3 => pixels::Color::RGB(0x0, 0x0, 0x0),
+                        0 => WHITE,
+                        1 => LIGHT_GRAY,
+                        2 => DARK_GRAY,
+                        3 => BLACK,
                         _ => panic!("bad color id"),
                     };
+
                     self.canvas.set_draw_color(color);
-                    let rect = sdl2::rect::Rect::new(
-                        x + x_offset,
-                        y + y_offset,
+                    let pixel = sdl2::rect::Rect::new(
+                        (x as i32 + x_offset) as i32,
+                        (y as i32 + y_offset) as i32,
                         self.pixel_size,
                         self.pixel_size,
                     );
-                    self.canvas.fill_rect(rect).expect("rect failed to draw");
+                    self.canvas.fill_rect(pixel).expect("rect failed to draw");
                 }
+                // let tile_border = self.rect(x_offset - 1, y_offset - 1, TILE_PIXELS, TILE_PIXELS);
                 let tile_border = sdl2::rect::Rect::new(
                     x_offset - 1,
                     y_offset - 1,
-                    self.pixel_size * 8,
-                    self.pixel_size * 8,
+                    self.pixel_size * TILE_PIXELS,
+                    self.pixel_size * TILE_PIXELS,
                 );
-                self.canvas
-                    .set_draw_color(pixels::Color::RGB(0xFF, 0x00, 0x00));
+                self.canvas.set_draw_color(RED);
                 self.canvas
                     .draw_rect(tile_border)
                     .expect("rect failed to draw");
@@ -1674,52 +1635,41 @@ impl CPU {
         self.draw_bg_border();
         self.draw_window_border();
 
-        if drew_something {
-            self.canvas.present();
-            // std::thread::sleep(std::time::Duration::from_secs(5));
-        }
+        self.canvas.present();
     }
 }
 
 impl CPU {
+    fn rect(&self, x: u32, y: u32, width: u32, height: u32) -> sdl2::rect::Rect {
+        sdl2::rect::Rect::new(
+            (x * self.pixel_size) as i32,
+            (y * self.pixel_size) as i32,
+            width * self.pixel_size,
+            height * self.pixel_size,
+        )
+    }
+
     fn draw_window_border(&mut self) {
-        let window_border = sdl2::rect::Rect::new(
-            self.pixel_size as i32,
-            self.pixel_size as i32,
-            self.pixel_size * (COLS),
-            self.pixel_size * (ROWS),
-        );
-        self.canvas
-            .set_draw_color(pixels::Color::RGB(0x00, 0x00, 0xFF));
+        let window_border = self.rect(1, 1, COLS, ROWS);
+        self.canvas.set_draw_color(BLUE);
         self.canvas
             .draw_rect(window_border)
             .expect("rect failed to draw");
     }
+
     fn draw_bg_border(&mut self) {
-        let bg_border = sdl2::rect::Rect::new(
-            0,
-            0,
-            self.pixel_size * (BG_COLS + 2),
-            self.pixel_size * (BG_ROWS + 2),
-        );
-        self.canvas
-            .set_draw_color(pixels::Color::RGB(0x00, 0xFF, 0x00));
+        let bg_border = self.rect(0, 0, BG_COLS + 2, BG_ROWS + 2);
+        self.canvas.set_draw_color(GREEN);
         self.canvas
             .draw_rect(bg_border)
             .expect("rect failed to draw");
     }
 
     fn clear_window(&mut self) {
-        let white = pixels::Color::RGB(0xFF, 0xFF, 0xFF);
-        self.canvas.set_draw_color(white);
-        let clear_rect = sdl2::rect::Rect::new(
-            self.pixel_size as i32,
-            self.pixel_size as i32,
-            self.pixel_size * COLS,
-            self.pixel_size * ROWS,
-        );
+        self.canvas.set_draw_color(WHITE);
+        let clear = self.rect(1, 1, COLS, ROWS);
         self.canvas
-            .fill_rect(clear_rect)
+            .fill_rect(clear)
             .expect("Failed to clear window");
     }
 }
