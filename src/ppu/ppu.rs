@@ -102,17 +102,6 @@ pub enum VBlankStatus {
     Drawing,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-// TODO: cycle through modes.
-// TODO: prohibit CPU memory access in the relevant modes
-// NOTE: this implies that the ppu should probably be held by the mmu
-pub enum StatMode {
-    HBlank,
-    VBlank,
-    SearchingOAM,
-    DataTransfer,
-}
-
 impl PPU {
     pub fn tick(&mut self, cy: u32) -> VBlankStatus {
         self.internal_scanline_timer += cy;

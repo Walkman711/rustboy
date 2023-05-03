@@ -89,3 +89,65 @@ pub struct OAMEntry {
     tile_index: u8,
     flags: u8,
 }
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+// TODO: cycle through modes.
+// TODO: prohibit CPU memory access in the relevant modes
+pub enum StatMode {
+    HBlank,
+    VBlank,
+    SearchingOAM,
+    DataTransfer,
+}
+
+impl From<u8> for StatMode {
+    fn from(value: u8) -> Self {
+        assert!(value < 4);
+        match value {
+            0 => Self::HBlank,
+            1 => Self::VBlank,
+            2 => Self::SearchingOAM,
+            3 => Self::DataTransfer,
+            _ => unreachable!(),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct STAT {
+    pub data: u8,
+}
+
+impl From<u8> for STAT {
+    fn from(value: u8) -> Self {
+        Self { data: value }
+    }
+}
+
+// TODO: this and LCDC should be bitflags!{} macro structs
+impl STAT {
+    pub fn lyc_equals_ly_src(&self) -> bool {
+        self.data & (1 << 6) == (1 << 6)
+    }
+
+    pub fn mode_2_src(&self) -> bool {
+        self.data & (1 << 5) == (1 << 5)
+    }
+
+    pub fn mode_1_vblank_src(&self) -> bool {
+        self.data & (1 << 4) == (1 << 4)
+    }
+
+    pub fn mode_0_hblank_src(&self) -> bool {
+        self.data & (1 << 3) == (1 << 3)
+    }
+
+    pub fn lyc_equals_ly(&self) -> bool {
+        self.data & (1 << 2) == (1 << 2)
+    }
+
+    pub fn mode(&self) -> StatMode {
+        let mode_bits = self.data & 0x3;
+        StatMode::from(mode_bits)
+    }
+}

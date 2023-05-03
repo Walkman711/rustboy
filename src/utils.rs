@@ -10,8 +10,7 @@ pub fn half_carry_sub(a: u8, b: u8) -> bool {
     // 1) mask a and b to only look at bits 0-3.
     // 2) add them together
     // 3) check if the fourth bit is set
-    // FIX: FIXXXX
-    (((a & 0xF) - (b & 0xF)) & (1 << 4)) == (1 << 4)
+    (((a & 0xF).wrapping_sub(b & 0xF)) & (1 << 4)) == (1 << 4)
 }
 
 // TODO: test
