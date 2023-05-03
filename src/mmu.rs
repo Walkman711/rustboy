@@ -2,9 +2,9 @@
 
 use crate::{
     boot_roms::DMG_BOOT_ROM,
+    graphics::ppu::{VBlankStatus, PPU},
     io_registers::Interrupt,
     mem_constants::*,
-    ppu::ppu::{VBlankStatus, PPU},
     timer::Timer,
     traits::ReadWriteByte,
 };

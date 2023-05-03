@@ -1,9 +1,9 @@
 use crate::{
     colors::*,
+    graphics::{tile::Tile, vram::LCDC},
     instructions::*,
     io_registers::{self, Interrupt},
     mmu::*,
-    ppu::{tile::Tile, vram::LCDC},
     registers::*,
     traits::ReadWriteByte,
     utils::*,
@@ -22,7 +22,7 @@ pub const BG_COLS: u32 = 256;
 pub const TILE_ROWS: u32 = 32;
 pub const TILE_PIXELS: u32 = 8;
 pub const TILE_BYTES: u16 = 16;
-const TILES_PER_ROW: usize = 32;
+const TILES_PER_ROW: u32 = 32;
 
 // #[derive(Debug)]
 pub struct CPU {
@@ -1603,15 +1603,17 @@ impl CPU {
     }
 
     fn dump_tiles(&mut self) {
-        for tile_idx in 0..128 {
+        for tile_idx in 0..128_u32 {
             let mut tile_data = [0; TILE_BYTES as usize];
-            let tile_start = BG_ROWS + 2;
 
-            let tile_col = tile_idx % TILES_PER_ROW as u32;
-            let tile_row = tile_idx / TILES_PER_ROW as u32;
+            let tile_col = tile_idx % TILES_PER_ROW;
+            let tile_row = tile_idx / TILES_PER_ROW;
 
-            let x_offset_pixel: u32 = tile_col as u32 * TILE_PIXELS;
-            let y_offset_pixel: u32 = (tile_start + tile_row as u32 * TILE_PIXELS) as u32;
+            // Dump tiles below the 256x256 background dimensions
+            let tile_y_start = BG_ROWS + 2;
+
+            let x_offset_pixel: u32 = tile_col * TILE_PIXELS;
+            let y_offset_pixel: u32 = tile_y_start + (tile_row * TILE_PIXELS);
             for i in 0..16 {
                 tile_data[i] = self
                     .mmu

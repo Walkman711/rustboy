@@ -8,7 +8,7 @@ pub mod io_registers;
 pub mod joypad;
 pub mod mem_constants;
 pub mod mmu;
-pub mod ppu;
+pub mod graphics;
 pub mod registers;
 pub mod timer;
 pub mod traits;
