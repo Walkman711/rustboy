@@ -11,6 +11,7 @@ use crate::{
 use sdl2::{render::Canvas, video::Window};
 use strum::IntoEnumIterator;
 
+// TODO: should i pull things out into a file with constants?
 pub const CPU_HZ: u32 = 4_194_304;
 // using 59.7 framerate
 pub const CYCLES_PER_VBLANK: u32 = 70_256;
@@ -21,6 +22,7 @@ pub const BG_COLS: u32 = 256;
 pub const TILE_ROWS: u32 = 32;
 pub const TILE_PIXELS: u32 = 8;
 pub const TILE_BYTES: u16 = 16;
+const TILES_PER_ROW: usize = 32;
 
 // #[derive(Debug)]
 pub struct CPU {
@@ -1311,18 +1313,6 @@ impl CPU {
         ((hi as u16) << 8) | (lo as u16)
     }
 
-    fn peek_word(&self) -> u16 {
-        self.mmu.read_word(self.reg.pc)
-    }
-
-    fn read_hl_byte(&self) -> u8 {
-        self.mmu.read(self.reg.hl())
-    }
-
-    fn write_hl_byte(&mut self, byte: u8) {
-        self.mmu.write(self.reg.hl(), byte)
-    }
-
     fn push_stack(&mut self, addr: u16) {
         self.reg.sp -= 2;
         self.mmu.write_word(self.reg.sp, addr);
@@ -1419,7 +1409,7 @@ impl CPU {
             Src8::H => self.reg.h,
             Src8::L => self.reg.l,
             Src8::N => self.fetch(),
-            Src8::HLContents => self.read_hl_byte(),
+            Src8::HLContents => self.mmu.read(self.reg.hl()),
             Src8::Addr(addr) => self.mmu.read(addr),
         }
     }
@@ -1434,7 +1424,7 @@ impl CPU {
             Dst8::E => self.reg.e = val,
             Dst8::H => self.reg.h = val,
             Dst8::L => self.reg.l = val,
-            Dst8::HLContents => self.write_hl_byte(val),
+            Dst8::HLContents => self.mmu.write(self.reg.hl(), val),
             Dst8::Addr(addr) => self.mmu.write(addr, val),
         }
     }
@@ -1550,93 +1540,6 @@ impl CPU {
             tile_map_addr + ((tile_idx + OFFSET) * TILE_BYTES)
         }
     }
-
-    fn draw_scanline_dbg(&mut self) {
-        // XXX: tmp for debugging
-        let ly = self.mmu.read(io_registers::LY);
-        if self.scanline == ly {
-            return;
-        }
-        self.scanline = ly;
-        self.clear_window();
-        self.canvas.set_draw_color(BLACK);
-        let line = self.rect(1, 1 + ly as u32, COLS, 1);
-        self.canvas.fill_rect(line).expect("rect failed to draw");
-        self.canvas.present();
-        if self.scanline == 0 {
-            self.dump_tiles();
-        }
-    }
-
-    fn dump_tiles(&mut self) {
-        for tile_idx in 0..128 {
-            let mut tile_data = [0; TILE_BYTES as usize];
-            let tile_start: i32 = ((BG_ROWS + 2) * self.pixel_size) as i32;
-            const TILES_PER_ROW: usize = 32;
-            const TILE_PIXELS: u32 = 8;
-            // XXX: This is hideous
-            // let x_offset: u32 = (tile_idx % TILES_PER_ROW) as u32 * TILE_PIXELS;
-            // let y_offset: u32 =
-            //     (tile_start + (tile_idx / TILES_PER_ROW) as u32 * TILE_PIXELS) as u32;
-            let x_offset: i32 =
-                (tile_idx % TILES_PER_ROW) as i32 * self.pixel_size as i32 * TILE_PIXELS as i32;
-            let y_offset: i32 = tile_start
-                + (tile_idx / TILES_PER_ROW) as i32 * self.pixel_size as i32 * TILE_PIXELS as i32;
-            // println!("{tile_idx} {x_offset},{y_offset}");
-            for i in 0..16 {
-                tile_data[i] = self
-                    .mmu
-                    .read(0x8000 + ((tile_idx as u16) * TILE_BYTES) + (i as u16));
-            }
-            let tile = Tile { data: tile_data };
-            let draw = tile.render();
-            for (i, row) in draw.iter().enumerate() {
-                for (j, color_id) in row.iter().enumerate() {
-                    let x: u32 = (j * self.pixel_size as usize)
-                        .try_into()
-                        .expect("should never be drawing out of i32 bounds");
-                    let y: u32 = (i * self.pixel_size as usize)
-                        .try_into()
-                        .expect("should never be drawing out of i32 bounds");
-
-                    // println!("{x},{y}");
-
-                    let color = match color_id {
-                        0 => WHITE,
-                        1 => LIGHT_GRAY,
-                        2 => DARK_GRAY,
-                        3 => BLACK,
-                        _ => panic!("bad color id"),
-                    };
-
-                    self.canvas.set_draw_color(color);
-                    let pixel = sdl2::rect::Rect::new(
-                        (x as i32 + x_offset) as i32,
-                        (y as i32 + y_offset) as i32,
-                        self.pixel_size,
-                        self.pixel_size,
-                    );
-                    self.canvas.fill_rect(pixel).expect("rect failed to draw");
-                }
-                // let tile_border = self.rect(x_offset - 1, y_offset - 1, TILE_PIXELS, TILE_PIXELS);
-                let tile_border = sdl2::rect::Rect::new(
-                    x_offset - 1,
-                    y_offset - 1,
-                    self.pixel_size * TILE_PIXELS,
-                    self.pixel_size * TILE_PIXELS,
-                );
-                self.canvas.set_draw_color(RED);
-                self.canvas
-                    .draw_rect(tile_border)
-                    .expect("rect failed to draw");
-            }
-        }
-
-        self.draw_bg_border();
-        self.draw_window_border();
-
-        self.canvas.present();
-    }
 }
 
 impl CPU {
@@ -1649,8 +1552,17 @@ impl CPU {
         )
     }
 
+    fn get_color(&self, color_id: u8) -> sdl2::pixels::Color {
+        match color_id {
+            0 => WHITE,
+            1 => LIGHT_GRAY,
+            2 => DARK_GRAY,
+            3 => BLACK,
+            _ => panic!("bad color id"),
+        }
+    }
     fn draw_window_border(&mut self) {
-        let window_border = self.rect(1, 1, COLS, ROWS);
+        let window_border = self.rect(1, 1, COLS + 1, ROWS + 1);
         self.canvas.set_draw_color(BLUE);
         self.canvas
             .draw_rect(window_border)
@@ -1671,5 +1583,71 @@ impl CPU {
         self.canvas
             .fill_rect(clear)
             .expect("Failed to clear window");
+    }
+
+    fn draw_scanline_dbg(&mut self) {
+        // XXX: tmp for debugging
+        let ly = self.mmu.read(io_registers::LY);
+        if self.scanline == ly {
+            return;
+        }
+        self.scanline = ly;
+        self.clear_window();
+        self.canvas.set_draw_color(BLACK);
+        let line = self.rect(1, 1 + ly as u32, COLS, 1);
+        self.canvas.fill_rect(line).expect("rect failed to draw");
+        // self.canvas.present();
+        if self.scanline == 0 {
+            self.dump_tiles();
+        }
+    }
+
+    fn dump_tiles(&mut self) {
+        for tile_idx in 0..128 {
+            let mut tile_data = [0; TILE_BYTES as usize];
+            let tile_start = BG_ROWS + 2;
+
+            let tile_col = tile_idx % TILES_PER_ROW as u32;
+            let tile_row = tile_idx / TILES_PER_ROW as u32;
+
+            let x_offset_pixel: u32 = tile_col as u32 * TILE_PIXELS;
+            let y_offset_pixel: u32 = (tile_start + tile_row as u32 * TILE_PIXELS) as u32;
+            for i in 0..16 {
+                tile_data[i] = self
+                    .mmu
+                    .read(0x8000 + ((tile_idx as u16) * TILE_BYTES) + (i as u16));
+            }
+            let tile = Tile { data: tile_data };
+            let draw = tile.render();
+            for (i, row) in draw.iter().enumerate() {
+                for (j, color_id) in row.iter().enumerate() {
+                    let x_pixel: u32 = j
+                        .try_into()
+                        .expect("should never be drawing out of u32 bounds");
+                    let y_pixel: u32 = i
+                        .try_into()
+                        .expect("should never be drawing out of u32 bounds");
+
+                    let pixel = self.rect(x_pixel + x_offset_pixel, y_pixel + y_offset_pixel, 1, 1);
+
+                    let color = self.get_color(*color_id);
+                    self.canvas.set_draw_color(color);
+                    self.canvas.fill_rect(pixel).expect("rect failed to draw");
+                }
+
+                let tile_border =
+                    self.rect(x_offset_pixel, y_offset_pixel, TILE_PIXELS, TILE_PIXELS);
+
+                self.canvas.set_draw_color(RED);
+                self.canvas
+                    .draw_rect(tile_border)
+                    .expect("rect failed to draw");
+            }
+        }
+
+        self.draw_bg_border();
+        self.draw_window_border();
+
+        self.canvas.present();
     }
 }
