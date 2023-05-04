@@ -221,7 +221,7 @@ impl Registers {
 
 #[cfg(test)]
 pub mod test {
-    use super::*;
+    
 
     #[test]
     fn flag_register() {

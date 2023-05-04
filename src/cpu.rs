@@ -24,6 +24,8 @@ pub const TILE_PIXELS: u32 = 8;
 pub const TILE_BYTES: u16 = 16;
 const TILES_PER_ROW: u32 = 32;
 
+pub const RECT_ERROR: &str = "Failed to draw rectangle";
+
 // #[derive(Debug)]
 pub struct CPU {
     reg: Registers,
@@ -1505,11 +1507,11 @@ impl CPU {
         // XXX: why y_pos?
         let tile_row_to_draw = (y_pos as u32) % TILE_PIXELS;
         // for each..
-        for pixel in 0..COLS {
-            let _x_pos = if window_enabled && (pixel as u8) >= wx {
-                (pixel as u8) - wx
+        for pixel_pos in 0..COLS {
+            let x_pos = if window_enabled && (pixel_pos as u8) >= wx {
+                (pixel_pos as u8) - wx
             } else {
-                (pixel as u8) + scx
+                (pixel_pos as u8) + scx
             };
 
             let tile_idx = 4;
@@ -1526,19 +1528,30 @@ impl CPU {
 
             let tile = Tile { data: tile_data };
             let rendered_tile = tile.render();
-            let _row_to_draw = &rendered_tile[tile_row_to_draw as usize];
+            let row_to_draw = &rendered_tile[tile_row_to_draw as usize];
+            // TODO: this shouldn't be a magic number
+            let pixel = self.rect(x_pos.into(), y_pos.into(), 1, 1);
+
+            let color_id = row_to_draw[(pixel_pos % 8) as usize];
+            let color = self.get_color(color_id);
+            self.canvas.set_draw_color(color);
+            self.canvas.fill_rect(pixel).expect("failed to draw rect");
         }
     }
 
-    fn get_tile_address(&self, tile_map_addr: u16, tile_idx: u16) -> u16 {
+    fn get_tile_data_address(&self, tile_map_addr: u16, tile_idx: u16) -> u16 {
         if tile_map_addr == 0x8000 {
-            tile_map_addr + (tile_idx * TILE_BYTES)
+            let addr_in_map = tile_map_addr + (tile_idx * TILE_BYTES);
+            let tile_num: u8 = self.mmu.read(addr_in_map);
         } else {
             // 0x8800 tiles are signed, but we can cheat and add an offset that takes us to the
             // actual "zero" point which is 0x9000
             const OFFSET: u16 = (0x9000 - 0x8800) / TILE_BYTES;
-            tile_map_addr + ((tile_idx + OFFSET) * TILE_BYTES)
+            let addr_in_map = tile_map_addr + ((tile_idx + OFFSET) * TILE_BYTES);
+            let tile_num: i8 = self.mmu.read(addr_in_map);
         }
+
+        todo!()
     }
 }
 
@@ -1564,25 +1577,19 @@ impl CPU {
     fn draw_window_border(&mut self) {
         let window_border = self.rect(1, 1, COLS + 1, ROWS + 1);
         self.canvas.set_draw_color(BLUE);
-        self.canvas
-            .draw_rect(window_border)
-            .expect("rect failed to draw");
+        self.canvas.draw_rect(window_border).expect(RECT_ERROR);
     }
 
     fn draw_bg_border(&mut self) {
         let bg_border = self.rect(0, 0, BG_COLS + 2, BG_ROWS + 2);
         self.canvas.set_draw_color(GREEN);
-        self.canvas
-            .draw_rect(bg_border)
-            .expect("rect failed to draw");
+        self.canvas.draw_rect(bg_border).expect(RECT_ERROR);
     }
 
     fn clear_window(&mut self) {
         self.canvas.set_draw_color(WHITE);
         let clear = self.rect(1, 1, COLS, ROWS);
-        self.canvas
-            .fill_rect(clear)
-            .expect("Failed to clear window");
+        self.canvas.fill_rect(clear).expect(RECT_ERROR);
     }
 
     fn draw_scanline_dbg(&mut self) {
@@ -1595,7 +1602,7 @@ impl CPU {
         self.clear_window();
         self.canvas.set_draw_color(BLACK);
         let line = self.rect(1, 1 + ly as u32, COLS, 1);
-        self.canvas.fill_rect(line).expect("rect failed to draw");
+        self.canvas.fill_rect(line).expect(RECT_ERROR);
         // self.canvas.present();
         if self.scanline == 0 {
             self.dump_tiles();
@@ -1634,16 +1641,14 @@ impl CPU {
 
                     let color = self.get_color(*color_id);
                     self.canvas.set_draw_color(color);
-                    self.canvas.fill_rect(pixel).expect("rect failed to draw");
+                    self.canvas.fill_rect(pixel).expect(RECT_ERROR);
                 }
 
                 let tile_border =
                     self.rect(x_offset_pixel, y_offset_pixel, TILE_PIXELS, TILE_PIXELS);
 
                 self.canvas.set_draw_color(RED);
-                self.canvas
-                    .draw_rect(tile_border)
-                    .expect("rect failed to draw");
+                self.canvas.draw_rect(tile_border).expect(RECT_ERROR);
             }
         }
 
