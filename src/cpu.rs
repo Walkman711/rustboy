@@ -1516,7 +1516,7 @@ impl CPU {
 
             let tile_idx = 4;
             // address of the start of the tile
-            let tile_addr = self.get_tile_address(tile_map_area, tile_idx);
+            let tile_addr = self.get_tile_data_address(tile_map_area, tile_idx);
             // let tile_byte_1 = self.mmu.read(tile_addr + tile_offset);
             // let tile_byte_2 = self.mmu.read(tile_addr + tile_offset + 1);
 
@@ -1548,7 +1548,7 @@ impl CPU {
             // actual "zero" point which is 0x9000
             const OFFSET: u16 = (0x9000 - 0x8800) / TILE_BYTES;
             let addr_in_map = tile_map_addr + ((tile_idx + OFFSET) * TILE_BYTES);
-            let tile_num: i8 = self.mmu.read(addr_in_map);
+            let tile_num: i8 = self.mmu.read(addr_in_map).try_into().unwrap();
         }
 
         todo!()

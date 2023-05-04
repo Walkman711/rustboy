@@ -135,8 +135,8 @@ impl Default for Registers {
             l: 0x4D,
             sp: 0xFFFE,
             // 3.2.3
-            // pc: 0x0100,
-            pc: 0x00,
+            pc: 0x0100,
+            // pc: 0x00,
         }
     }
 }
@@ -221,7 +221,6 @@ impl Registers {
 
 #[cfg(test)]
 pub mod test {
-    
 
     #[test]
     fn flag_register() {

@@ -2,11 +2,16 @@
 name = "rustboy"
 version = "0.1.0"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+build="build.rs"
 
 [dependencies]
-clap = { version = "4.2.1", features = ["derive"] }
-strum = "0.24.1"
-strum_macros = "0.24.3"
-sdl2 = "0.35.2"
+clap = { version = "4.2", features = ["derive"] }
+strum = "0.24"
+strum_macros = "0.24"
+# sdl2 = "0.35"
+sdl2 = { version ="0.35", features = ["use_mac_framework"] }
+
+# [dependencies.sdl2]
+# version = "0.35.2"
+# default-features = false
+# features = ["use_mac_framework","image","ttf","mixer","gfx"]

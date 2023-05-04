@@ -99,23 +99,23 @@ impl ReadWriteByte for MMU {
                 if addr < 0x100 && self.boot_rom_active {
                     self.boot_rom[addr]
                 } else {
-                    self.rom_bank_0[(addr - ROM_BANK_0_START)]
+                    self.rom_bank_0[addr - ROM_BANK_0_START]
                 }
             }
             SWITCHABLE_ROM_START..=SWITCHABLE_ROM_END => {
-                self.switchable_rom[(addr - SWITCHABLE_ROM_START)]
+                self.switchable_rom[addr - SWITCHABLE_ROM_START]
             }
-            VRAM_START..=VRAM_END => self.vram[(addr - VRAM_START)],
-            EXT_RAM_START..=EXT_RAM_END => self.ext_ram[(addr - EXT_RAM_START)],
-            WRAM_I_START..=WRAM_I_END => self.wramI[(addr - WRAM_I_START)],
-            WRAM_II_START..=WRAM_II_END => self.wramII[(addr - WRAM_II_START)],
+            VRAM_START..=VRAM_END => self.vram[addr - VRAM_START],
+            EXT_RAM_START..=EXT_RAM_END => self.ext_ram[addr - EXT_RAM_START],
+            WRAM_I_START..=WRAM_I_END => self.wramI[addr - WRAM_I_START],
+            WRAM_II_START..=WRAM_II_END => self.wramII[addr - WRAM_II_START],
             ECHO_RAM_START..=ECHO_RAM_END => panic!("Nintendo forbids reading from Echo RAM"),
             SPRITE_TABLE_START..=SPRITE_TABLE_END => unimplemented!("Sprite Attrib Memory"),
             FORBIDDEN_START..=FORBIDDEN_END => {
-                panic!("Nintendo forbids reading from {FORBIDDEN_START}-{FORBIDDEN_END}")
+                panic!("Nintendo forbids reading from {FORBIDDEN_START:#04X}-{FORBIDDEN_END:#04X}")
             }
             IO_START..=IO_END => self.io_read(addr as u16),
-            HRAM_START..=HRAM_END => self.hram[(addr - HRAM_START)],
+            HRAM_START..=HRAM_END => self.hram[addr - HRAM_START],
             INTERRUPT_START..=INTERRUPT_END => self.ie,
             _ => unreachable!("convert addr to usize in order to remove annoying casts"),
         }
@@ -124,23 +124,21 @@ impl ReadWriteByte for MMU {
     fn write(&mut self, addr: u16, val: u8) {
         let addr = addr as usize;
         match addr {
-            ROM_BANK_0_START..=ROM_BANK_0_END => self.rom_bank_0[(addr - ROM_BANK_0_START)] = val,
+            ROM_BANK_0_START..=ROM_BANK_0_END => self.rom_bank_0[addr - ROM_BANK_0_START] = val,
             SWITCHABLE_ROM_START..=SWITCHABLE_ROM_END => {
-                self.switchable_rom[(addr - SWITCHABLE_ROM_START)] = val
+                self.switchable_rom[addr - SWITCHABLE_ROM_START] = val
             }
-            VRAM_START..=VRAM_END => {
-                self.vram[(addr - VRAM_START)] = val;
-            }
-            EXT_RAM_START..=EXT_RAM_END => self.ext_ram[(addr - EXT_RAM_START)] = val,
-            WRAM_I_START..=WRAM_I_END => self.wramI[(addr - WRAM_I_START)] = val,
-            WRAM_II_START..=WRAM_II_END => self.wramII[(addr - WRAM_II_START)] = val,
+            VRAM_START..=VRAM_END => self.vram[addr - VRAM_START] = val,
+            EXT_RAM_START..=EXT_RAM_END => self.ext_ram[addr - EXT_RAM_START] = val,
+            WRAM_I_START..=WRAM_I_END => self.wramI[addr - WRAM_I_START] = val,
+            WRAM_II_START..=WRAM_II_END => self.wramII[addr - WRAM_II_START] = val,
             ECHO_RAM_START..=ECHO_RAM_END => panic!("Nintendo forbids reading from Echo RAM"),
             SPRITE_TABLE_START..=SPRITE_TABLE_END => unimplemented!("Sprite Attrib Memory"),
             FORBIDDEN_START..=FORBIDDEN_END => {
-                panic!("Nintendo forbids writing to {FORBIDDEN_START}-{FORBIDDEN_END}")
+                panic!("Nintendo forbids writing to {FORBIDDEN_START:#04X}-{FORBIDDEN_END:#04X}")
             }
             IO_START..=IO_END => self.io_write(addr as u16, val),
-            HRAM_START..=HRAM_END => self.hram[(addr - HRAM_START)] = val,
+            HRAM_START..=HRAM_END => self.hram[addr - HRAM_START] = val,
             INTERRUPT_START..=INTERRUPT_END => self.ie = val,
             _ => unreachable!("convert addr to usize in order to remove annoying casts"),
         }
