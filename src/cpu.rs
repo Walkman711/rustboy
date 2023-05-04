@@ -40,11 +40,13 @@ pub struct CPU {
     canvas: Canvas<Window>,
     scanline: u8,
     pixel_size: u32,
+    event_pump: sdl2::EventPump,
 }
 
 impl CPU {
     pub fn new(rom: &str, debug: bool, gb_doctor: bool, pixel_size: u32) -> Self {
         let sdl_context = sdl2::init().expect("Failed to init SDL context.");
+        let mut event_pump = sdl_context.event_pump().unwrap();
         let video_subsys = sdl_context
             .video()
             .expect("Failed to init SDL Video subsystem.");
@@ -64,7 +66,9 @@ impl CPU {
             .expect("Failed to create canvas.");
         canvas.set_draw_color(BLACK);
         canvas.clear();
+        for _event in event_pump.poll_iter() {}
         canvas.present();
+        std::thread::sleep(std::time::Duration::from_secs(3));
         Self {
             reg: Registers::default(),
             mmu: MMU::new(rom, gb_doctor),
@@ -78,6 +82,7 @@ impl CPU {
             canvas,
             scanline: 0,
             pixel_size,
+            event_pump,
         }
     }
 
@@ -1655,6 +1660,10 @@ impl CPU {
         self.draw_bg_border();
         self.draw_window_border();
 
+        // think i need this to actually present the canvas in osx
+        for _event in self.event_pump.poll_iter() {}
+        // The rest of the game loop goes here...
         self.canvas.present();
+        std::thread::sleep(std::time::Duration::from_secs(1));
     }
 }
